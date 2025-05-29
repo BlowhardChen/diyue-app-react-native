@@ -1,3 +1,27 @@
 {
-  "extends": "@react-native/typescript-config/tsconfig.json"
+  "compilerOptions": {
+    "target": "ESNext",                           // 适配新特性
+    "module": "ESNext",                           // 使用 ESNext 模块
+    "jsx": "react-jsx",                           // 使用 react-jsx 语法（适用于 React 17+）
+    "moduleResolution": "node",                   // Node 模块解析
+    "allowJs": true,                              // 允许 js 文件
+    "noEmit": true,                               // 不输出编译产物
+    "strict": true,                               // 开启严格模式
+    "noImplicitAny": true,                        // 不允许隐式 any
+    "strictNullChecks": true,                     // 严格空检查
+    "strictFunctionTypes": true,                  // 严格函数类型
+    "strictBindCallApply": true,                  // 严格 bind/call/apply
+    "forceConsistentCasingInFileNames": true,     // 文件名一致
+    "isolatedModules": true,                      // 适配 Babel 转译
+    "esModuleInterop": true,                      // 兼容 CommonJS 模块
+    "skipLibCheck": true,                         // 跳过库检查，加快编译速度
+    "resolveJsonModule": true,                    // 允许导入 JSON 文件
+    "types": ["jest"],                            // 支持 jest 类型（可根据需要）
+    "baseUrl": ".",                               // 相对路径基础
+    "paths": {                                    // 自定义路径别名
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src", "App.tsx", "index.js"],
+  "exclude": ["node_modules", "babel.config.js", "metro.config.js", "jest.config.js"]
 }
