@@ -1,15 +1,17 @@
 import React from "react";
-import {View, Text, StyleSheet, TouchableOpacity, ImageBackground, BackHandler, Platform} from "react-native";
-import {NavigationProp, useNavigation} from "@react-navigation/native";
+import {View, Text, StyleSheet, TouchableOpacity, ImageBackground, BackHandler, Platform, StatusBar} from "react-native";
+import {useNavigation} from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {StackNavigationProp} from "@react-navigation/stack";
 
 type RootStackParamList = {
   ServiceAgreement: undefined;
   PrivacyPolicyDetail: undefined;
+  Main: undefined;
 };
 
 const PrivacyPolicyScreen: React.FC = () => {
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   const linkClick = (type: "service" | "privacy") => {
     switch (type) {
@@ -29,42 +31,45 @@ const PrivacyPolicyScreen: React.FC = () => {
   };
 
   const agree = async () => {
-    await AsyncStorage.setItem("agree", "1"); // 记录用户已同意
-    navigation.goBack();
+    await AsyncStorage.setItem("userAgreed", "true");
+    navigation.replace("Main");
   };
 
   return (
-    <ImageBackground source={require("../../assets/images/bootPage/boot.png")} style={styles.background} resizeMode="cover">
-      <View style={styles.dialogBox}>
-        <View style={styles.dialog}>
-          <Text style={styles.title}>欢迎使用地约APP</Text>
-          <View style={styles.content}>
-            <Text style={styles.contentText}>
-              请你务必审慎阅读、充分理解“服务协议”和“隐私政策”各条款，包括但不限于：为了更好的向你提供服务，我们需要收集你的设备标识、操作日志等信息用于分析、优化应用性能。
-            </Text>
-            <Text style={styles.contentText}>
-              你可阅读
-              <Text style={styles.link} onPress={() => linkClick("service")}>
-                《服务协议》
+    <>
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <ImageBackground source={require("../../assets/images/bootPage/boot.png")} style={styles.background} resizeMode="cover">
+        <View style={styles.dialogBox}>
+          <View style={styles.dialog}>
+            <Text style={styles.title}>欢迎使用地约APP</Text>
+            <View style={styles.content}>
+              <Text style={styles.contentText}>
+                请你务必审慎阅读、充分理解“服务协议”和“隐私政策”各条款，包括但不限于：为了更好的向你提供服务，我们需要收集你的设备标识、操作日志等信息用于分析、优化应用性能。
               </Text>
-              和
-              <Text style={styles.link} onPress={() => linkClick("privacy")}>
-                《隐私政策》
+              <Text style={styles.contentText}>
+                你可阅读
+                <Text style={styles.link} onPress={() => linkClick("service")}>
+                  《服务协议》
+                </Text>
+                和
+                <Text style={styles.link} onPress={() => linkClick("privacy")}>
+                  《隐私政策》
+                </Text>
+                了解详细信息。如果你同意，请点击下面按钮开始接受我们的服务。
               </Text>
-              了解详细信息。如果你同意，请点击下面按钮开始接受我们的服务。
-            </Text>
-          </View>
-          <View style={styles.btnBox}>
-            <TouchableOpacity style={styles.btn} onPress={disagree}>
-              <Text style={styles.btnText}>不同意并退出</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.btn, styles.agreeBtn]} onPress={agree}>
-              <Text style={[styles.btnText, styles.agreeBtnText]}>同意</Text>
-            </TouchableOpacity>
+            </View>
+            <View style={styles.btnBox}>
+              <TouchableOpacity style={styles.btn} onPress={disagree}>
+                <Text style={styles.btnText}>不同意并退出</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.btn, styles.agreeBtn]} onPress={agree}>
+                <Text style={[styles.btnText, styles.agreeBtnText]}>同意</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
-    </ImageBackground>
+      </ImageBackground>
+    </>
   );
 };
 
