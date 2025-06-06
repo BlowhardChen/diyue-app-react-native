@@ -6,12 +6,24 @@ import BottomTabNavigator from "./BottomTabNavigator";
 import ServiceAgreement from "../screens/bootPage/ServiceAgreement";
 import PrivacyPolicyDetail from "../screens/bootPage/PrivacyPolicyDetail";
 import {RootStackParamList} from "@/types/navigation";
+import LoginScreen from "@/screens/account/LoginScreen";
+import RegisterScreen from "@/screens/account/RegisterScreen";
+import CodeLoginScreen from "@/screens/account/CodeLoginScreen";
+import SetPasswordScreen from "@/screens/account/SetPasswordScreen";
+
+type Props = {
+  initialRouteName?: keyof RootStackParamList;
+};
 
 const Stack = createStackNavigator<RootStackParamList>();
 
-const AppNavigator: React.FC = () => {
+const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
   return (
-    <Stack.Navigator screenOptions={{headerShown: false}}>
+    <Stack.Navigator initialRouteName={initialRouteName} screenOptions={{headerShown: false}}>
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="CodeLogin" component={CodeLoginScreen} />
+      <Stack.Screen name="SetPassword" component={SetPasswordScreen} />
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <Stack.Screen name="ServiceAgreement" component={ServiceAgreement} />

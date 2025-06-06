@@ -1,8 +1,7 @@
 import React, {useCallback} from "react";
 import {createBottomTabNavigator, BottomTabNavigationOptions} from "@react-navigation/bottom-tabs";
-import {Image, StyleSheet, ImageSourcePropType} from "react-native";
+import {Image, StyleSheet, ImageSourcePropType, Pressable, PressableProps} from "react-native";
 import {RouteProp} from "@react-navigation/native";
-
 import LandManagementScreen from "../screens/tabBarPage/LandManagementScreen";
 import MyScreen from "../screens/tabBarPage/MyScreen";
 import FarmManagementScreen from "../screens/tabBarPage/FarmManagementScreen";
@@ -47,6 +46,8 @@ const TabBarIcon: React.FC<TabBarIconProps> = ({iconSource}) => (
   <Image source={iconSource} style={styles.tabIcon} resizeMode="contain" />
 );
 
+const CustomTabBarButton: React.FC<PressableProps> = props => <Pressable {...props} android_ripple={null} />;
+
 // 外部的 tabBarIcon 渲染函数
 const renderTabBarIcon =
   (routeName: keyof TabParamList) =>
@@ -72,6 +73,7 @@ const BottomTabNavigator: React.FC = () => {
         paddingTop: 5,
         backgroundColor: "#fff",
       },
+      tabBarButton: props => <CustomTabBarButton {...props} />,
     }),
     [],
   );

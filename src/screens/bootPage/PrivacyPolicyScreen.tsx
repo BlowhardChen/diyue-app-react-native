@@ -1,13 +1,17 @@
+// 服务协议&隐私政策弹窗页面
 import React from "react";
-import {View, Text, StyleSheet, TouchableOpacity, ImageBackground, BackHandler, Platform, StatusBar} from "react-native";
+import {View, Text, TouchableOpacity, ImageBackground, BackHandler, Platform, StatusBar} from "react-native";
 import {useNavigation} from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {StackNavigationProp} from "@react-navigation/stack";
+import {isTokenValid} from "@/utils/auth";
+import {styles} from "./styles/PrivacyPolicyScreen";
 
 type RootStackParamList = {
   ServiceAgreement: undefined;
   PrivacyPolicyDetail: undefined;
   Main: undefined;
+  Login: undefined;
 };
 
 const PrivacyPolicyScreen: React.FC = () => {
@@ -24,15 +28,24 @@ const PrivacyPolicyScreen: React.FC = () => {
     }
   };
 
+  // 不同意并退出
   const disagree = () => {
     if (Platform.OS === "android") {
       BackHandler.exitApp();
     }
   };
 
+  // 同意
   const agree = async () => {
     await AsyncStorage.setItem("userAgreed", "true");
-    navigation.replace("Main");
+
+    const valid = await isTokenValid();
+
+    if (valid) {
+      navigation.replace("Main");
+    } else {
+      navigation.replace("Login");
+    }
   };
 
   return (
@@ -44,10 +57,10 @@ const PrivacyPolicyScreen: React.FC = () => {
             <Text style={styles.title}>欢迎使用地约APP</Text>
             <View style={styles.content}>
               <Text style={styles.contentText}>
-                请你务必审慎阅读、充分理解“服务协议”和“隐私政策”各条款，包括但不限于：为了更好的向你提供服务，我们需要收集你的设备标识、操作日志等信息用于分析、优化应用性能。
+                &emsp;&emsp;请你务必审慎阅读、充分理解“服务协议”和“隐私政策”各条款，包括但不限于：为了更好的向你提供服务，我们需要收集你的设备标识、操作日志等信息用于分析、优化应用性能。
               </Text>
               <Text style={styles.contentText}>
-                你可阅读
+                &emsp;&emsp;你可阅读
                 <Text style={styles.link} onPress={() => linkClick("service")}>
                   《服务协议》
                 </Text>
@@ -59,7 +72,7 @@ const PrivacyPolicyScreen: React.FC = () => {
               </Text>
             </View>
             <View style={styles.btnBox}>
-              <TouchableOpacity style={styles.btn} onPress={disagree}>
+              <TouchableOpacity style={styles.disbtn} onPress={disagree}>
                 <Text style={styles.btnText}>不同意并退出</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.btn, styles.agreeBtn]} onPress={agree}>
@@ -72,71 +85,5 @@ const PrivacyPolicyScreen: React.FC = () => {
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  background: {flex: 1, width: "100%", height: "100%"},
-  dialogBox: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  dialog: {
-    width: "80%",
-    padding: 20,
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "500",
-    textAlign: "center",
-  },
-  content: {marginTop: 10},
-  contentText: {
-    fontSize: 16,
-    lineHeight: 22,
-    textAlign: "left",
-    marginBottom: 10,
-  },
-  link: {
-    color: "#08ae3c",
-    fontWeight: "500",
-  },
-  btnBox: {
-    marginTop: 20,
-    alignItems: "center",
-    justifyContent: "space-around",
-  },
-  btn: {
-    width: "90%",
-    height: 44,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#eee",
-    marginBottom: 10,
-  },
-  agreeBtn: {
-    backgroundColor: "#08ae3c",
-  },
-  btnText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "gray",
-  },
-  agreeBtnText: {
-    color: "#fff",
-  },
-});
 
 export default PrivacyPolicyScreen;

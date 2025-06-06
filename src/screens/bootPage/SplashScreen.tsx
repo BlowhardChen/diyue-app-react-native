@@ -1,3 +1,4 @@
+// 启动页
 import React, {useEffect} from "react";
 import {StyleSheet, ImageBackground, StatusBar} from "react-native";
 import {StackNavigationProp} from "@react-navigation/stack";
