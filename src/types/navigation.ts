@@ -1,4 +1,4 @@
-export type RootStackParamList = AuthParamList & MainParamList & AuthStackParamList;
+export type RootStackParamList = AuthParamList & MainParamList & AuthStackParamList & AccountStackParamList;
 
 // 启动页&隐私政策&服务协议&隐私政策详情页
 export type AuthParamList = {
@@ -19,4 +19,9 @@ export type AuthStackParamList = {
   Register: undefined;
   CodeLogin: undefined;
   SetPassword: undefined;
+};
+
+// 账户信息
+export type AccountStackParamList = {
+  AccountSetting: undefined;
 };

@@ -1,11 +1,14 @@
 // 登录页面
 import {useState} from "react";
-import {View, Text, TextInput, TouchableOpacity, Image, Alert, StatusBar, Platform, SafeAreaView} from "react-native";
+import {View, Text, TextInput, TouchableOpacity, Image, StatusBar, Platform, SafeAreaView} from "react-native";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import LinearGradient from "react-native-linear-gradient";
 import {styles} from "./styles/LoginScreen";
 import {KeyboardAwareScrollView} from "react-native-keyboard-aware-scroll-view";
+import AgreementModal from "./components/AgreementModal";
+import {showCustomToast} from "@/components/common/toast";
+import {useLogin} from "@/hooks/useLogin";
 
 type RootStackParamList = {
   Main: undefined;
@@ -17,12 +20,14 @@ type RootStackParamList = {
 
 const LoginScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const [showAgreementModal, setShowAgreementModal] = useState(false);
 
   const [loginType, setLoginType] = useState<"password" | "code">("password");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setPasswordVisible] = useState(false);
   const [isAgreementChecked, setAgreementChecked] = useState(false);
+  const {handleLoginFun} = useLogin();
 
   // 格式化手机号（添加空格）
   const formatPhoneNumber = (text: string) => {
@@ -46,13 +51,13 @@ const LoginScreen = () => {
   // 验证手机号
   const validatePhoneNumber = (phoneNumber: string): boolean => {
     if (!phoneNumber) {
-      Alert.alert("提示", "请输入手机号");
+      showCustomToast("请输入手机号");
       return false;
     }
     const phoneRegex = /^1[3-9]\d{9}$/;
     const isValid = phoneRegex.test(phoneNumber.replace(/\s/g, ""));
     if (!isValid) {
-      Alert.alert("提示", "请输入正确的手机号");
+      showCustomToast("请输入正确的手机号");
     }
     return isValid;
   };
@@ -60,11 +65,11 @@ const LoginScreen = () => {
   // 验证密码
   const validatePassword = (pwd: string): boolean => {
     if (!pwd) {
-      Alert.alert("提示", "请输入密码");
+      showCustomToast("请输入密码");
       return false;
     }
     if (pwd.length < 6) {
-      Alert.alert("提示", "密码长度不能少于6位");
+      showCustomToast("密码长度不能少于6位");
       return false;
     }
     return true;
@@ -86,19 +91,17 @@ const LoginScreen = () => {
     if (!validatePhoneNumber(phone)) return;
     if (loginType === "password" && !validatePassword(password)) return;
     if (!isAgreementChecked) {
-      Alert.alert("提示", "请先勾选用户协议和隐私政策");
+      showCustomToast("请先勾选用户协议和隐私政策");
       return;
     }
-
-    // TODO: 在此处添加登录逻辑
-    Alert.alert("成功", "登录成功");
+    setShowAgreementModal(true);
   };
 
   // 验证码登录
   const handleGetCode = () => {
     if (!validatePhoneNumber(phone)) return;
     if (!isAgreementChecked) {
-      Alert.alert("提示", "请先勾选用户协议和隐私政策");
+      showCustomToast("请先勾选用户协议和隐私政策");
       return;
     }
 
@@ -123,8 +126,17 @@ const LoginScreen = () => {
     });
   };
 
+  // 同意并登录
+  const handleAgreeAndLogin = async () => {
+    try {
+      await handleLoginFun(phone.replace(/\s/g, ""), password);
+      setShowAgreementModal(false);
+    } catch (error) {}
+  };
+
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: "#fff"}}>
+      <AgreementModal visible={showAgreementModal} onClose={() => setShowAgreementModal(false)} onAgree={handleAgreeAndLogin} />
       <View style={{flex: 1}}>
         <KeyboardAwareScrollView
           style={{flex: 1}}
@@ -323,7 +335,7 @@ const LoginScreen = () => {
             </TouchableOpacity>
             <Text style={styles.agreementText}>我已阅读并同意</Text>
             <TouchableOpacity onPress={() => navigation.navigate("ServiceAgreement")}>
-              <Text style={styles.agreementLink}>《用户协议》</Text>
+              <Text style={styles.agreementLink}>《服务协议》</Text>
             </TouchableOpacity>
             <Text style={styles.agreementText}>和</Text>
             <TouchableOpacity onPress={() => navigation.navigate("PrivacyPolicyDetail")}>

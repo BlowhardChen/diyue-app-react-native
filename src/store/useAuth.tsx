@@ -1,14 +1,50 @@
-import {useState, createContext, useContext} from "react";
+import {createContext, useContext, useEffect, useState} from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {getUserInfoFromStorage} from "@/utils/auth";
+import {UserInfo} from "@/types/user";
 
-const AuthContext = createContext<{isLoggedIn: boolean; login: () => void; logout: () => void} | null>(null);
+interface AuthContextType {
+  isLoggedIn: boolean;
+  userInfo: UserInfo | null;
+  login: (token: string, userInfo: UserInfo) => Promise<void>;
+  logout: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
-  const login = () => setIsLoggedIn(true);
-  const logout = () => setIsLoggedIn(false);
+  useEffect(() => {
+    const initAuth = async () => {
+      const token = await AsyncStorage.getItem("token");
+      const expiresAt = await AsyncStorage.getItem("tokenExpiresAt");
+      if (token && expiresAt && Date.now() < Number(expiresAt)) {
+        const info = await getUserInfoFromStorage();
+        setIsLoggedIn(true);
+        setUserInfo(info);
+      }
+    };
+    initAuth();
+  }, []);
 
-  return <AuthContext.Provider value={{isLoggedIn, login, logout}}>{children}</AuthContext.Provider>;
+  // 登录
+  const login = async (token: string, member: UserInfo) => {
+    await AsyncStorage.setItem("token", token);
+    await AsyncStorage.setItem("userInfo", JSON.stringify(member));
+    setIsLoggedIn(true);
+    setUserInfo(userInfo);
+  };
+
+  // 退出登录
+  const logout = async () => {
+    await AsyncStorage.multiRemove(["token", "userInfo"]);
+    setIsLoggedIn(false);
+    setUserInfo(null);
+  };
+
+  return <AuthContext.Provider value={{isLoggedIn, userInfo, login, logout}}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

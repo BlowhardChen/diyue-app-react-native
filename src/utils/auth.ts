@@ -2,10 +2,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const isTokenValid = async (): Promise<boolean> => {
   const token = await AsyncStorage.getItem("token");
-  const expiresAt = await AsyncStorage.getItem("tokenExpiresAt");
+  return !!token;
+};
 
-  if (!token || !expiresAt) return false;
-
-  const now = Date.now();
-  return now < Number(expiresAt);
+export const getUserInfoFromStorage = async () => {
+  const userInfoStr = await AsyncStorage.getItem("userInfo");
+  return userInfoStr ? JSON.parse(userInfoStr) : null;
 };

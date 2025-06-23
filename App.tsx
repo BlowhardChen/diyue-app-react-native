@@ -8,6 +8,7 @@ import {isTokenValid} from "@/utils/auth";
 import {AuthProvider} from "@/store/useAuth";
 import {ActivityIndicator, View} from "react-native";
 import {RootStackParamList} from "@/types/navigation";
+import {RootSiblingParent} from "react-native-root-siblings"; // ✅ 引入这一行！
 
 export default function App() {
   const routeNameRef = useRef<string>("");
@@ -16,12 +17,16 @@ export default function App() {
   useEffect(() => {
     const initApp = async () => {
       const agreed = await AsyncStorage.getItem("userAgreed");
+      const token = await AsyncStorage.getItem("token");
+      console.log("用户协议状态:", agreed);
+      console.log("token:", token);
       if (agreed !== "true") {
         setInitialRoute("PrivacyPolicy");
         return;
       }
 
       const valid = await isTokenValid();
+      console.log("token 是否有效:", valid);
       setInitialRoute(valid ? "Main" : "Login");
     };
 
@@ -29,7 +34,6 @@ export default function App() {
   }, []);
 
   if (!initialRoute) {
-    // 👇 初始路由为空，显示加载中状态
     return (
       <View style={{flex: 1, justifyContent: "center", alignItems: "center"}}>
         <ActivityIndicator size="large" />
@@ -38,22 +42,24 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <NavigationContainer
-        ref={navigationRef}
-        onReady={() => {
-          routeNameRef.current = initialRoute;
-        }}
-        onStateChange={state => {
-          const previousRouteName = routeNameRef.current;
-          const currentRouteName = getActiveRouteName(state!);
-          if (previousRouteName !== currentRouteName) {
-            console.log("路由切换:", previousRouteName, "→", currentRouteName);
-          }
-          routeNameRef.current = currentRouteName;
-        }}>
-        <AppNavigator initialRouteName={initialRoute} />
-      </NavigationContainer>
-    </AuthProvider>
+    <RootSiblingParent>
+      <AuthProvider>
+        <NavigationContainer
+          ref={navigationRef}
+          onReady={() => {
+            routeNameRef.current = initialRoute;
+          }}
+          onStateChange={state => {
+            const previousRouteName = routeNameRef.current;
+            const currentRouteName = getActiveRouteName(state!);
+            if (previousRouteName !== currentRouteName) {
+              console.log("路由切换:", previousRouteName, "→", currentRouteName);
+            }
+            routeNameRef.current = currentRouteName;
+          }}>
+          <AppNavigator initialRouteName={initialRoute} />
+        </NavigationContainer>
+      </AuthProvider>
+    </RootSiblingParent>
   );
 }

@@ -80,10 +80,10 @@ const BottomTabNavigator: React.FC = () => {
 
   return (
     <Tab.Navigator screenOptions={screenOptions}>
-      <Tab.Screen name="LandManagement" component={LandManagementScreen} options={{title: "土地管理"}} />
-      <Tab.Screen name="FarmManagement" component={FarmManagementScreen} options={{title: "农事管理"}} />
-      <Tab.Screen name="FarmSupplies" component={FarmSuppliesScreen} options={{title: "农资商城"}} />
-      <Tab.Screen name="My" component={MyScreen} options={{title: "我的"}} />
+      <Tab.Screen name="LandManagement" component={LandManagementScreen} options={{title: "土地管理", headerShown: false}} />
+      <Tab.Screen name="FarmManagement" component={FarmManagementScreen} options={{title: "农事管理", headerShown: false}} />
+      <Tab.Screen name="FarmSupplies" component={FarmSuppliesScreen} options={{title: "农资商城", headerShown: false}} />
+      <Tab.Screen name="My" component={MyScreen} options={{title: "我的", headerShown: false}} />
     </Tab.Navigator>
   );
 };

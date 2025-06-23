@@ -1,11 +1,12 @@
 // 服务协议&隐私政策弹窗页面
 import React from "react";
-import {View, Text, TouchableOpacity, ImageBackground, BackHandler, Platform, StatusBar} from "react-native";
+import {View, Text, TouchableOpacity, ImageBackground, BackHandler, Platform} from "react-native";
 import {useNavigation} from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {isTokenValid} from "@/utils/auth";
 import {styles} from "./styles/PrivacyPolicyScreen";
+import {useStatusBar} from "@/hooks/useStatusBar";
 
 type RootStackParamList = {
   ServiceAgreement: undefined;
@@ -16,6 +17,8 @@ type RootStackParamList = {
 
 const PrivacyPolicyScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+
+  useStatusBar("light-content", "transparent");
 
   const linkClick = (type: "service" | "privacy") => {
     switch (type) {
@@ -50,7 +53,6 @@ const PrivacyPolicyScreen: React.FC = () => {
 
   return (
     <>
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <ImageBackground source={require("../../assets/images/bootPage/boot.png")} style={styles.background} resizeMode="cover">
         <View style={styles.dialogBox}>
           <View style={styles.dialog}>

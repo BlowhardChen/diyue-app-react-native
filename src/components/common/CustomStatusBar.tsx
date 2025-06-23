@@ -1,6 +1,6 @@
 import React from "react";
-import {View, Text, Image, TouchableOpacity, StyleSheet, StatusBar} from "react-native";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
+import {View, Text, Image, TouchableOpacity, StyleSheet} from "react-native";
+import {SafeAreaView} from "react-native-safe-area-context";
 
 interface NavBarProps {
   navTitle?: string;
@@ -23,12 +23,8 @@ const NavBar: React.FC<NavBarProps> = ({
   onBack,
   onRightPress,
 }) => {
-  const insets = useSafeAreaInsets();
-
   return (
-    <View style={[styles.navbar, {paddingTop: insets.top}]}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
-
+    <SafeAreaView edges={["top"]} style={styles.navbar}>
       <View style={styles.header}>
         {/* 返回按钮 */}
         <TouchableOpacity style={styles.iconBtn} onPress={onBack}>
@@ -65,7 +61,7 @@ const NavBar: React.FC<NavBarProps> = ({
           )}
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 

@@ -1,0 +1,58 @@
+import {Global} from "@/styles/global";
+import {Dimensions, Platform, StatusBar, StyleSheet} from "react-native";
+
+const {width: SCREEN_WIDTH} = Dimensions.get("window");
+const STATUS_BAR_HEIGHT = Platform.OS === "ios" ? 44 : StatusBar.currentHeight || 0;
+export const styles = StyleSheet.create({
+  container: {flex: 1, backgroundColor: "#f7f7f8"},
+  topBg: {
+    width: SCREEN_WIDTH,
+    height: 300,
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+    position: "relative",
+  },
+  topIcon: {position: "absolute", top: STATUS_BAR_HEIGHT, right: 0, padding: 16, zIndex: 10},
+  iconImg: {width: 24, height: 24},
+  userInfoRow: {flexDirection: "row", alignItems: "center", paddingLeft: 21},
+  avatarContainer: {width: 80, height: 80, borderRadius: 40, overflow: "hidden"},
+  avatar: {width: 80, height: 80},
+  msgContainer: {flex: 1, marginLeft: 12},
+  name: {fontSize: 20, fontWeight: "500", color: Global.colors.textLight, marginBottom: 6},
+  phoneAuthRow: {flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between"},
+  phoneRow: {flexDirection: "row", alignItems: "center"},
+  phoneIcon: {width: 20, height: 20},
+  phoneText: {fontSize: 16, marginLeft: 6, color: Global.colors.textLight},
+  authBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: 12,
+    paddingVertical: 4,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
+  },
+  authDone: {backgroundColor: "#CBF8D9"},
+  authPending: {backgroundColor: "#FFE1E1"},
+  authDoneText: {color: "#08AE3C"},
+  authPendingText: {color: "#FF3D3B"},
+  authIcon: {width: 12, height: 12, marginHorizontal: 5},
+  dataRow: {flexDirection: "row", justifyContent: "space-between", marginTop: 27, paddingHorizontal: 21},
+  dataItem: {alignItems: "center"},
+  dataNum: {fontSize: 18, color: Global.colors.textLight, fontWeight: "600"},
+  dataLabel: {fontSize: 14, color: Global.colors.textLight, marginTop: 4},
+  hostedOrdersBox: {backgroundColor: "#fff", marginTop: -40, paddingVertical: 16},
+  hostedOrdersTop: {flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 16},
+  orderTitle: {fontSize: 16, fontWeight: "500", color: "#333"},
+  orderMore: {flexDirection: "row", alignItems: "center"},
+  orderMoreText: {fontSize: 14, color: "#666"},
+  iconSmall: {width: 12, height: 12, marginLeft: 4},
+  orderList: {flexDirection: "row", justifyContent: "space-around"},
+  orderItem: {alignItems: "center", width: SCREEN_WIDTH / 4, marginTop: 16},
+  ordersItemIcon: {position: "relative"},
+  orderIcon: {width: 32, height: 32},
+  orderName: {marginTop: 6, fontSize: 14, color: Global.colors.textDark},
+
+  manageList: {flexDirection: "row", flexWrap: "wrap", backgroundColor: "#fff", marginTop: 10, paddingBottom: 20},
+  mangeItem: {width: SCREEN_WIDTH / 3, alignItems: "center", paddingVertical: 20},
+  mangeIcon: {width: 40, height: 40, marginBottom: 12},
+  mangeText: {fontSize: 16, fontWeight: "500", color: Global.colors.textDark},
+});
