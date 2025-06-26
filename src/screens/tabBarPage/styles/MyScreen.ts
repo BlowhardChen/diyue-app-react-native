@@ -1,17 +1,13 @@
 import {Global} from "@/styles/global";
-import {Dimensions, Platform, StatusBar, StyleSheet} from "react-native";
+import {Dimensions, StyleSheet} from "react-native";
+import {Platform, StatusBar} from "react-native";
 
-const {width: SCREEN_WIDTH} = Dimensions.get("window");
 const STATUS_BAR_HEIGHT = Platform.OS === "ios" ? 44 : StatusBar.currentHeight || 0;
+const {width: SCREEN_WIDTH} = Dimensions.get("window");
 export const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: "#f7f7f8"},
-  topBg: {
-    width: SCREEN_WIDTH,
-    height: 300,
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
-    position: "relative",
-  },
-  topIcon: {position: "absolute", top: STATUS_BAR_HEIGHT, right: 0, padding: 16, zIndex: 10},
+  topBg: {width: SCREEN_WIDTH, height: 300, paddingTop: STATUS_BAR_HEIGHT},
+  topIcon: {position: "absolute", top: STATUS_BAR_HEIGHT + 9, right: 16, zIndex: 10},
   iconImg: {width: 24, height: 24},
   userInfoRow: {flexDirection: "row", alignItems: "center", paddingLeft: 21},
   avatarContainer: {width: 80, height: 80, borderRadius: 40, overflow: "hidden"},

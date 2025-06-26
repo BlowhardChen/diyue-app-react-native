@@ -13,6 +13,7 @@ export const useLogin = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   const handleLoginFun = async (mobile: string, password: string) => {
+    console.log("handleLoginFun>>>>");
     const data = await accountLogin({mobile, password});
     console.log("handleLoginFun", data);
     const {token, member} = data as unknown as {token: string; member: UserInfo};

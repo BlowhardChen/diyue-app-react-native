@@ -1,12 +1,18 @@
-import React, {useState, useEffect, useRef} from "react";
+import React, {useState, useEffect, useRef, useMemo, useCallback} from "react";
 import {View, Text, TextInput, TouchableOpacity, Image, StatusBar} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
 import {RouteProp, useNavigation, useRoute} from "@react-navigation/native";
-import Toast from "react-native-root-toast";
-import {debounce} from "lodash";
 import {styles} from "./styles/CodeLoginScreen";
 import {StackNavigationProp} from "@react-navigation/stack";
+import {codeLogin, getCodeForgotPwd, getCodeLogin, getCodeRegister} from "@/services/account";
+import {showErrorToast} from "@/components/common/ErrorToast";
+import debounce from "lodash/debounce";
 
+// ---------- 常量 ----------
+const CODE_LENGTH = 6;
+const COUNTRY_CODE = "+86";
+
+// ---------- 类型 ----------
 type RootStackParamList = {
   Main: undefined;
   CodeLogin: {mobile: string; viewType: string};
@@ -19,172 +25,146 @@ type CodeLoginRouteParams = {
   mobile: string;
 };
 
+// ---------- 倒计时自定义 Hook ----------
+function useCountdown(initial: number, onFinish: () => void) {
+  const [count, setCount] = useState(initial);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onFinishRef = useRef(onFinish);
+
+  useEffect(() => {
+    onFinishRef.current = onFinish;
+  }, [onFinish]);
+
+  useEffect(() => {
+    if (count === 0) {
+      onFinishRef.current?.();
+      return;
+    }
+    timerRef.current = setTimeout(() => setCount(c => c - 1), 1000);
+    return () => clearTimeout(timerRef.current!);
+  }, [count]);
+
+  const reset = () => setCount(initial);
+
+  return {count, reset};
+}
+
+// API 映射
+const codeApiMap: Record<string, Function> = {
+  login: getCodeLogin,
+  register: getCodeRegister,
+  forgetPassword: getCodeForgotPwd,
+};
+
 const CodeLoginScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<{params: CodeLoginRouteParams}>>();
-  // const userInfoStore = useUserInfoStore();
-
-  // 从路由参数获取手机号和视图类型
   const {mobile, viewType} = route.params || {};
   const phoneNumber = mobile?.replace(/\s/g, "") || "";
 
-  // 状态管理
   const [code, setCode] = useState("");
-  const [count, setCount] = useState(60);
-  const [isReget, setIsReget] = useState(false);
   const [focus, setFocus] = useState(true);
-  const [isCodeComplete, setIsCodeComplete] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isReget, setIsReget] = useState(false);
+
+  const {count, reset} = useCountdown(60, () => setIsReget(true));
 
   // 隐藏手机号中间四位
   const hidePhoneNumber = (phone: string) => {
     if (!phone) return "";
     const prefix = phone.substring(0, 3);
     const suffix = phone.substring(7);
-    const hiddenPart = phone.substring(3, 7).replace(/\d/g, "*");
-    return prefix + hiddenPart + suffix;
+    return `${prefix}****${suffix}`;
   };
 
-  // 返回按钮
-  const handleBack = () => {
-    navigation.goBack();
-  };
+  // 验证码输入是否完成
+  const isCodeValid = useMemo(() => code.length === CODE_LENGTH, [code]);
 
   // 获取验证码
-  const getCode = async () => {
+  const getCode = useCallback(async () => {
     try {
-      let res;
-      switch (viewType) {
-        case "register":
-          res = await getCodeRegister({mobile: phoneNumber});
-          break;
-        case "login":
-          res = await getCodeLogin({mobile: phoneNumber});
-          break;
-        case "forgetPassword":
-          res = await getCodeForgotPwd({mobile: phoneNumber});
-          break;
-        default:
-          break;
-      }
+      const api = codeApiMap[viewType];
+      if (!api) return;
+      const res = await api({mobile: phoneNumber});
       if (res) {
-        startCountdown();
-        setCount(60);
+        reset();
         setIsReget(false);
       }
     } catch (error: any) {
-      showToast(error.data?.msg || "获取验证码失败", "error");
+      console.log("error", error);
+      showErrorToast(error?.msg || "获取验证码失败");
     }
-  };
+  }, [viewType, phoneNumber, reset]);
 
-  // 启动倒计时
-  const startCountdown = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
+  // 防抖的重新获取验证码方法
+  const debounceRef = useRef<ReturnType<typeof debounce> | null>(null);
 
-    timerRef.current = setInterval(() => {
-      setCount(prevCount => {
-        if (prevCount <= 1) {
-          clearInterval(timerRef.current!);
-          setIsReget(true);
-          return 0;
-        }
-        return prevCount - 1;
-      });
-    }, 1000);
-  };
-
-  // 重新获取验证码（防抖）
-  const refreshGetCode = debounce(() => {
-    if (count === 0) {
-      getCode();
-    }
-  }, 500);
-
-  // 验证码输入处理
-  const handleCodeChange = (text: string) => {
-    // 只允许数字输入
-    const numericText = text.replace(/[^0-9]/g, "");
-    // 限制长度为6
-    const trimmedText = numericText.slice(0, 6);
-    setCode(trimmedText);
-
-    if (trimmedText.length === 6) {
-      setIsCodeComplete(true);
-      // 自动登录或跳转
-      if (viewType === "login") {
-        handleAutoLogin();
-      } else {
-        navigation.navigate("SetPassword", {
-          viewType,
-          mobile: phoneNumber,
-          mobileCode: trimmedText,
-        });
+  useEffect(() => {
+    debounceRef.current = debounce(() => {
+      if (count === 0) {
+        getCode();
       }
-    } else {
-      setIsCodeComplete(false);
-    }
+    }, 500);
+
+    return () => {
+      debounceRef.current?.cancel();
+    };
+  }, [count, getCode]);
+
+  // 验证码输入变化
+  const handleCodeChange = (text: string) => {
+    const numericText = text.replace(/[^0-9]/g, "").slice(0, CODE_LENGTH);
+    setCode(numericText);
   };
 
-  // 验证码登录
-  const handleAutoLogin = async () => {
-    try {
-      const {data} = await codeLogin({
+  // 验证码登录逻辑
+  const handleAutoLogin = useCallback(
+    async (enteredCode: string) => {
+      try {
+        const {data} = await codeLogin({
+          mobile: phoneNumber,
+          mobileCode: enteredCode,
+        });
+
+        if (data?.register) {
+          navigation.navigate("SetPassword", {
+            viewType: "setPassword",
+            mobile: phoneNumber,
+            mobileCode: enteredCode,
+          });
+        } else {
+          navigation.navigate("Main");
+        }
+      } catch (error: any) {
+        showErrorToast(error?.msg || "登录失败");
+      }
+    },
+    [navigation, phoneNumber],
+  );
+
+  // 输入完成后的处理
+  useEffect(() => {
+    if (!isCodeValid) return;
+
+    if (viewType === "login") {
+      handleAutoLogin(code);
+    } else {
+      navigation.navigate("SetPassword", {
+        viewType,
         mobile: phoneNumber,
         mobileCode: code,
       });
-
-      //   userInfoStore.setToken(data.token);
-      //   userInfoStore.setUserInfoData(data.member);
-
-      if (data?.register) {
-        navigation.navigate("SetPassword", {
-          viewType: "setPassword",
-          mobile: phoneNumber,
-          mobileCode: code,
-        });
-      } else {
-        navigation.navigate("Main");
-      }
-    } catch (error: any) {
-      showToast(error.data?.msg || "登录失败", "error");
     }
-  };
+  }, [code, isCodeValid, handleAutoLogin, navigation, phoneNumber, viewType]);
 
-  // 显示Toast
-  const showToast = (message: string, type: "success" | "error" = "success") => {
-    Toast.show(message, {
-      duration: Toast.durations.SHORT,
-      position: Toast.positions.CENTER,
-      shadow: true,
-      animation: true,
-      hideOnPress: true,
-      delay: 0,
-      backgroundColor: type === "error" ? "#FF4D4F" : "#52C41A",
-    });
-  };
+  // 聚焦/失焦处理
+  const handleFocus = () => setFocus(true);
+  const handleBlur = () => setFocus(false);
+  const handleBack = () => navigation.goBack();
 
-  // 组件挂载时获取验证码
+  // 初始加载验证码
   useEffect(() => {
     getCode();
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, []);
-
-  // 处理输入框聚焦
-  const handleFocus = () => {
-    setFocus(true);
-  };
-
-  // 处理输入框失去焦点
-  const handleBlur = () => {
-    setFocus(false);
-  };
+  }, [getCode]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -198,16 +178,15 @@ const CodeLoginScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* 主要内容 */}
+      {/* 主内容 */}
       <View style={styles.content}>
         <Text style={styles.title}>输入验证码</Text>
         <Text style={styles.phone}>
-          验证码已发送至 +86 <Text>{hidePhoneNumber(phoneNumber)}</Text>
+          验证码已发送至 {COUNTRY_CODE} <Text>{hidePhoneNumber(phoneNumber)}</Text>
         </Text>
 
-        {/* 验证码输入区域 */}
+        {/* 验证码输入框 */}
         <View style={styles.codeInputContainer}>
-          {/* 隐藏的TextInput用于实际输入 */}
           <TextInput
             style={styles.hiddenInput}
             value={code}
@@ -215,13 +194,12 @@ const CodeLoginScreen = () => {
             onFocus={handleFocus}
             onBlur={handleBlur}
             keyboardType="number-pad"
-            maxLength={6}
+            maxLength={CODE_LENGTH}
             autoFocus={true}
           />
 
-          {/* 自定义验证码显示 */}
           <TouchableOpacity activeOpacity={1} onPress={handleFocus} style={styles.codeDisplay}>
-            {Array.from({length: 6}).map((_, index) => (
+            {Array.from({length: CODE_LENGTH}).map((_, index) => (
               <View key={index} style={[styles.codeDigit, focus && index === code.length && styles.codeDigitFocused]}>
                 <Text style={styles.codeDigitText}>{code[index] || ""}</Text>
               </View>
@@ -229,13 +207,13 @@ const CodeLoginScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* 重发验证码按钮 */}
+        {/* 倒计时或重发 */}
         {isReget ? (
-          <TouchableOpacity onPress={refreshGetCode}>
+          <TouchableOpacity onPress={() => debounceRef.current?.()}>
             <Text style={styles.resendButton}>重发短信验证码</Text>
           </TouchableOpacity>
         ) : (
-          <Text style={styles.countdownText}>{count}秒后可重新获取</Text>
+          <Text style={styles.countdownText}>{count} 秒后可重新获取</Text>
         )}
       </View>
     </SafeAreaView>

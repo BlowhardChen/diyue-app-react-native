@@ -1,6 +1,5 @@
 import React from "react";
-import {View, Text, Image, TouchableOpacity, StyleSheet} from "react-native";
-import {SafeAreaView} from "react-native-safe-area-context";
+import {View, Text, Image, TouchableOpacity, StyleSheet, StatusBar, Platform} from "react-native";
 
 interface NavBarProps {
   navTitle?: string;
@@ -13,6 +12,8 @@ interface NavBarProps {
   onRightPress?: () => void;
 }
 
+const STATUS_BAR_HEIGHT = Platform.OS === "ios" ? 44 : StatusBar.currentHeight || 0;
+
 const NavBar: React.FC<NavBarProps> = ({
   navTitle = "",
   subTitle = "",
@@ -24,14 +25,12 @@ const NavBar: React.FC<NavBarProps> = ({
   onRightPress,
 }) => {
   return (
-    <SafeAreaView edges={["top"]} style={styles.navbar}>
+    <View style={styles.navbar}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
       <View style={styles.header}>
         {/* 返回按钮 */}
         <TouchableOpacity style={styles.iconBtn} onPress={onBack}>
-          <Image
-            source={require("../../assets/images/common/icon-back-top.png")} // 替换为你的本地路径
-            style={styles.iconImage}
-          />
+          <Image source={require("../../assets/images/common/icon-back-top.png")} style={styles.iconImage} />
         </TouchableOpacity>
 
         {/* 中间标题 */}
@@ -61,12 +60,13 @@ const NavBar: React.FC<NavBarProps> = ({
           )}
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   navbar: {
+    paddingTop: STATUS_BAR_HEIGHT,
     backgroundColor: "#fff",
   },
   header: {
@@ -74,6 +74,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
+
     justifyContent: "space-between",
     position: "relative",
   },

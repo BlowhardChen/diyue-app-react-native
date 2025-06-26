@@ -1,10 +1,9 @@
 import React, {useEffect, useState, useCallback} from "react";
-import {View, Text, Image, TouchableOpacity, FlatList, StatusBar, SafeAreaView, ImageBackground, Platform} from "react-native";
+import {View, Text, Image, TouchableOpacity, FlatList, StatusBar, ImageBackground, Platform} from "react-native";
 import {useNavigation, useFocusEffect} from "@react-navigation/native";
 import {getUserInfo} from "@/services/account";
 import {styles} from "./styles/MyScreen";
 import {StackNavigationProp} from "@react-navigation/stack";
-import {useStatusBar} from "@/hooks/useStatusBar";
 
 interface UserInfo {
   avatar: string;
@@ -40,8 +39,6 @@ type RootStackParamList = {
 
 const MyScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  useStatusBar("light-content", "transparent");
-
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [ordersList, setOrdersList] = useState<OrderItem[]>([]);
   const STATUS_BAR_HEIGHT = Platform.OS === "ios" ? 44 : StatusBar.currentHeight || 0;
@@ -109,14 +106,14 @@ const MyScreen = () => {
   function handleManage(item: MangeItem) {}
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ImageBackground source={require("../../assets/images/my/my-bg.png")} style={styles.topBg} resizeMode="cover">
+    <View style={styles.container}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <ImageBackground source={require("../../assets/images/my/my-bg.png")} style={styles.topBg}>
         <TouchableOpacity style={styles.topIcon} onPress={handleSetting}>
           <Image source={require("../../assets/images/my/icon-setting.png")} style={styles.iconImg} />
         </TouchableOpacity>
         {/* 占位高度，避免内容上移 */}
-        <View style={{height: STATUS_BAR_HEIGHT + 40}} />
-
+        <View style={{height: STATUS_BAR_HEIGHT}} />
         <View style={styles.userInfoRow}>
           <TouchableOpacity onPress={viewPersonInfo} style={styles.avatarContainer}>
             <Image
@@ -199,7 +196,7 @@ const MyScreen = () => {
           </TouchableOpacity>
         ))}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 

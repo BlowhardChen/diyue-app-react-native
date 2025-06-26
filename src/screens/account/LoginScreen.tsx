@@ -7,7 +7,7 @@ import LinearGradient from "react-native-linear-gradient";
 import {styles} from "./styles/LoginScreen";
 import {KeyboardAwareScrollView} from "react-native-keyboard-aware-scroll-view";
 import AgreementModal from "./components/AgreementModal";
-import {showCustomToast} from "@/components/common/toast";
+import {showErrorToast} from "@/components/common/ErrorToast";
 import {useLogin} from "@/hooks/useLogin";
 
 type RootStackParamList = {
@@ -51,13 +51,13 @@ const LoginScreen = () => {
   // 验证手机号
   const validatePhoneNumber = (phoneNumber: string): boolean => {
     if (!phoneNumber) {
-      showCustomToast("请输入手机号");
+      showErrorToast("请输入手机号");
       return false;
     }
     const phoneRegex = /^1[3-9]\d{9}$/;
     const isValid = phoneRegex.test(phoneNumber.replace(/\s/g, ""));
     if (!isValid) {
-      showCustomToast("请输入正确的手机号");
+      showErrorToast("请输入正确的手机号");
     }
     return isValid;
   };
@@ -65,11 +65,11 @@ const LoginScreen = () => {
   // 验证密码
   const validatePassword = (pwd: string): boolean => {
     if (!pwd) {
-      showCustomToast("请输入密码");
+      showErrorToast("请输入密码");
       return false;
     }
     if (pwd.length < 6) {
-      showCustomToast("密码长度不能少于6位");
+      showErrorToast("密码长度不能少于6位");
       return false;
     }
     return true;
@@ -91,7 +91,7 @@ const LoginScreen = () => {
     if (!validatePhoneNumber(phone)) return;
     if (loginType === "password" && !validatePassword(password)) return;
     if (!isAgreementChecked) {
-      showCustomToast("请先勾选用户协议和隐私政策");
+      showErrorToast("请先勾选用户协议和隐私政策");
       return;
     }
     setShowAgreementModal(true);
@@ -101,11 +101,10 @@ const LoginScreen = () => {
   const handleGetCode = () => {
     if (!validatePhoneNumber(phone)) return;
     if (!isAgreementChecked) {
-      showCustomToast("请先勾选用户协议和隐私政策");
+      showErrorToast("请先勾选用户协议和隐私政策");
       return;
     }
 
-    // TODO: 在此处添加获取验证码的逻辑
     navigation.navigate("CodeLogin", {
       mobile: phone.replace(/\s/g, ""),
       viewType: "login",

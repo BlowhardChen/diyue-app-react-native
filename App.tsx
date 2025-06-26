@@ -18,7 +18,6 @@ export default function App() {
     const initApp = async () => {
       const agreed = await AsyncStorage.getItem("userAgreed");
       const token = await AsyncStorage.getItem("token");
-      console.log("用户协议状态:", agreed);
       console.log("token:", token);
       if (agreed !== "true") {
         setInitialRoute("PrivacyPolicy");

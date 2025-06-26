@@ -1,11 +1,11 @@
 import CustomStatusBar from "@/components/common/CustomStatusBar";
-import {useStatusBar} from "@/hooks/useStatusBar";
+import Popup from "@/components/common/Popup";
 import {useAuth} from "@/store/useAuth";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
-import {useEffect} from "react";
+import {useState} from "react";
 import {StyleSheet} from "react-native";
-import {View, Text, Image, TouchableOpacity, SafeAreaView, Platform} from "react-native";
+import {View, Text, Image, TouchableOpacity} from "react-native";
 
 type RootStackParamList = {
   Main: undefined;
@@ -16,9 +16,9 @@ type RootStackParamList = {
 };
 
 const AccountSetting = () => {
-  useStatusBar("dark-content", "#fff");
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const {logout, userInfo} = useAuth();
+  const [isShowPopup, setShowPopup] = useState(false);
 
   // 个人信息
   const viewPersonalInfo = () => {
@@ -32,16 +32,17 @@ const AccountSetting = () => {
 
   // 退出登录
   const loginOut = () => {
-    // setShowPopup(true);
+    setShowPopup(true);
   };
 
   // 关闭弹窗
   const closePopup = () => {
-    // setShowPopup(false);
+    setShowPopup(false);
   };
 
   // 确定退出
   const confirmLoginOut = () => {
+    setShowPopup(false);
     logout();
     navigation.reset({
       index: 0,
@@ -49,19 +50,18 @@ const AccountSetting = () => {
     });
   };
 
-  useEffect(() => {
-    // 获取系统信息（React Native 中获取版本号的方式不同）
-    if (Platform.OS === "android") {
-      const version = Platform.constants?.Release || "1.0.0";
-      console.log(version, "APP版本号");
-    } else if (Platform.OS === "ios") {
-      const version = Platform.constants?.osVersion || "1.0.0";
-      console.log(version, "APP版本号");
-    }
-  }, []);
-
   return (
-    <SafeAreaView>
+    <>
+      <Popup
+        visible={isShowPopup}
+        title="提示"
+        msgText="确认要退出登录吗？"
+        leftBtnText="取消"
+        rightBtnText="退出登录"
+        rightBtnStyle={{color: "#FF3D3B"}}
+        onLeftBtn={closePopup}
+        onRightBtn={confirmLoginOut}
+      />
       <CustomStatusBar navTitle="设置" onBack={() => navigation.goBack()} />
       <View style={styles.settingList}>
         <TouchableOpacity style={styles.settingListItem} onPress={viewPersonalInfo}>
@@ -76,13 +76,12 @@ const AccountSetting = () => {
 
         <View style={styles.settingListItem}>
           <Text style={styles.itemText}>版本号：{"1234543"}</Text>
-          <Image source={require("../../assets/images/my/icon-right.png")} style={styles.arrowIcon} />
         </View>
         <TouchableOpacity style={styles.logoutButton} onPress={loginOut}>
           <Text style={styles.logoutText}>退出登录</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </>
   );
 };
 

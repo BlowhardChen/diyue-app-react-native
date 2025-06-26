@@ -1,7 +1,7 @@
 import Toast from "react-native-root-toast";
 import {Text, View, Image, StyleSheet} from "react-native";
 
-export const showCustomToast = (message: string) => {
+export const showErrorToast = (message: string) => {
   Toast.show(
     <View style={styles.toastContainer}>
       <Image source={require("../../assets/images/common/icon-erroe.png")} style={styles.toastIcon} />
