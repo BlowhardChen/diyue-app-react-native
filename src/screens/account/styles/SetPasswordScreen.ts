@@ -1,5 +1,5 @@
 import {Global} from "@/styles/global";
-import {Platform, StatusBar, StyleSheet} from "react-native";
+import {StyleSheet} from "react-native";
 export const styles = StyleSheet.create({
   safeArea: {
     flex: 1,

@@ -12,7 +12,7 @@ type RootStackParamList = {
   MyScreen: undefined;
   Login: undefined;
   EditPassword: {mobile: string};
-  Personal: undefined;
+  PersonalInfo: undefined;
 };
 
 const AccountSetting = () => {
@@ -22,7 +22,7 @@ const AccountSetting = () => {
 
   // 个人信息
   const viewPersonalInfo = () => {
-    navigation.navigate("Personal");
+    navigation.navigate("PersonalInfo");
   };
 
   // 修改密码
@@ -66,12 +66,12 @@ const AccountSetting = () => {
       <View style={styles.settingList}>
         <TouchableOpacity style={styles.settingListItem} onPress={viewPersonalInfo}>
           <Text style={styles.itemText}>个人信息</Text>
-          <Image source={require("../../assets/images/my/icon-right.png")} style={styles.arrowIcon} />
+          <Image source={require("@/assets/images/my/icon-right.png")} style={styles.arrowIcon} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.settingListItem} onPress={editPassword}>
           <Text style={styles.itemText}>修改密码</Text>
-          <Image source={require("../../assets/images/my/icon-right.png")} style={styles.arrowIcon} />
+          <Image source={require("@/assets/images/my/icon-right.png")} style={styles.arrowIcon} />
         </TouchableOpacity>
 
         <View style={styles.settingListItem}>

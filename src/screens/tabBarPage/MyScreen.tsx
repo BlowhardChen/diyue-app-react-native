@@ -1,7 +1,6 @@
-import React, {useEffect, useState, useCallback} from "react";
+import React, {useState, useCallback} from "react";
 import {View, Text, Image, TouchableOpacity, FlatList, StatusBar, ImageBackground, Platform} from "react-native";
 import {useNavigation, useFocusEffect} from "@react-navigation/native";
-import {getUserInfo} from "@/services/account";
 import {styles} from "./styles/MyScreen";
 import {StackNavigationProp} from "@react-navigation/stack";
 

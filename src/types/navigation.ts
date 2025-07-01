@@ -24,4 +24,7 @@ export type AuthStackParamList = {
 // 账户信息
 export type AccountStackParamList = {
   AccountSetting: undefined;
+  PersonalInfo: undefined;
+  EditPassword: {mobile: string};
+  EditUserName: {name: string};
 };

@@ -8,6 +8,7 @@ interface NavBarProps {
   rightIcon?: number; // require(image) 传进来
   rightTitle?: string;
   rightTitleStyle?: object;
+  rightBtnColor?: object;
   onBack?: () => void;
   onRightPress?: () => void;
 }
@@ -21,6 +22,7 @@ const NavBar: React.FC<NavBarProps> = ({
   rightIcon,
   rightTitle,
   rightTitleStyle = {},
+  rightBtnColor = {},
   onBack,
   onRightPress,
 }) => {
@@ -53,7 +55,9 @@ const NavBar: React.FC<NavBarProps> = ({
             </TouchableOpacity>
           ) : rightTitle ? (
             <TouchableOpacity onPress={onRightPress}>
-              <Text style={[styles.rightBtn, rightTitleStyle]}>{rightTitle}</Text>
+              <View style={rightTitleStyle}>
+                <Text style={[styles.rightBtn, rightBtnColor]}>{rightTitle}</Text>
+              </View>
             </TouchableOpacity>
           ) : (
             <View style={{width: 40}} /> // 占位
@@ -74,7 +78,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-
     justifyContent: "space-between",
     position: "relative",
   },
@@ -112,9 +115,18 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "center",
   },
+  // rightTitleStyle: {
+  //   width: 56,
+  //   height: 28,
+  //   alignItems: "center",
+  //   justifyContent: "center",
+  //   color: "#FFFFFF",
+  //   fontSize: 16,
+  //   backgroundColor: "#08AE3C",
+  //   borderRadius: 6,
+  // },
   rightBtn: {
     fontSize: 14,
-    color: "#007AFF",
   },
 });
 
