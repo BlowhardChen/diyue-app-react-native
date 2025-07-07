@@ -1,4 +1,8 @@
-export type RootStackParamList = AuthParamList & MainParamList & AuthStackParamList & AccountStackParamList;
+export type RootStackParamList = AuthParamList &
+  MainParamList &
+  AuthStackParamList &
+  AccountStackParamList &
+  DeviceStackParamList;
 
 // 启动页&隐私政策&服务协议&隐私政策详情页
 export type AuthParamList = {
@@ -27,4 +31,9 @@ export type AccountStackParamList = {
   PersonalInfo: undefined;
   EditPassword: {mobile: string};
   EditUserName: {name: string};
+};
+
+// 设备
+export type DeviceStackParamList = {
+  AddDevice: undefined;
 };

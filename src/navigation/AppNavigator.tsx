@@ -14,6 +14,7 @@ import AccountSettingScreen from "@/screens/account/AccountSettingScreen";
 import PersonalInfoScreen from "@/screens/account/PersonalInfoScreen";
 import EditPasswordScreen from "@/screens/account/EditPasswordScreen";
 import EditUserNameScreen from "@/screens/account/EditUserNameScreen";
+import AddDeviceScreen from "@/screens/device/AddDeviceScreen";
 
 type Props = {
   initialRouteName?: keyof RootStackParamList;
@@ -24,6 +25,7 @@ const Stack = createStackNavigator<RootStackParamList>();
 const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
   return (
     <Stack.Navigator initialRouteName={initialRouteName} screenOptions={{headerShown: false}}>
+      <Stack.Screen name="AddDevice" component={AddDeviceScreen} />
       <Stack.Screen name="EditUserName" component={EditUserNameScreen} />
       <Stack.Screen name="EditPassword" component={EditPasswordScreen} />
       <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
