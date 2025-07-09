@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agriculture Map</title>
+  <style>
+    html,
+    body,
+    #map {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .ol-control button {
+      font-size: 1.5em;
+    }
+
+    .ol-zoom {
+      display: none !important;
+    }
+  </style>
+  <link rel="stylesheet" href="./ol.css" />
+</head>
+
+<body>
+  <div id="map"></div>
+  <script src="./ol.js"></script>
+  <script src="./turf.min.js"></script>
+  <script>
+    // 天地图卫星地图
+    const TdSatelliteMapLayer = new ol.layer.Tile({
+      source: new ol.source.XYZ({
+        url: 'http://t0.tianditu.com/DataServer?T=img_w&x={x}&y={y}&l={z}&tk=bdb59406d5662fe9f4d12b5012e04171',
+        projection: 'EPSG:3857',
+      })
+    })
+    // 天地图电子地图
+    const TdElectronMapLayer = new ol.layer.Tile({
+      source: new ol.source.XYZ({
+        url: 'http://t2.tianditu.gov.cn/DataServer?T=cta_w&x={x}&y={y}&l={z}&tk=4685c5e03cc4daa9f7cb7914cdf05c98',
+        projection: 'EPSG:3857',
+
+      })
+    })
+    // 天地图注记
+    const TDAnnotationMapLayer = new ol.layer.Tile({
+      source: new ol.source.XYZ({
+        url: 'https://t2.tianditu.gov.cn/DataServer?T=cia_w&x={x}&y={y}&l={z}&tk=4685c5e03cc4daa9f7cb7914cdf05c98',
+        projection: 'EPSG:3857',
+
+
+      })
+    })
+    // 谷歌卫星地图
+    const GoogleSatelliteMapLayer = new ol.layer.Tile({
+      source: new ol.source.XYZ({
+        url: 'https://map.tugemap.site/maps/vt?lyrs=s&x={x}&y={y}&z={z}&src=app&scale=2&from=app',
+        projection: 'EPSG:3857',
+
+      })
+    })
+    const map = new ol.Map({
+      target: 'map',
+      layers: [
+        TdSatelliteMapLayer,
+        TDAnnotationMapLayer
+      ],
+      view: new ol.View({
+        center: ol.proj.fromLonLat([114.085871, 22.546029]),
+        zoom: 17,
+        maxZoom: 24
+      }),
+
+    });
+    const vectorSource = new ol.source.Vector({ wrapX: false });
+    const vectorLayer = new ol.layer.Vector({ source: vectorSource });
+    map.addLayer(vectorLayer);
+  </script>
+</body>
+
+</html>

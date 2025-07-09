@@ -1,5 +1,5 @@
 import React from "react";
-import {createStackNavigator} from "@react-navigation/stack";
+import {CardStyleInterpolators, createStackNavigator} from "@react-navigation/stack";
 import SplashScreen from "../screens/bootPage/SplashScreen";
 import PrivacyPolicyScreen from "../screens/bootPage/PrivacyPolicyScreen";
 import BottomTabNavigator from "./BottomTabNavigator";
@@ -24,7 +24,38 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
   return (
-    <Stack.Navigator initialRouteName={initialRouteName} screenOptions={{headerShown: false}}>
+    <Stack.Navigator
+      initialRouteName={initialRouteName}
+      screenOptions={{
+        headerShown: false,
+        gestureEnabled: true, // 启用手势返回
+        gestureDirection: "horizontal", // 手势方向
+        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS, // iOS风格水平滑动
+        transitionSpec: {
+          open: {
+            animation: "spring",
+            config: {
+              stiffness: 1000,
+              damping: 500,
+              mass: 3,
+              overshootClamping: true,
+              restDisplacementThreshold: 0.01,
+              restSpeedThreshold: 0.01,
+            },
+          },
+          close: {
+            animation: "spring",
+            config: {
+              stiffness: 1000,
+              damping: 500,
+              mass: 3,
+              overshootClamping: true,
+              restDisplacementThreshold: 0.01,
+              restSpeedThreshold: 0.01,
+            },
+          },
+        },
+      }}>
       <Stack.Screen name="AddDevice" component={AddDeviceScreen} />
       <Stack.Screen name="EditUserName" component={EditUserNameScreen} />
       <Stack.Screen name="EditPassword" component={EditPasswordScreen} />
