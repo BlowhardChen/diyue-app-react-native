@@ -3,6 +3,8 @@ import {View, Text, TouchableOpacity, Image, StyleSheet, Platform, StatusBar} fr
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import LinearGradient from "react-native-linear-gradient";
+import {observer} from "mobx-react-lite";
+import {deviceStore} from "@/stores/deviceStore";
 
 type HomeStackParamList = {
   AddDevice: undefined;
@@ -17,7 +19,10 @@ interface Props {
   onChangeTab: (title: string, type: string) => void;
 }
 
-const LandHomeCustomNavbar: React.FC<Props> = ({onChangeTab}) => {
+const deviceConnected = require("@/assets/images/common/device-connect.png");
+const deviceDisconnected = require("@/assets/images/common/device-disconnect.png");
+
+const LandHomeCustomNavbar: React.FC<Props> = observer(({onChangeTab}) => {
   const navigation = useNavigation<StackNavigationProp<HomeStackParamList>>();
   const [activeTab, setActiveTab] = useState(0);
 
@@ -41,25 +46,25 @@ const LandHomeCustomNavbar: React.FC<Props> = ({onChangeTab}) => {
     return unsubscribe;
   }, [navigation]);
 
-  const deviceIcon = require("@/assets/images/home/device-disconnection.png");
+  const deviceIcon = deviceStore.status === "1" ? deviceConnected : deviceDisconnected;
 
   return (
     <LinearGradient colors={["#41C95B", "#1AB850"]} start={{x: 0.5, y: 0}} end={{x: 0.15, y: 1}} style={styles.navbar}>
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <View style={styles.tabs}>
         {tabs.map((tab, index) => (
-          <TouchableOpacity key={index} style={styles.tabItem} onPress={() => changeTab(tab, index)}>
+          <TouchableOpacity key={index} style={styles.tabItem} activeOpacity={1} onPress={() => changeTab(tab, index)}>
             <Text style={[styles.tabText, activeTab === index && styles.activeText]}>{tab.title}</Text>
             {activeTab === index && <View style={styles.underline} />}
           </TouchableOpacity>
         ))}
       </View>
-      <TouchableOpacity style={styles.deviceContent} onPress={connectDevice}>
+      <TouchableOpacity style={styles.deviceContent} onPress={connectDevice} activeOpacity={1}>
         <Image source={deviceIcon} style={styles.deviceIcon} />
       </TouchableOpacity>
     </LinearGradient>
   );
-};
+});
 
 export default LandHomeCustomNavbar;
 
@@ -76,7 +81,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "center",
-    height: 60,
+    height: 55,
   },
   tabItem: {
     width: 80,
@@ -94,7 +99,7 @@ const styles = StyleSheet.create({
   underline: {
     width: 80,
     height: 3,
-    marginTop: 2,
+    marginTop: 4,
     backgroundColor: "#fff",
   },
   deviceContent: {

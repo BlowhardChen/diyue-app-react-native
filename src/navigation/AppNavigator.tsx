@@ -15,6 +15,7 @@ import PersonalInfoScreen from "@/screens/account/PersonalInfoScreen";
 import EditPasswordScreen from "@/screens/account/EditPasswordScreen";
 import EditUserNameScreen from "@/screens/account/EditUserNameScreen";
 import AddDeviceScreen from "@/screens/device/AddDeviceScreen";
+import EnclosureScreen from "@/screens/land/EnclosureScreen";
 
 type Props = {
   initialRouteName?: keyof RootStackParamList;
@@ -56,6 +57,7 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
           },
         },
       }}>
+      <Stack.Screen name="Enclosure" component={EnclosureScreen} />
       <Stack.Screen name="AddDevice" component={AddDeviceScreen} />
       <Stack.Screen name="EditUserName" component={EditUserNameScreen} />
       <Stack.Screen name="EditPassword" component={EditPasswordScreen} />

@@ -1,6 +1,6 @@
 import CustomStatusBar from "@/components/common/CustomStatusBar";
 import Popup from "@/components/common/Popup";
-import {useAuth} from "@/store/useAuth";
+import {useAuth} from "@/stores/useAuth";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {useState} from "react";

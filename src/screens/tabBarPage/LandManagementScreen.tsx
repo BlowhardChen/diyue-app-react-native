@@ -1,22 +1,39 @@
-import LandHomeCustomNavbar from "@/components/landHome/LandHomeCustomNavbar";
+import LandHomeCustomNavbar from "@/components/land/LandHomeCustomNavbar";
 import {View} from "react-native";
 import {styles} from "./styles/LandManagementScreen";
-import LandHomeMap from "@/components/landHome/LandHomeMap";
-import MapControlButton from "@/components/landHome/MapControlButton";
+import LandHomeMap from "@/components/land/LandHomeMap";
+import MapControlButton from "@/components/land/MapControlButton";
+import {useNavigation} from "@react-navigation/native";
+import {StackNavigationProp} from "@react-navigation/stack";
+
+type LandStackParamList = {
+  Enclosure: undefined;
+};
 
 const HomeScreen = () => {
+  const navigation = useNavigation<StackNavigationProp<LandStackParamList>>();
+
   // 切换tab
   const changeTab = (title: string, type: string) => {
     console.log(title, type);
   };
+
   // 切换图层
   const expandMapLayer = () => {};
+
   // 圈地
-  const startEnclosure = () => {};
+  const startEnclosure = () => {
+    navigation.navigate("Enclosure");
+  };
+
   // 隐藏地图按钮
   const hideMapControl = () => {};
+
   // 显示地图按钮
   const showMapControl = () => {};
+
+  // 定位
+  const locationControl = () => {};
 
   return (
     <View style={styles.container}>
@@ -56,7 +73,7 @@ const HomeScreen = () => {
           <MapControlButton
             iconUrl={require("../../assets/images/home/icon-location.png")}
             iconName="定位"
-            onPress={hideMapControl}
+            onPress={locationControl}
             style={{marginTop: 16}}
           />
         </View>

@@ -5,7 +5,7 @@ import {navigationRef} from "@/navigation/navigationRef";
 import {getActiveRouteName} from "@/utils/navigationUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {isTokenValid} from "@/utils/auth";
-import {AuthProvider} from "@/store/useAuth";
+import {AuthProvider} from "@/stores/useAuth";
 import {ActivityIndicator, View} from "react-native";
 import {RootStackParamList} from "@/types/navigation";
 import {RootSiblingParent} from "react-native-root-siblings"; // ✅ 引入这一行！

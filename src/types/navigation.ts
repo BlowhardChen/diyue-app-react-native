@@ -2,7 +2,8 @@ export type RootStackParamList = AuthParamList &
   MainParamList &
   AuthStackParamList &
   AccountStackParamList &
-  DeviceStackParamList;
+  DeviceStackParamList &
+  LandMapStackParamList;
 
 // 启动页&隐私政策&服务协议&隐私政策详情页
 export type AuthParamList = {
@@ -36,4 +37,9 @@ export type AccountStackParamList = {
 // 设备
 export type DeviceStackParamList = {
   AddDevice: undefined;
+};
+
+// 土地地图相关
+export type LandMapStackParamList = {
+  Enclosure: undefined;
 };

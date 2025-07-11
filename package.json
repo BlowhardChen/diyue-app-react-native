@@ -29,7 +29,7 @@
     }
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "^2.1.2",
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/bottom-tabs": "^7.3.13",
     "@react-navigation/native": "^7.1.14",
     "@react-navigation/native-stack": "^7.3.21",
@@ -38,6 +38,8 @@
     "@types/react-native-vector-icons": "^6.4.18",
     "axios": "^1.9.0",
     "lodash": "^4.17.21",
+    "mobx": "^6.13.7",
+    "mobx-react-lite": "^4.1.0",
     "react": "19.0.0",
     "react-native": "0.79.2",
     "react-native-geolocation-service": "^5.3.1",

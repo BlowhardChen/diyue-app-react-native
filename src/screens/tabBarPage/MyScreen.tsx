@@ -81,28 +81,28 @@ const MyScreen = () => {
     }, []),
   );
 
-  function handleSetting() {
+  const handleSetting = () => {
     navigation.navigate("AccountSetting");
-  }
+  };
 
-  function viewPersonInfo() {
+  const viewPersonInfo = () => {
     // nav.navigate("PersonalInfo");
-  }
+  };
 
-  function oepnAuth() {
+  const oepnAuth = () => {
     if (userInfo?.attestationStatus === "1") return;
     // setAuthVisible(true);
-  }
+  };
 
-  function viewMoreOrder() {
+  const viewMoreOrder = () => {
     // nav.navigate("HostedOrder");
-  }
+  };
 
-  function handleOrder(item: OrderItem) {
+  const handleOrder = (item: OrderItem) => {
     // nav.navigate("HostedOrder", {type: item.type});
-  }
+  };
 
-  function handleManage(item: MangeItem) {}
+  const handleManage = (item: MangeItem) => {};
 
   return (
     <View style={styles.container}>

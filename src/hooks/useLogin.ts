@@ -1,5 +1,5 @@
 import {accountLogin} from "@/services/account";
-import {useAuth} from "@/store/useAuth";
+import {useAuth} from "@/stores/useAuth";
 import {UserInfo} from "@/types/user";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";

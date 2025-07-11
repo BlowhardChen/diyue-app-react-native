@@ -10,7 +10,7 @@ const LandHomeMap = () => {
   return (
     <View style={styles.map}>
       <WebView
-        source={{uri: "file:///android_asset/web/map.html"}}
+        source={{uri: "file:///android_asset/web/homeMap.html"}}
         originWhitelist={["*"]}
         javaScriptEnabled={true}
         domStorageEnabled={true}
