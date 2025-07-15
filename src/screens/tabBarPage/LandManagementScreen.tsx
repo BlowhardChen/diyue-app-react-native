@@ -5,6 +5,8 @@ import LandHomeMap from "@/components/land/LandHomeMap";
 import MapControlButton from "@/components/land/MapControlButton";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
+import MapSwitcher from "@/components/common/MapSwitcher";
+import {useState} from "react";
 
 type LandStackParamList = {
   Enclosure: undefined;
@@ -13,13 +15,24 @@ type LandStackParamList = {
 const HomeScreen = () => {
   const navigation = useNavigation<StackNavigationProp<LandStackParamList>>();
 
+  const [showMapSwitcher, setShowMapSwitcher] = useState(false);
+
   // 切换tab
   const changeTab = (title: string, type: string) => {
     console.log(title, type);
   };
 
   // 切换图层
-  const expandMapLayer = () => {};
+  const expandMapLayer = () => {
+    setShowMapSwitcher(true);
+  };
+
+  // 切换地图
+  const handleSelectMap = ({type, layerUrl}: {type: string; layerUrl: string}) => {
+    console.log("选中的地图类型:", type);
+    console.log("地图地址:", layerUrl);
+    // 这里可以调用地图组件的切换逻辑或更新状态等
+  };
 
   // 圈地
   const startEnclosure = () => {
@@ -77,6 +90,8 @@ const HomeScreen = () => {
             style={{marginTop: 16}}
           />
         </View>
+        {/* 地图切换弹窗组件 */}
+        {showMapSwitcher && <MapSwitcher onClose={() => setShowMapSwitcher(false)} onSelectMap={handleSelectMap} />}
       </View>
     </View>
   );

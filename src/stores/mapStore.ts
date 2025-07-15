@@ -16,12 +16,18 @@ class MapStore {
     makeAutoObservable(this);
     this.loadPersistedState();
   }
-
+  /**
+   * 设置地图类型并将当前状态持久化存储。
+   * @param type - 要设置的地图类型，字符串类型。
+   */
   setMapType(type: string) {
     this.mapType = type;
     this.persist();
   }
-
+  /**
+   * 设置自定义地图图层并将当前状态持久化存储。
+   * @param layer - 要设置的自定义地图图层，字符串类型。
+   */
   setCustomMapType(layer: string) {
     this.customMapLayer = layer;
     this.persist();

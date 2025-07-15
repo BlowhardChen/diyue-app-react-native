@@ -1,6 +1,7 @@
+import {Global} from "@/styles/global";
 import {Dimensions, StyleSheet} from "react-native";
 
-const {width, height} = Dimensions.get("window");
+const {width} = Dimensions.get("window");
 
 export const styles = StyleSheet.create({
   container: {
@@ -65,7 +66,7 @@ export const styles = StyleSheet.create({
   buttonDot: {
     width: (200 / 750) * width,
     height: (200 / 750) * width,
-    backgroundColor: "#08ae3c",
+    backgroundColor: Global.colors.primary,
     borderWidth: (8 / 750) * width,
     borderColor: "#fff",
     shadowColor: "#000",

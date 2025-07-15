@@ -4,7 +4,7 @@ import {useNavigation} from "@react-navigation/native";
 import CustomStatusBar from "@/components/common/CustomStatusBar";
 import Popup from "@/components/common/Popup";
 import {StackNavigationProp} from "@react-navigation/stack";
-import {showErrorToast} from "@/components/common/ErrorToast";
+import {showCustomToast} from "@/components/common/CustomToast";
 
 type RootStackParamList = {
   Login: undefined;
@@ -42,7 +42,7 @@ const PersonalInfoScreen = () => {
       setShowPopup(false);
       navigation.reset({index: 0, routes: [{name: "Login"}]});
     } catch (e) {
-      showErrorToast("注销失败");
+      showCustomToast("error", "注销失败");
     }
   };
 

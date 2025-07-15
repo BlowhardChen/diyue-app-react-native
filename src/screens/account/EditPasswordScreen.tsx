@@ -1,7 +1,7 @@
 import {useEffect, useState} from "react";
 import {View, Text, TextInput, Image, TouchableOpacity, StatusBar} from "react-native";
 import {RouteProp, useNavigation, useRoute} from "@react-navigation/native";
-import {showErrorToast} from "@/components/common/ErrorToast";
+import {showCustomToast} from "@/components/common/CustomToast";
 import {SafeAreaView} from "react-native-safe-area-context";
 import {styles} from "./styles/EditPasswordScreen";
 
@@ -27,7 +27,7 @@ const EditPasswordScreen = () => {
 
   const validatePassword = (password: string): boolean => {
     if (!password || password.length < 6) {
-      showErrorToast("密码不得少于6位");
+      showCustomToast("error", "密码不得少于6位");
       return false;
     }
     return true;
@@ -40,7 +40,7 @@ const EditPasswordScreen = () => {
     if (!validNew || !validConfirm) return;
 
     if (newPassword !== confirmPassword) {
-      showErrorToast("两次输入的密码不一致");
+      showCustomToast("error", "两次输入的密码不一致");
       return;
     }
 
@@ -48,7 +48,7 @@ const EditPasswordScreen = () => {
       //   await editUserPassword({password: confirmPassword});
       navigation.goBack();
     } catch (error: any) {
-      showErrorToast("请求失败");
+      showCustomToast("error", "请求失败");
     }
   };
 

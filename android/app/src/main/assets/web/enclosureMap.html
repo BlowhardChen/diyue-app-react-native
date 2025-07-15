@@ -80,6 +80,54 @@
         const vectorSource = new ol.source.Vector({ wrapX: false });
         const vectorLayer = new ol.layer.Vector({ source: vectorSource });
         map.addLayer(vectorLayer);
+
+        // 1. 创建地理定位功能（不自动追踪）
+        const geolocation = new ol.Geolocation({
+            tracking: false,
+            projection: map.getView().getProjection()
+        });
+
+        // 2. 创建定位图标
+        const positionFeature = new ol.Feature();
+        positionFeature.setStyle(new ol.style.Style({
+            image: new ol.style.Circle({
+                radius: 6,
+                fill: new ol.style.Fill({ color: 'rgba(0, 153, 255, 0.8)' }),
+                stroke: new ol.style.Stroke({ color: '#fff', width: 2 })
+            })
+        }));
+
+        const positionLayer = new ol.layer.Vector({
+            source: new ol.source.Vector({
+                features: [positionFeature]
+            })
+        });
+        map.addLayer(positionLayer);
+
+        // 3. 定位逻辑封装为函数
+        function locateUser() {
+            geolocation.setTracking(true); // 开始追踪
+            geolocation.on('change:position', function () {
+                const coordinates = geolocation.getPosition();
+                if (coordinates) {
+                    positionFeature.setGeometry(new ol.geom.Point(coordinates));
+                    map.getView().setCenter(coordinates);
+                }
+            });
+        }
+
+        // 4. 监听来自 React Native 的消息
+        document.addEventListener("message", function (event) {
+            const data = event.data;
+            try {
+                const parsed = JSON.parse(data);
+                if (parsed.type === "LOCATE") {
+                    locateUser(); // 触发定位
+                }
+            } catch (e) {
+                console.error("Invalid JSON from React Native:", data);
+            }
+        });
     </script>
 </body>
 

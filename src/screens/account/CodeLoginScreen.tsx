@@ -5,7 +5,7 @@ import {RouteProp, useNavigation, useRoute} from "@react-navigation/native";
 import {styles} from "./styles/CodeLoginScreen";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {codeLogin, getCodeForgotPwd, getCodeLogin, getCodeRegister} from "@/services/account";
-import {showErrorToast} from "@/components/common/ErrorToast";
+import {showCustomToast} from "@/components/common/CustomToast";
 import debounce from "lodash/debounce";
 
 // ---------- 常量 ----------
@@ -91,7 +91,7 @@ const CodeLoginScreen = () => {
       }
     } catch (error: any) {
       console.log("error", error);
-      showErrorToast(error?.msg || "获取验证码失败");
+      showCustomToast("error", error?.msg || "获取验证码失败");
     }
   }, [viewType, phoneNumber, reset]);
 
@@ -135,7 +135,7 @@ const CodeLoginScreen = () => {
           navigation.navigate("Main");
         }
       } catch (error: any) {
-        showErrorToast(error?.msg || "登录失败");
+        showCustomToast("error", error?.msg || "登录失败");
       }
     },
     [navigation, phoneNumber],

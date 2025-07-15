@@ -1,22 +1,37 @@
 import LandEnclosureCustomNavBar from "@/components/land/LandEnclosureCustomNavBar";
-import LandEnclosureMap from "@/components/land/LandEnclosureMap";
+import LandEnclosureMap, {LandEnclosureMapRef} from "@/components/land/LandEnclosureMap";
 import {View, Text, TouchableOpacity, Image} from "react-native";
 import {styles} from "./styles/EnclosureScreen";
-import {useState} from "react";
+import {useRef, useState} from "react";
 import {observer} from "mobx-react-lite";
 import {mapStore} from "@/stores/mapStore";
 import MapControlButton from "@/components/land/MapControlButton";
+import MapSwitcher from "@/components/common/MapSwitcher";
 
 const EnclosureScreen = observer(() => {
   const [popupTips, setPopupTips] = useState("请点击打点按钮打点或点击十字光标标点");
   const [isShowSaveButton, setShowSaveButton] = useState(true);
   const [dotTotal, setDotTotal] = useState(0);
+  const [showMapSwitcher, setShowMapSwitcher] = useState(false);
+
+  const mapRef = useRef<LandEnclosureMapRef>(null);
 
   // 切换地图图层
-  const onToggleMapLayer = () => {};
+  const onToggleMapLayer = () => {
+    setShowMapSwitcher(true);
+  };
+
+  // 切换地图
+  const handleSelectMap = ({type, layerUrl}: {type: string; layerUrl: string}) => {
+    console.log("选中的地图类型:", type);
+    console.log("地图地址:", layerUrl);
+    // 这里可以调用地图组件的切换逻辑或更新状态等
+  };
 
   // 用户定位
-  const onLocateUserPosition = () => {};
+  const onLocatePosition = () => {
+    mapRef.current?.triggerLocate();
+  };
 
   // 撤销上一个打点
   const onUndoPoint = () => {};
@@ -56,7 +71,7 @@ const EnclosureScreen = observer(() => {
           <MapControlButton
             iconUrl={require("../../assets/images/home/icon-location.png")}
             iconName="定位"
-            onPress={onLocateUserPosition}
+            onPress={onLocatePosition}
             style={{marginTop: 16}}
           />
         </View>
@@ -92,6 +107,8 @@ const EnclosureScreen = observer(() => {
             <Image source={require("@/assets/images/common/icon-cursor.png")} style={styles.cursorIcon} />
           )}
         </TouchableOpacity>
+        {/* 地图切换弹窗组件 */}
+        {showMapSwitcher && <MapSwitcher onClose={() => setShowMapSwitcher(false)} onSelectMap={handleSelectMap} />}
       </View>
     </View>
   );
