@@ -1,50 +1,98 @@
-import {View, Text, Image, Platform, PermissionsAndroid} from "react-native";
+import {View, Text, Image, StyleSheet} from "react-native";
 import WebView from "react-native-webview";
-import {StyleSheet} from "react-native";
-import {forwardRef, useImperativeHandle, useRef} from "react";
+import Geolocation from "@react-native-community/geolocation";
+import {forwardRef, useEffect, useImperativeHandle, useRef} from "react";
+import {accelerometer, setUpdateIntervalForType, SensorTypes} from "react-native-sensors";
 
 export type LandEnclosureMapRef = {
-  triggerLocate: () => void;
+  locateDevicePosition: (isShowIcon: boolean, coordinate?: {lon: number; lat: number}) => void;
+  startDeviceOrientation: () => void;
+  stopDeviceOrientation: () => void;
+  switchMapLayer: (layer: string, layerUrl?: string) => void;
 };
 
 const LandEnclosureMap = forwardRef<LandEnclosureMapRef>((_, ref) => {
-  const webviewRef = useRef<WebView>(null);
+  const webViewRef = useRef<WebView>(null);
+  const orientationSubscription = useRef<any>(null);
+  const lastHeading = useRef<number>(0);
+
+  // 计算加速度传感器数据的方向
+  const calculateHeading = (x: number, y: number) => Math.atan2(-x, y) * (180 / Math.PI) + 180;
+
+  // 更新标记旋转角度
+  const updateMarkerRotation = (heading: number) => {
+    if (Math.abs(heading - lastHeading.current) < 5) return;
+    lastHeading.current = heading;
+    webViewRef.current?.postMessage(JSON.stringify({type: "UPDATE_MARKER_ROTATION", rotation: heading}));
+  };
+
+  // 启动设备方向传感器
+  const startDeviceOrientation = () => {
+    if (orientationSubscription.current) return;
+    setUpdateIntervalForType(SensorTypes.accelerometer, 200);
+    orientationSubscription.current = accelerometer.subscribe(({x, y}) => {
+      const heading = calculateHeading(x, y);
+      updateMarkerRotation(heading);
+    });
+  };
+
+  // 停止设备方向传感器
+  const stopDeviceOrientation = () => {
+    if (orientationSubscription.current) {
+      orientationSubscription.current.unsubscribe();
+      orientationSubscription.current = null;
+    }
+  };
+
+  // 定位设备位置
+  const locateDevicePosition = (isShowIcon: boolean, coordinate?: {lon: number; lat: number}) => {
+    if (isShowIcon) {
+      Geolocation.getCurrentPosition(position => {
+        const {latitude, longitude} = position.coords;
+        webViewRef.current?.postMessage(
+          JSON.stringify({
+            type: "SET_ICON_LOCATION",
+            location: {lon: longitude, lat: latitude},
+          }),
+        );
+      });
+    } else if (coordinate) {
+      webViewRef.current?.postMessage(JSON.stringify({type: "SET_LOCATION", location: coordinate}));
+    }
+  };
+
+  // 切换地图图层
+  const switchMapLayer = (layerType: string, layerUrl?: string) => {
+    webViewRef.current?.postMessage(JSON.stringify({type: "SWITCH_LAYER", layerType, layerUrl}));
+  };
 
   useImperativeHandle(ref, () => ({
-    triggerLocate: async () => {
-      let granted = false;
-
-      if (Platform.OS === "android") {
-        const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
-        granted = result === PermissionsAndroid.RESULTS.GRANTED;
-      } else {
-        granted = true; // iOS 简化处理
-      }
-
-      if (granted) {
-        const message = JSON.stringify({type: "LOCATE"});
-        webviewRef.current?.postMessage(message);
-      } else {
-        console.warn("用户拒绝了定位权限");
-      }
-    },
+    locateDevicePosition,
+    startDeviceOrientation,
+    stopDeviceOrientation,
+    switchMapLayer,
   }));
 
-  const handleMessage = (event: any) => {
-    console.log("🌐 WebView Message:", event.nativeEvent.data);
+  // 组件卸载时停止设备方向传感器
+  useEffect(() => () => stopDeviceOrientation(), []);
+
+  // 接收WebView消息
+  const receiveWebviewMessage = (event: any) => {
+    console.log("📬 WebView Message:", event.nativeEvent.data);
   };
 
   return (
     <View style={styles.map}>
       <WebView
-        ref={webviewRef}
+        ref={webViewRef}
         source={{uri: "file:///android_asset/web/enclosureMap.html"}}
         originWhitelist={["*"]}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        allowFileAccess={true}
-        allowFileAccessFromFileURLs={true}
-        onMessage={handleMessage}
+        mixedContentMode="always"
+        javaScriptEnabled
+        domStorageEnabled
+        allowFileAccess
+        allowsInlineMediaPlayback
+        onMessage={receiveWebviewMessage}
         style={{flex: 1}}
       />
       <View style={styles.mapCopyright}>

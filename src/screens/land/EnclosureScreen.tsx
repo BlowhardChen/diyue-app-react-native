@@ -1,63 +1,127 @@
 import LandEnclosureCustomNavBar from "@/components/land/LandEnclosureCustomNavBar";
 import LandEnclosureMap, {LandEnclosureMapRef} from "@/components/land/LandEnclosureMap";
-import {View, Text, TouchableOpacity, Image} from "react-native";
+import {View, Text, TouchableOpacity, Image, Platform, PermissionsAndroid} from "react-native";
 import {styles} from "./styles/EnclosureScreen";
-import {useRef, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import {observer} from "mobx-react-lite";
 import {mapStore} from "@/stores/mapStore";
 import MapControlButton from "@/components/land/MapControlButton";
 import MapSwitcher from "@/components/common/MapSwitcher";
+import PermissionPopup from "@/components/common/PermissionPopup";
 
 const EnclosureScreen = observer(() => {
   const [popupTips, setPopupTips] = useState("请点击打点按钮打点或点击十字光标标点");
   const [isShowSaveButton, setShowSaveButton] = useState(true);
   const [dotTotal, setDotTotal] = useState(0);
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
+  const [showPermissionPopup, setShowPermissionPopup] = useState(false);
 
   const mapRef = useRef<LandEnclosureMapRef>(null);
 
-  // 切换地图图层
   const onToggleMapLayer = () => {
     setShowMapSwitcher(true);
   };
 
-  // 切换地图
+  // 处理地图选择
   const handleSelectMap = ({type, layerUrl}: {type: string; layerUrl: string}) => {
     console.log("选中的地图类型:", type);
     console.log("地图地址:", layerUrl);
-    // 这里可以调用地图组件的切换逻辑或更新状态等
+    switch (type) {
+      case "标准地图":
+        mapRef.current?.switchMapLayer("TIANDITU_ELEC");
+        break;
+      case "卫星地图":
+        mapRef.current?.switchMapLayer("TIANDITU_SAT");
+        break;
+      case "自定义":
+        mapRef.current?.switchMapLayer("CUSTOM", layerUrl);
+        break;
+      default:
+        break;
+    }
   };
 
-  // 用户定位
-  const onLocatePosition = () => {
-    mapRef.current?.triggerLocate();
+  // 获取定位服务
+  const getLocationService = async () => {
+    const hasPermission = await checkLocationPermission();
+    if (hasPermission) {
+      mapRef.current?.locateDevicePosition(true);
+      mapRef.current?.startDeviceOrientation();
+    } else {
+      getLocationByIP();
+    }
   };
 
-  // 撤销上一个打点
-  const onUndoPoint = () => {};
+  // 通过IP定位
+  const getLocationByIP = async () => {
+    try {
+      const response = await fetch("http://ip-api.com/json/");
+      const data = await response.json();
+      if (data.status === "success") {
+        const {lat, lon} = data;
+        mapRef.current?.locateDevicePosition(false, {lon, lat});
+      }
+    } catch (error) {
+      console.error("❌ IP定位请求失败:", error);
+    }
+  };
 
-  // 手动新增一个打点
-  const onAddPoint = () => {};
+  // 检查定位权限
+  const checkLocationPermission = async (): Promise<boolean> => {
+    if (Platform.OS === "android") {
+      return await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
+    }
+    return true;
+  };
 
-  // 保存地块
-  const onSaveEnclosure = () => {};
+  // 定位位置
+  const onLocatePosition = async () => {
+    const hasPermission = await checkLocationPermission();
+    if (hasPermission) {
+      mapRef.current?.locateDevicePosition(true);
+      mapRef.current?.startDeviceOrientation();
+    } else {
+      setShowPermissionPopup(true);
+    }
+  };
 
-  // 使用地图光标进行打点
-  const onSelectPointByCursor = () => {};
+  // 同意定位权限
+  const handleAcceptPermission = async () => {
+    const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
+    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+      mapRef.current?.locateDevicePosition(true);
+      mapRef.current?.startDeviceOrientation();
+    } else {
+      getLocationByIP();
+    }
+    setShowPermissionPopup(false);
+  };
+
+  // 拒绝定位权限
+  const handleRejectPermission = () => {
+    getLocationByIP();
+    setShowPermissionPopup(false);
+  };
+
+  useEffect(() => {
+    getLocationService();
+  }, []);
 
   return (
     <View style={styles.container}>
+      <PermissionPopup
+        visible={showPermissionPopup}
+        onAccept={handleAcceptPermission}
+        onReject={handleRejectPermission}
+        title={"开启位置权限"}
+        message={"获取位置权限将用于获取当前定位与记录轨迹"}
+      />
       <LandEnclosureCustomNavBar />
       <View style={styles.map}>
-        {/* 提示信息 */}
         <View style={styles.popupTips}>
           <Text style={styles.popupTipsText}>{popupTips}</Text>
         </View>
-
-        {/* 地图组件 */}
-        <LandEnclosureMap />
-
-        {/* 右侧图层按钮 */}
+        <LandEnclosureMap ref={mapRef} />
         <View style={styles.rightControl}>
           <MapControlButton
             iconUrl={require("../../assets/images/home/icon-layer.png")}
@@ -65,8 +129,6 @@ const EnclosureScreen = observer(() => {
             onPress={onToggleMapLayer}
           />
         </View>
-
-        {/* 右侧定位按钮 */}
         <View style={styles.locationControl}>
           <MapControlButton
             iconUrl={require("../../assets/images/home/icon-location.png")}
@@ -75,39 +137,29 @@ const EnclosureScreen = observer(() => {
             style={{marginTop: 16}}
           />
         </View>
-
-        {/* 底部操作按钮组 */}
         <View style={styles.footerButtonGroup}>
-          {/* 撤销打点按钮 */}
-          <TouchableOpacity style={[styles.buttonBase, styles.buttonRevoke]} onPress={onUndoPoint}>
+          <TouchableOpacity style={[styles.buttonBase, styles.buttonRevoke]}>
             <Text style={styles.revokeText}>撤销</Text>
           </TouchableOpacity>
-
-          {/* 添加打点按钮 */}
-          <TouchableOpacity style={[styles.buttonBase, styles.buttonDot]} onPress={onAddPoint}>
+          <TouchableOpacity style={[styles.buttonBase, styles.buttonDot]}>
             <Image source={require("@/assets/images/common/icon-plus.png")} style={styles.dotIcon} />
             <Text style={styles.dotText}>打点</Text>
           </TouchableOpacity>
-
-          {/* 保存围栏按钮 */}
           {isShowSaveButton ? (
-            <TouchableOpacity style={[styles.buttonBase, styles.buttonSave]} onPress={onSaveEnclosure}>
+            <TouchableOpacity style={[styles.buttonBase, styles.buttonSave]}>
               <Text style={[styles.saveText, {color: dotTotal >= 3 ? "#08ae3c" : "#999"}]}>保存</Text>
             </TouchableOpacity>
           ) : (
             <View style={[styles.buttonBase, styles.placeholder]} />
           )}
         </View>
-
-        {/* 定位光标按钮（地图中心） */}
-        <TouchableOpacity style={styles.locationCursor} activeOpacity={1} onPress={onSelectPointByCursor}>
+        <TouchableOpacity style={styles.locationCursor} activeOpacity={1}>
           {mapStore.mapType === "标准地图" ? (
             <Image source={require("@/assets/images/common/icon-cursor-green.png")} style={styles.cursorIcon} />
           ) : (
             <Image source={require("@/assets/images/common/icon-cursor.png")} style={styles.cursorIcon} />
           )}
         </TouchableOpacity>
-        {/* 地图切换弹窗组件 */}
         {showMapSwitcher && <MapSwitcher onClose={() => setShowMapSwitcher(false)} onSelectMap={handleSelectMap} />}
       </View>
     </View>
