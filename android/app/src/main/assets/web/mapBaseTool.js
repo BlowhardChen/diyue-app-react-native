@@ -11,6 +11,7 @@ window.MapCore = (function () {
             target: targetId,
             layers: [],
             view: new ol.View({
+                center: ol.proj.fromLonLat([114.085871, 22.546029]),
                 projection: 'EPSG:3857',
                 zoom: 17,
                 maxZoom: 24

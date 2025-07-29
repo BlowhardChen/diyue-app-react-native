@@ -1,5 +1,6 @@
 // 图层切换模块
 window.LayerModule = (function () {
+
   /**
    * 创建自定义瓦片图层
    * @param {string} url - 瓦片图层服务的URL，需包含XYZ切片参数（如 {x}, {y}, {z}）
@@ -15,6 +16,7 @@ window.LayerModule = (function () {
     })
     return customLayer;
   }
+  
   /**
    * 创建天地图卫星影像图层
    * @returns {ol.layer.Tile} 天地图卫星影像图层实例
@@ -42,6 +44,7 @@ window.LayerModule = (function () {
     })
     return tdtElectronicMapLayer;
   }
+
   /**
    * 创建天地图注记图层
    * @returns {ol.layer.Tile} 天地图注记图层实例
@@ -55,6 +58,7 @@ window.LayerModule = (function () {
     })
     return tdtAnnotationMapLayer;
   }
+
   /**
    * 创建谷歌卫星影像地图图层
    * @returns {ol.layer.Tile} 谷歌卫星影像地图图层实例
@@ -69,6 +73,10 @@ window.LayerModule = (function () {
     return googleSatelliteMapLayer;
   }
 
+  const tdtSatellite = createTdSatelliteMapLayer(); // 天地图卫星图层
+  const tdtElectronic = createTdElectronMapLayer(); // 天地图电子图层
+  const tdtAnnotation = createTDAnnotationMapLayer(); // 天地图注记图层
 
-  return { createCustomLayer, createTdSatelliteMapLayer,createTdElectronMapLayer,createTDAnnotationMapLayer,createGoogleSatelliteMapLayer };
+
+  return { createCustomLayer, createTdSatelliteMapLayer,createTdElectronMapLayer,createTDAnnotationMapLayer,createGoogleSatelliteMapLayer,tdtSatellite,tdtElectronic,tdtAnnotation };
 })();

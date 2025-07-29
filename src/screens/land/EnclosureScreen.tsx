@@ -43,10 +43,10 @@ const EnclosureScreen = observer(() => {
 
   // 获取定位服务
   const getLocationService = async () => {
+    console.log("获取定位服务");
     const hasPermission = await checkLocationPermission();
     if (hasPermission) {
       mapRef.current?.locateDevicePosition(true);
-      mapRef.current?.startDeviceOrientation();
     } else {
       getLocationByIP();
     }
@@ -79,7 +79,6 @@ const EnclosureScreen = observer(() => {
     const hasPermission = await checkLocationPermission();
     if (hasPermission) {
       mapRef.current?.locateDevicePosition(true);
-      mapRef.current?.startDeviceOrientation();
     } else {
       setShowPermissionPopup(true);
     }
@@ -90,7 +89,6 @@ const EnclosureScreen = observer(() => {
     const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
     if (granted === PermissionsAndroid.RESULTS.GRANTED) {
       mapRef.current?.locateDevicePosition(true);
-      mapRef.current?.startDeviceOrientation();
     } else {
       getLocationByIP();
     }
@@ -105,7 +103,7 @@ const EnclosureScreen = observer(() => {
 
   useEffect(() => {
     getLocationService();
-  }, []);
+  });
 
   return (
     <View style={styles.container}>

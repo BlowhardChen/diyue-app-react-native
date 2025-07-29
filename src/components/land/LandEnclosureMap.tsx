@@ -45,9 +45,10 @@ const LandEnclosureMap = forwardRef<LandEnclosureMapRef>((_, ref) => {
   };
 
   // 定位设备位置
-  const locateDevicePosition = (isShowIcon: boolean, coordinate?: {lon: number; lat: number}) => {
+  const locateDevicePosition = async (isShowIcon: boolean, coordinate?: {lon: number; lat: number}) => {
     if (isShowIcon) {
-      Geolocation.getCurrentPosition(position => {
+      await Geolocation.getCurrentPosition(position => {
+        console.log("定位设备位置", position);
         const {latitude, longitude} = position.coords;
         webViewRef.current?.postMessage(
           JSON.stringify({
@@ -63,7 +64,12 @@ const LandEnclosureMap = forwardRef<LandEnclosureMapRef>((_, ref) => {
 
   // 切换地图图层
   const switchMapLayer = (layerType: string, layerUrl?: string) => {
-    webViewRef.current?.postMessage(JSON.stringify({type: "SWITCH_LAYER", layerType, layerUrl}));
+    console.log("切换地图图层", layerType, layerUrl);
+    if (layerType === "CUSTOM") {
+      webViewRef.current?.postMessage(JSON.stringify({type: "SWITCH_LAYER", layerType, layerUrl}));
+    } else {
+      webViewRef.current?.postMessage(JSON.stringify({type: "SWITCH_LAYER", layerType}));
+    }
   };
 
   useImperativeHandle(ref, () => ({
