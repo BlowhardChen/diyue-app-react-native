@@ -7,7 +7,7 @@ export const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  map: {flex: 1},
+  mapBox: {flex: 1},
   popupTips: {
     position: "absolute",
     top: (188 / 750) * width,
@@ -36,6 +36,10 @@ export const styles = StyleSheet.create({
     bottom: 120,
     right: 16,
   },
+  map: {flex: 1},
+  mapCopyright: {position: "absolute", bottom: 0, left: 0, flexDirection: "row", alignItems: "flex-end"},
+  iconImg: {width: 40, height: 20},
+  copyrightText: {fontSize: 8, color: "#fff"},
   footerButtonGroup: {
     position: "absolute",
     bottom: (42 / 750) * width,

@@ -1,13 +1,14 @@
-import LandEnclosureCustomNavBar from "@/components/land/LandEnclosureCustomNavBar";
-import LandEnclosureMap, {LandEnclosureMapRef} from "@/components/land/LandEnclosureMap";
 import {View, Text, TouchableOpacity, Image, Platform, PermissionsAndroid} from "react-native";
 import {styles} from "./styles/EnclosureScreen";
-import {useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {observer} from "mobx-react-lite";
 import {mapStore} from "@/stores/mapStore";
 import MapControlButton from "@/components/land/MapControlButton";
 import MapSwitcher from "@/components/common/MapSwitcher";
 import PermissionPopup from "@/components/common/PermissionPopup";
+import WebView from "react-native-webview";
+import Geolocation from "@react-native-community/geolocation";
+import LandEnclosureCustomNavBar from "@/components/land/LandEnclosureCustomNavBar";
 
 const EnclosureScreen = observer(() => {
   const [popupTips, setPopupTips] = useState("请点击打点按钮打点或点击十字光标标点");
@@ -15,9 +16,10 @@ const EnclosureScreen = observer(() => {
   const [dotTotal, setDotTotal] = useState(0);
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
+  const webViewRef = useRef<WebView>(null);
+  const [isWebViewReady, setIsWebViewReady] = useState(false);
 
-  const mapRef = useRef<LandEnclosureMapRef>(null);
-
+  // 切换地图图层
   const onToggleMapLayer = () => {
     setShowMapSwitcher(true);
   };
@@ -28,25 +30,34 @@ const EnclosureScreen = observer(() => {
     console.log("地图地址:", layerUrl);
     switch (type) {
       case "标准地图":
-        mapRef.current?.switchMapLayer("TIANDITU_ELEC");
+        switchMapLayer("TIANDITU_ELEC");
         break;
       case "卫星地图":
-        mapRef.current?.switchMapLayer("TIANDITU_SAT");
+        switchMapLayer("TIANDITU_SAT");
         break;
       case "自定义":
-        mapRef.current?.switchMapLayer("CUSTOM", layerUrl);
+        switchMapLayer("CUSTOM", layerUrl);
         break;
       default:
         break;
     }
   };
 
+  // 切换地图图层
+  const switchMapLayer = (layerType: string, layerUrl?: string) => {
+    console.log("切换地图图层", layerType, layerUrl);
+    if (layerType === "CUSTOM") {
+      webViewRef.current?.postMessage(JSON.stringify({type: "SWITCH_LAYER", layerType, layerUrl}));
+    } else {
+      webViewRef.current?.postMessage(JSON.stringify({type: "SWITCH_LAYER", layerType}));
+    }
+  };
+
   // 获取定位服务
   const getLocationService = async () => {
-    console.log("获取定位服务");
     const hasPermission = await checkLocationPermission();
     if (hasPermission) {
-      mapRef.current?.locateDevicePosition(true);
+      locateDevicePosition(true);
     } else {
       getLocationByIP();
     }
@@ -59,7 +70,7 @@ const EnclosureScreen = observer(() => {
       const data = await response.json();
       if (data.status === "success") {
         const {lat, lon} = data;
-        mapRef.current?.locateDevicePosition(false, {lon, lat});
+        locateDevicePosition(false, {lon, lat});
       }
     } catch (error) {
       console.error("❌ IP定位请求失败:", error);
@@ -78,7 +89,7 @@ const EnclosureScreen = observer(() => {
   const onLocatePosition = async () => {
     const hasPermission = await checkLocationPermission();
     if (hasPermission) {
-      mapRef.current?.locateDevicePosition(true);
+      locateDevicePosition(true);
     } else {
       setShowPermissionPopup(true);
     }
@@ -88,7 +99,7 @@ const EnclosureScreen = observer(() => {
   const handleAcceptPermission = async () => {
     const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
     if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-      mapRef.current?.locateDevicePosition(true);
+      locateDevicePosition(true);
     } else {
       getLocationByIP();
     }
@@ -99,6 +110,33 @@ const EnclosureScreen = observer(() => {
   const handleRejectPermission = () => {
     getLocationByIP();
     setShowPermissionPopup(false);
+  };
+
+  // 定位设备位置
+  const locateDevicePosition = async (isShowIcon: boolean, coordinate?: {lon: number; lat: number}) => {
+    if (isShowIcon) {
+      await Geolocation.getCurrentPosition(position => {
+        console.log("定位设备位置", position);
+        const {latitude, longitude} = position.coords;
+        webViewRef.current?.postMessage(
+          JSON.stringify({
+            type: "SET_ICON_LOCATION",
+            location: {lon: longitude, lat: latitude},
+          }),
+        );
+      });
+    } else if (coordinate) {
+      webViewRef.current?.postMessage(JSON.stringify({type: "SET_LOCATION", location: coordinate}));
+    }
+  };
+
+  // 接收WebView消息
+  const receiveWebviewMessage = (event: any) => {
+    console.log("📬 WebView Message:", event.nativeEvent.data);
+    const data = event.nativeEvent.data;
+    if (data === "地图加载完成") {
+      setIsWebViewReady(true);
+    }
   };
 
   useEffect(() => {
@@ -115,11 +153,28 @@ const EnclosureScreen = observer(() => {
         message={"获取位置权限将用于获取当前定位与记录轨迹"}
       />
       <LandEnclosureCustomNavBar />
-      <View style={styles.map}>
+      <View style={styles.mapBox}>
         <View style={styles.popupTips}>
           <Text style={styles.popupTipsText}>{popupTips}</Text>
         </View>
-        <LandEnclosureMap ref={mapRef} />
+        <View style={styles.map}>
+          <WebView
+            ref={webViewRef}
+            source={{uri: "file:///android_asset/web/enclosureMap.html"}}
+            originWhitelist={["*"]}
+            mixedContentMode="always"
+            javaScriptEnabled
+            domStorageEnabled
+            allowFileAccess
+            allowsInlineMediaPlayback
+            onMessage={receiveWebviewMessage}
+            style={{flex: 1}}
+          />
+          <View style={styles.mapCopyright}>
+            <Image source={require("../../assets/images/home/icon-td.png")} style={styles.iconImg} />
+            <Text style={styles.copyrightText}>©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471</Text>
+          </View>
+        </View>
         <View style={styles.rightControl}>
           <MapControlButton
             iconUrl={require("../../assets/images/home/icon-layer.png")}

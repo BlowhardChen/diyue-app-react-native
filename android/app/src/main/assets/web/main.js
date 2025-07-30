@@ -1,5 +1,6 @@
 (function () {
   const map = MapCore.initMap('map');
+  window.ReactNativeWebView?.postMessage("地图加载完成");
 
   const tdtSatelliteMapLayer = LayerModule.createTdSatelliteMapLayer(); // 天地图卫星图层
   const tdtAnnotationMapLayer = LayerModule.createTDAnnotationMapLayer(); // 天地图注记图层

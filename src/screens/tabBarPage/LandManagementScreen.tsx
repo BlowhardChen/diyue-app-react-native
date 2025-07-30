@@ -1,12 +1,12 @@
 import LandHomeCustomNavbar from "@/components/land/LandHomeCustomNavbar";
-import {View} from "react-native";
+import {View, Image, Text} from "react-native";
 import {styles} from "./styles/LandManagementScreen";
-import LandHomeMap from "@/components/land/LandHomeMap";
 import MapControlButton from "@/components/land/MapControlButton";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import MapSwitcher from "@/components/common/MapSwitcher";
 import {useState} from "react";
+import WebView from "react-native-webview";
 
 type LandStackParamList = {
   Enclosure: undefined;
@@ -48,13 +48,32 @@ const HomeScreen = () => {
   // 定位
   const locationControl = () => {};
 
+  const handleMessage = (event: any) => {
+    console.log("🌐 WebView Message:", event.nativeEvent.data);
+  };
+
   return (
     <View style={styles.container}>
       {/* 顶部导航 */}
       <LandHomeCustomNavbar onChangeTab={changeTab} />
       <View style={styles.map}>
-        {/* 地图组件 */}
-        <LandHomeMap />
+        {/* 地图 */}
+        <View style={styles.map}>
+          <WebView
+            source={{uri: "file:///android_asset/web/homeMap.html"}}
+            originWhitelist={["*"]}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            allowFileAccess={true}
+            allowFileAccessFromFileURLs={true}
+            onMessage={handleMessage}
+            style={{flex: 1}}
+          />
+          <View style={styles.mapCopyright}>
+            <Image source={require("../../assets/images/home/icon-td.png")} style={styles.iconImg} />
+            <Text style={styles.copyrightText}>©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471</Text>
+          </View>
+        </View>
         {/* 右侧按钮 */}
         <View style={styles.rightControl}>
           <MapControlButton
