@@ -40,7 +40,7 @@
       
       // 更新设备位置图标旋转角度
       case "UPDATE_MARKER_ROTATION":
-        window.LocateModule?.updateCurrentLocation(map, data.location);
+        window.LocateModule?.updateMarkerRotation(data.rotation);
         break;
       
       // 切换地图图层

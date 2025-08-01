@@ -1,6 +1,6 @@
 import {View, Text, TouchableOpacity, Image, Platform, PermissionsAndroid} from "react-native";
 import {styles} from "./styles/EnclosureScreen";
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import {observer} from "mobx-react-lite";
 import {mapStore} from "@/stores/mapStore";
 import MapControlButton from "@/components/land/MapControlButton";
@@ -9,6 +9,7 @@ import PermissionPopup from "@/components/common/PermissionPopup";
 import WebView from "react-native-webview";
 import Geolocation from "@react-native-community/geolocation";
 import LandEnclosureCustomNavBar from "@/components/land/LandEnclosureCustomNavBar";
+import useOptimizedHeading from "@/hooks/useOptimizedHeading";
 
 const EnclosureScreen = observer(() => {
   const [popupTips, setPopupTips] = useState("请点击打点按钮打点或点击十字光标标点");
@@ -139,12 +140,23 @@ const EnclosureScreen = observer(() => {
     }
   };
 
+  // 监听朝向变化，发送给WebView
+  useOptimizedHeading(heading => {
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "UPDATE_MARKER_ROTATION",
+        rotation: heading,
+      }),
+    );
+  });
+
   useEffect(() => {
     getLocationService();
   });
 
   return (
     <View style={styles.container}>
+      {/* 权限弹窗 */}
       <PermissionPopup
         visible={showPermissionPopup}
         onAccept={handleAcceptPermission}
@@ -152,7 +164,9 @@ const EnclosureScreen = observer(() => {
         title={"开启位置权限"}
         message={"获取位置权限将用于获取当前定位与记录轨迹"}
       />
+      {/* 顶部导航 */}
       <LandEnclosureCustomNavBar />
+      {/* 地图 */}
       <View style={styles.mapBox}>
         <View style={styles.popupTips}>
           <Text style={styles.popupTipsText}>{popupTips}</Text>
@@ -175,6 +189,7 @@ const EnclosureScreen = observer(() => {
             <Text style={styles.copyrightText}>©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471</Text>
           </View>
         </View>
+        {/* 右侧控制按钮 */}
         <View style={styles.rightControl}>
           <MapControlButton
             iconUrl={require("../../assets/images/home/icon-layer.png")}
@@ -190,6 +205,7 @@ const EnclosureScreen = observer(() => {
             style={{marginTop: 16}}
           />
         </View>
+        {/* 底部按钮 */}
         <View style={styles.footerButtonGroup}>
           <TouchableOpacity style={[styles.buttonBase, styles.buttonRevoke]}>
             <Text style={styles.revokeText}>撤销</Text>
@@ -206,6 +222,7 @@ const EnclosureScreen = observer(() => {
             <View style={[styles.buttonBase, styles.placeholder]} />
           )}
         </View>
+        {/* 十字光标 */}
         <TouchableOpacity style={styles.locationCursor} activeOpacity={1}>
           {mapStore.mapType === "标准地图" ? (
             <Image source={require("@/assets/images/common/icon-cursor-green.png")} style={styles.cursorIcon} />
@@ -213,6 +230,7 @@ const EnclosureScreen = observer(() => {
             <Image source={require("@/assets/images/common/icon-cursor.png")} style={styles.cursorIcon} />
           )}
         </TouchableOpacity>
+        {/* 图层切换弹窗 */}
         {showMapSwitcher && <MapSwitcher onClose={() => setShowMapSwitcher(false)} onSelectMap={handleSelectMap} />}
       </View>
     </View>
