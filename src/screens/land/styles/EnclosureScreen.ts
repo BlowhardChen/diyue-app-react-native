@@ -97,7 +97,7 @@ export const styles = StyleSheet.create({
     position: "absolute",
     top: "50%",
     left: "50%",
-    zIndex: 1000,
+    zIndex: 1010,
     transform: [{translateX: -(40 / 750) * width}, {translateY: -(40 / 750) * width}],
   },
   cursorIcon: {width: (80 / 750) * width, height: (80 / 750) * width, resizeMode: "contain"},

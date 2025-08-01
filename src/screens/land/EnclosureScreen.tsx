@@ -1,4 +1,4 @@
-import {View, Text, TouchableOpacity, Image, Platform, PermissionsAndroid} from "react-native";
+import {View, Text, TouchableOpacity, Image, Platform, PermissionsAndroid, ToastAndroid} from "react-native";
 import {styles} from "./styles/EnclosureScreen";
 import {useEffect, useRef, useState} from "react";
 import {observer} from "mobx-react-lite";
@@ -10,15 +10,31 @@ import WebView from "react-native-webview";
 import Geolocation from "@react-native-community/geolocation";
 import LandEnclosureCustomNavBar from "@/components/land/LandEnclosureCustomNavBar";
 import useOptimizedHeading from "@/hooks/useOptimizedHeading";
+import KeepAwake from "react-native-keep-awake";
+import Popup from "@/components/common/Popup";
+import {useNavigation, useFocusEffect} from "@react-navigation/native";
+import {BackHandler} from "react-native";
 
 const EnclosureScreen = observer(() => {
+  // 弹窗提示信息的状态
   const [popupTips, setPopupTips] = useState("请点击打点按钮打点或点击十字光标标点");
+  // 是否显示保存按钮的状态
   const [isShowSaveButton, setShowSaveButton] = useState(true);
+  // 打点总数的状态，初始值为 0
   const [dotTotal, setDotTotal] = useState(0);
+  // 显示地图图层切换弹窗的状态
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
+  // 是否显示定位权限弹窗的状态
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
+  // 创建一个 ref 对象，用于引用 WebView 组件实例
   const webViewRef = useRef<WebView>(null);
+  //  WebView 是否加载完成的状态
   const [isWebViewReady, setIsWebViewReady] = useState(false);
+  // 返回上级页面确认弹窗
+  const [showBackPopup, setShowBackPopup] = useState(false);
+  // 导航对象
+  const navigation = useNavigation();
+  const beforeRemoveRef = useRef<any>(null);
 
   // 切换地图图层
   const onToggleMapLayer = () => {
@@ -27,8 +43,6 @@ const EnclosureScreen = observer(() => {
 
   // 处理地图选择
   const handleSelectMap = ({type, layerUrl}: {type: string; layerUrl: string}) => {
-    console.log("选中的地图类型:", type);
-    console.log("地图地址:", layerUrl);
     switch (type) {
       case "标准地图":
         switchMapLayer("TIANDITU_ELEC");
@@ -46,7 +60,6 @@ const EnclosureScreen = observer(() => {
 
   // 切换地图图层
   const switchMapLayer = (layerType: string, layerUrl?: string) => {
-    console.log("切换地图图层", layerType, layerUrl);
     if (layerType === "CUSTOM") {
       webViewRef.current?.postMessage(JSON.stringify({type: "SWITCH_LAYER", layerType, layerUrl}));
     } else {
@@ -117,7 +130,6 @@ const EnclosureScreen = observer(() => {
   const locateDevicePosition = async (isShowIcon: boolean, coordinate?: {lon: number; lat: number}) => {
     if (isShowIcon) {
       await Geolocation.getCurrentPosition(position => {
-        console.log("定位设备位置", position);
         const {latitude, longitude} = position.coords;
         webViewRef.current?.postMessage(
           JSON.stringify({
@@ -128,6 +140,36 @@ const EnclosureScreen = observer(() => {
       });
     } else if (coordinate) {
       webViewRef.current?.postMessage(JSON.stringify({type: "SET_LOCATION", location: coordinate}));
+    }
+  };
+
+  // 地图十字光标点击
+  const onMapCursorDot = () => {
+    setDotTotal(dotTotal + 1);
+    setPopupTips("打点成功，请继续添加下一个点位");
+    console.log("地图十字光标点击", dotTotal);
+  };
+
+  // 撤销打点
+  const onRevokeDot = () => {
+    setDotTotal(dotTotal - 1);
+    setPopupTips("撤销成功，请继续添加下一个点位");
+    console.log("撤销打点", dotTotal);
+  };
+
+  // 打点
+  const onDot = () => {
+    setDotTotal(dotTotal + 1);
+    setPopupTips("打点成功，请继续添加下一个点位");
+    console.log("打点", dotTotal);
+  };
+
+  // 保存
+  const onSave = () => {
+    console.log("保存", dotTotal);
+    if (dotTotal < 3) {
+      ToastAndroid.show("未形成闭合图形，请至少保证有3个及以上点位", ToastAndroid.SHORT);
+      return;
     }
   };
 
@@ -150,8 +192,43 @@ const EnclosureScreen = observer(() => {
     );
   });
 
+  // 组件挂载时启用屏幕常亮
+  useEffect(() => {
+    KeepAwake.activate();
+
+    // 组件卸载时关闭屏幕常亮，恢复系统默认行为
+    return () => {
+      KeepAwake.deactivate();
+    };
+  }, []);
+
   useEffect(() => {
     getLocationService();
+  }, []);
+
+  useFocusEffect(() => {
+    beforeRemoveRef.current = navigation.addListener("beforeRemove", e => {
+      // 阻止默认行为（阻止返回）
+      e.preventDefault();
+
+      // 如果确认弹窗已显示，说明已经拦截过一次，不需要重复弹出
+      if (!showBackPopup) {
+        setShowBackPopup(true); // 显示确认弹窗
+      }
+    });
+
+    // Android 实体返回键监听（同样拦截）
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (!showBackPopup) {
+        setShowBackPopup(true);
+      }
+      return true; // 阻止默认行为
+    });
+
+    return () => {
+      beforeRemoveRef.current();
+      backHandler.remove();
+    };
   });
 
   return (
@@ -165,7 +242,13 @@ const EnclosureScreen = observer(() => {
         message={"获取位置权限将用于获取当前定位与记录轨迹"}
       />
       {/* 顶部导航 */}
-      <LandEnclosureCustomNavBar />
+      <LandEnclosureCustomNavBar
+        navTitle="圈地"
+        showRightIcon={true}
+        onBackView={() => {
+          setShowBackPopup(true);
+        }}
+      />
       {/* 地图 */}
       <View style={styles.mapBox}>
         <View style={styles.popupTips}>
@@ -207,15 +290,15 @@ const EnclosureScreen = observer(() => {
         </View>
         {/* 底部按钮 */}
         <View style={styles.footerButtonGroup}>
-          <TouchableOpacity style={[styles.buttonBase, styles.buttonRevoke]}>
+          <TouchableOpacity style={[styles.buttonBase, styles.buttonRevoke]} onPress={onRevokeDot}>
             <Text style={styles.revokeText}>撤销</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.buttonBase, styles.buttonDot]}>
+          <TouchableOpacity style={[styles.buttonBase, styles.buttonDot]} onPress={onDot}>
             <Image source={require("@/assets/images/common/icon-plus.png")} style={styles.dotIcon} />
             <Text style={styles.dotText}>打点</Text>
           </TouchableOpacity>
           {isShowSaveButton ? (
-            <TouchableOpacity style={[styles.buttonBase, styles.buttonSave]}>
+            <TouchableOpacity style={[styles.buttonBase, styles.buttonSave]} onPress={onSave}>
               <Text style={[styles.saveText, {color: dotTotal >= 3 ? "#08ae3c" : "#999"}]}>保存</Text>
             </TouchableOpacity>
           ) : (
@@ -223,7 +306,7 @@ const EnclosureScreen = observer(() => {
           )}
         </View>
         {/* 十字光标 */}
-        <TouchableOpacity style={styles.locationCursor} activeOpacity={1}>
+        <TouchableOpacity style={styles.locationCursor} activeOpacity={1} onPress={onMapCursorDot}>
           {mapStore.mapType === "标准地图" ? (
             <Image source={require("@/assets/images/common/icon-cursor-green.png")} style={styles.cursorIcon} />
           ) : (
@@ -232,6 +315,22 @@ const EnclosureScreen = observer(() => {
         </TouchableOpacity>
         {/* 图层切换弹窗 */}
         {showMapSwitcher && <MapSwitcher onClose={() => setShowMapSwitcher(false)} onSelectMap={handleSelectMap} />}
+        {/* 返回上级页面确认弹窗 */}
+        <Popup
+          visible={showBackPopup}
+          title="是否退出圈地"
+          msgText="退出后不会保留已打点位"
+          leftBtnText="退出"
+          rightBtnText="继续圈地"
+          onLeftBtn={() => {
+            setShowBackPopup(false);
+            beforeRemoveRef.current();
+            navigation.goBack();
+          }}
+          onRightBtn={() => {
+            setShowBackPopup(false);
+          }}
+        />
       </View>
     </View>
   );

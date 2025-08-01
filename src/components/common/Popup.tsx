@@ -1,6 +1,22 @@
 import React from "react";
 import {Modal, View, Text, TouchableOpacity, StyleSheet, TextStyle} from "react-native";
 
+/**
+ * Popup 组件的属性接口
+ * @interface PopupProps
+ * @property {boolean} visible - 控制弹窗是否可见
+ * @property {string} [title] - 弹窗的标题文本
+ * @property {boolean} [showTitle] - 是否显示弹窗标题
+ * @property {string} [msgText] - 弹窗的消息文本
+ * @property {boolean} [showLeftBtnText] - 是否显示左侧按钮
+ * @property {string} [leftBtnText] - 左侧按钮的文本
+ * @property {string} [rightBtnText] - 右侧按钮的文本
+ * @property {TextStyle} [rightBtnStyle] - 右侧按钮文本的样式
+ * @property {TextStyle} [msgTextStyle] - 消息文本的样式
+ * @property {() => void} [onLeftBtn] - 左侧按钮点击事件的回调函数
+ * @property {() => void} [onRightBtn] - 右侧按钮点击事件的回调函数
+ * @property {React.ReactNode} [children] - 弹窗内容的子组件
+ */
 interface PopupProps {
   visible: boolean;
   title?: string;
@@ -16,6 +32,11 @@ interface PopupProps {
   children?: React.ReactNode;
 }
 
+/**
+ * Popup 组件，用于展示一个模态弹窗
+ * @param {PopupProps} props - 组件的属性
+ * @returns {JSX.Element} 渲染后的弹窗组件
+ */
 const Popup: React.FC<PopupProps> = ({
   visible,
   title = "",
@@ -31,30 +52,37 @@ const Popup: React.FC<PopupProps> = ({
   children,
 }) => {
   return (
+    // 模态弹窗组件，透明背景，根据 visible 属性控制显示，淡入淡出动画
     <Modal transparent visible={visible} animationType="fade">
       <View style={styles.popupBox}>
         <View style={styles.popupContent}>
           <View style={styles.popupContentTop}>
+            {/* 根据 showTitle 属性决定是否显示标题 */}
             {showTitle && (
               <View style={styles.title}>
                 <Text style={styles.titleText}>{title}</Text>
               </View>
             )}
             <View style={styles.msg}>
+              {/* 显示消息文本，应用默认样式和自定义样式 */}
               <Text style={[styles.msgText, msgTextStyle]}>{msgText}</Text>
             </View>
           </View>
 
+          {/* 渲染子组件 */}
           {children}
 
+          {/* 分割线 */}
           <View style={styles.divider} />
 
           <View style={styles.popupBottom}>
+            {/* 根据 showLeftBtnText 属性决定是否显示左侧按钮 */}
             {showLeftBtnText && (
               <>
                 <TouchableOpacity style={styles.btnLeft} onPress={onLeftBtn}>
                   <Text style={styles.leftText}>{leftBtnText}</Text>
                 </TouchableOpacity>
+                {/* 按钮之间的分割线 */}
                 <View style={styles.cross} />
               </>
             )}
@@ -68,8 +96,10 @@ const Popup: React.FC<PopupProps> = ({
   );
 };
 
+// 导出 Popup 组件供其他文件使用
 export default Popup;
 
+// 创建样式对象
 const styles = StyleSheet.create({
   popupBox: {
     flex: 1,
