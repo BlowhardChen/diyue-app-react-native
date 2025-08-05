@@ -145,30 +145,33 @@ const EnclosureScreen = observer(() => {
 
   // 地图十字光标点击
   const onMapCursorDot = () => {
+    console.log("地图十字光标点击", dotTotal);
     setDotTotal(dotTotal + 1);
     setPopupTips("打点成功，请继续添加下一个点位");
-    console.log("地图十字光标点击", dotTotal);
+    webViewRef.current?.postMessage(JSON.stringify({type: "CURSOR_DOT_MARKER"}));
   };
 
   // 撤销打点
   const onRevokeDot = () => {
+    console.log("撤销打点", dotTotal);
     setDotTotal(dotTotal - 1);
     setPopupTips("撤销成功，请继续添加下一个点位");
-    console.log("撤销打点", dotTotal);
+    webViewRef.current?.postMessage(JSON.stringify({type: "REMOVE_DOT_MARKER"}));
   };
 
   // 打点
   const onDot = () => {
+    console.log("打点", dotTotal);
     setDotTotal(dotTotal + 1);
     setPopupTips("打点成功，请继续添加下一个点位");
-    console.log("打点", dotTotal);
+    webViewRef.current?.postMessage(JSON.stringify({type: "DOT_MARKER"}));
   };
 
   // 保存
   const onSave = () => {
     console.log("保存", dotTotal);
     if (dotTotal < 3) {
-      ToastAndroid.show("未形成闭合图形，请至少保证有3个及以上点位", ToastAndroid.SHORT);
+      ToastAndroid.showWithGravity("未形成闭合图形，请至少保证有3个及以上点位", ToastAndroid.SHORT, ToastAndroid.CENTER);
       return;
     }
   };

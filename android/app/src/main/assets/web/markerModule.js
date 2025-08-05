@@ -1,6 +1,10 @@
-window.LocateModule = (function () {
-    let selfMarkerLayer;
-    let markerFeature; 
+// 标记点模块
+window.MarkerModule = (function () {
+    let selfMarkerLayer; // 当前设备点位图层
+    let selfMarkerFeature; // 当前设备点位点地理要素
+    let dotMarkerLayer; // 地图打点图层
+    let dotMarkerFeature; // 地图打点地理要素
+    let dotMarkers = []; // 地图打点数组
 
     /**
      * 将地图定位到用户自身位置，并绘制定位标记。
@@ -42,15 +46,15 @@ window.LocateModule = (function () {
         });
 
         // 创建 Feature（地理要素）
-        markerFeature = new ol.Feature({
+        selfMarkerFeature = new ol.Feature({
             geometry: new ol.geom.Point(ol.proj.fromLonLat([location.lon, location.lat]))
         });
-        markerFeature.setStyle(markerIcon);
+        selfMarkerFeature.setStyle(markerIcon);
 
         // 创建图层并添加到地图
         selfMarkerLayer = new ol.layer.Vector({
             source: new ol.source.Vector({
-                features: [markerFeature]
+                features: [selfMarkerFeature]
             }),
             zIndex: 101
         });
@@ -67,7 +71,7 @@ window.LocateModule = (function () {
     function updateCurrentLocation(location, map) {
          const features = selfMarkerLayer?.getSource()?.getFeatures();
         if (!features || features.length === 0) {
-            window.ReactNativeWebView?.postMessage("⚠️ markerFeature 不存在，自动绘制");
+            window.ReactNativeWebView?.postMessage("⚠️ selfMarkerFeature 不存在，自动绘制");
             drawCurrentLocation(map, location);
             return;
         }
@@ -85,9 +89,9 @@ window.LocateModule = (function () {
     * @param {"WGS84"|"GCJ02"} toType - 目标坐标类型。
     */
     function transformMarkerCoordinate(map, fromType, toType) {
-        if (!markerFeature || !markerFeature.getGeometry()) return;
+        if (!selfMarkerFeature || !selfMarkerFeature.getGeometry()) return;
 
-        const currentCoord = markerFeature.getGeometry().getCoordinates(); // 投影坐标
+        const currentCoord = selfMarkerFeature.getGeometry().getCoordinates(); // 投影坐标
         let [lon, lat] = ol.proj.toLonLat(currentCoord); // WGS84 经纬度
 
         if (fromType === toType) return;
@@ -99,7 +103,7 @@ window.LocateModule = (function () {
         }
 
         const transformedCoord = ol.proj.fromLonLat([lon, lat]); // 转回投影坐标
-        markerFeature.getGeometry().setCoordinates(transformedCoord);
+        selfMarkerFeature.getGeometry().setCoordinates(transformedCoord);
     }
     /**
      * 更新定位标记的旋转角度。
@@ -107,7 +111,7 @@ window.LocateModule = (function () {
      * @param {number} degrees - 要设置的旋转角度，单位为度。
      */
     function updateMarkerRotation(degrees) {
-       if (!markerFeature) return;
+       if (!selfMarkerFeature) return;
 
         const radians = degrees * (Math.PI / 180);
 
@@ -124,8 +128,66 @@ window.LocateModule = (function () {
             })
         });
 
-        markerFeature.setStyle(rotatedStyle);
+        selfMarkerFeature.setStyle(rotatedStyle);
         map.render();
+    }
+    
+    /**
+     * 绘制地图打点
+     * @param {ol.Map} map - 地图实例
+     * @param {object} location - 经纬度坐标 {lon, lat}
+     */
+    function drawDotMarker(map, location) {
+       const markerIcon = new ol.style.Style({
+            image: new ol.style.Icon({
+                anchor: [0.5, 0.5],
+                anchorXUnits: 'fraction',
+                anchorYUnits: 'fraction',
+                src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAAAXNSR0IArs4c6QAAAtxJREFUWEfNmE1sTFEUx383KmyahrBpWgk2aPVDYqEaWpFaSFhJtGz7SRtiS8WwFcLo9GNbrcSKxIKIltAuhGmZYiGRaNMNIU03ROWaw3svb+5MvXmvPu5LZnPvPef+5pz//ThXEfLTWq8H9gG1wGZgHVDouJkH3gOvgcfAXaXUuzBTqHwGa62XAYeA40ANkJcdoIExIA7cVEp9D5ov0LHWei9wFdgU5Cyg/w3QqZS6/7txiwJprVcCl4GWEBEJYpaI9QMnlFJfcg3OCaS1XgvcSf+2ZxlpDZOTMD4GUymYnoF5kY4oqRBKS6CsHHbUQGUlqJxTPAX2K6U+mP6zRjswj7JSJCAPR2GgH6angyLxq7+0FJpbYHddLjBJ4S4TKgPISZPAZEZmdhZi5+DVVH4g5qgtZdB9FoqLzR6JlEB56TOBeoHWDKtkErpPw9xcNBjXqqgIYhegutr006eUanMbPSBnNd3LELDAnDoJCwtLg3GtCwrg4iUTSoTe4K6+n0DOPpPK0I2kqbV56ZEx/4pEqm/ATJ/oqVz2KRfoMDDs2YqA29uiayYonqKpRK8p9Eal1A0XSLb5nZ6f0RHoPhPkdmn9sfNQV+/38SSdtlqltd4AvPW0I9E52pT/0o6KJVvC4JA/SqKljQIkCk94fieS0NUZdZpwdlfiUFXlt2kXoEHgiNea6IHhoXCOo45ubIL2Dr/1dQF6BmzzWo91wMsXUacIZ7e1Aq71+G2eC5CcJ2u81oMH4POncI6jjl61Gm7d9lt/FCDZtld4rXvqYeFb1CnC2RUshwcjfpuvVgJZl7L/J+qKCohni9q6ZW9sjBPQJXf5f/AtsjHadXRIHNJ3IXsOVwfIuuuHFIL2XNCcKElBaMcV1l1PWmt7LvlOlKRatacMcqCkarWjUPSlLqCUnoDxcUilYMYopUtKoPwPltI+KHseG/yHhjXPMQaUPQ9W5hHrlE0Nf+tJ7weMM2/KMUGazgAAAABJRU5ErkJggg==',
+                crossOrigin: 'anonymous',
+                scale: 0.3,
+                rotateWithView: true
+            })
+        });
+
+        // 创建 Feature（地理要素）
+        dotMarkerFeature = new ol.Feature({
+            geometry: new ol.geom.Point(ol.proj.fromLonLat([location.lon, location.lat]))
+        });
+        dotMarkerFeature.setStyle(markerIcon);
+
+        // 创建图层并添加到地图
+        dotMarkerLayer = new ol.layer.Vector({
+            source: new ol.source.Vector({
+                features: [dotMarkerFeature]
+            }),
+            zIndex: 110
+        });
+
+        dotMarkers.push(dotMarkerLayer);
+        map.addLayer(dotMarkerLayer);
+    }
+
+    /**
+     * 移除地图打点
+     * @param {ol.Map} map - 地图实例
+     */
+    function removeDotMarker(map) {
+        if (dotMarkers.length > 0) {
+            const lastMarker = dotMarkers.pop();
+            map.removeLayer(lastMarker);
+        }
+    }
+
+    /**
+     * 移除所有地图打点
+     * @param {ol.Map} map - 地图实例
+     */
+    function removeAllDotMarkers(map) {
+        dotMarkers.forEach(marker => {
+            map.removeLayer(marker);
+        });
+        dotMarkers = [];
     }
 
     return {
@@ -133,6 +195,9 @@ window.LocateModule = (function () {
         drawCurrentLocation,
         updateCurrentLocation,
         transformMarkerCoordinate,
-        updateMarkerRotation
+        updateMarkerRotation,
+        drawDotMarker,
+        removeDotMarker,
+        removeAllDotMarkers
     };
 })();
