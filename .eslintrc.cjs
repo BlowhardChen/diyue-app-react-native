@@ -6,6 +6,7 @@ module.exports = {
     MapCore: "readonly",
     LayerModule: "readonly",
     MarkerModule: "readonly",
+    PolylineModule: "readonly",
   },
   extends: ["@react-native", "plugin:prettier/recommended"],
   rules: {

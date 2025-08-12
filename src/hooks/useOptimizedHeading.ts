@@ -23,7 +23,7 @@ export default function useOptimizedHeading(onHeadingChange: (heading: number) =
   const lastHeading = useRef<number | null>(null);
 
   // 修正偏移角（顺时针方向）
-  const OFFSET = 35;
+  const OFFSET = -5;
 
   // 最小变动角度（单位：度），小于此角度不触发更新
   const MIN_DELTA_DEG = 5;
