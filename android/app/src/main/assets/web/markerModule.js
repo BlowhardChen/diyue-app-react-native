@@ -1,33 +1,24 @@
 // 标记点模块
 window.MarkerModule = (function () {
-    let selfMarkerLayer; // 当前设备点位图层
-    let selfMarkerFeature; // 当前设备点位点地理要素
-    let dotMarkerLayer; // 地图打点图层
-    let dotMarkerFeature; // 地图打点地理要素
-    let dotMarkers = []; // 地图打点图层数组
-    let dotMarkerCoordinates = []; // 地图打点坐标数组（格式: [{lon, lat}, ...]）
-
+    let selfMarkerLayer;                 // 当前设备点位图层
+    let dotMarkers = [];                 // 地图打点图层数组
+    let dotMarkerCoordinates = [];       // 打点经纬度数组（[{lon,lat}, ...]）
 
     /**
-     * 绘制地图打点（核心逻辑）
-     * @param {ol.Map} map - 地图实例
-     * @param {object} location - 经纬度坐标 {lon, lat}
+     * 绘制地图打点（核心）
+     * @param {ol.Map} map
+     * @param {{lon:number, lat:number}} location
      */
     function drawDotMarker(map, location) {
-        // 1. 过滤重复点（距离小于0.3米则视为重复）
+        // 1) 重复点过滤（0.3m 内算重复）
         if (!filterPointDot(location, dotMarkerCoordinates)) {
-            window.ReactNativeWebView?.postMessage(JSON.stringify({
-                type: 'WEBVIEW_DOT_REPEAT',
-               
-            }));
+            safePost({ type: 'WEBVIEW_DOT_REPEAT' });
             return;
         }
 
-        // 2. 存储新点并更新计数
+        // 2) 存储 & 绘制点
         dotMarkerCoordinates.push(location);
-        const dotTotal = dotMarkerCoordinates.length;
 
-        // 3. 绘制标记点
         const markerIcon = new ol.style.Style({
             image: new ol.style.Icon({
                 anchor: [0.5, 0.5],
@@ -39,143 +30,127 @@ window.MarkerModule = (function () {
                 rotateWithView: true
             })
         });
-        const dotMarkerFeature = new ol.Feature({
+
+        const feature = new ol.Feature({
             geometry: new ol.geom.Point(ol.proj.fromLonLat([location.lon, location.lat]))
         });
-        dotMarkerFeature.setStyle(markerIcon);
-        const dotMarkerLayer = new ol.layer.Vector({
-            source: new ol.source.Vector({ features: [dotMarkerFeature] }),
+        feature.setStyle(markerIcon);
+
+        const layer = new ol.layer.Vector({
+            source: new ol.source.Vector({ features: [feature] }),
             zIndex: 110
         });
-        dotMarkers.push(dotMarkerLayer);
-        map.addLayer(dotMarkerLayer);
 
-        // 4. 处理线段和多边形绘制逻辑
-        handlePolylineAndPolygon(map, dotTotal);
+        dotMarkers.push(layer);
+        map.addLayer(layer);
+
+        // 3) 线段 / 多边形 联动
+        handlePolylineAndPolygon(map);
+        // 同步数量
+        safePost({ type: 'WEBVIEW_UPDATE_DOT_TOTAL', total: dotMarkerCoordinates.length });
     }
 
     /**
-     * 处理线段和多边形的绘制/移除逻辑
-     * @param {ol.Map} map - 地图实例
-     * @param {number} dotTotal - 当前打点总数
+     * 根据当前点数联动折线与多边形
+     * @param {ol.Map} map
      */
-    function handlePolylineAndPolygon(map, dotTotal) {
-        const coords = dotMarkerCoordinates.map(coord => [coord.lon, coord.lat]);
+    function handlePolylineAndPolygon(map) {
+        const total = dotMarkerCoordinates.length;
+        const coordsLonLat = dotMarkerCoordinates.map(d => [d.lon, d.lat]);
 
-        // 根据点数处理不同情况
-        switch (dotTotal) {
-            case 0:
-                // 0个点：清空所有内容
-                window.PolylineModule.removeAllPolylines();
-                window.PolygonModule.removePolygon(map);
-                break;
+        if (total === 0) {
+            window.PolylineModule.removeAllPolylines(map);
+            window.PolygonModule.removePolygon(map);
+            safePost({ type: 'WEBVIEW_DOT_SUCCESS', message: '请点击打点按钮打点或点击十字光标标点' });
+            return;
+        }
 
-            case 1:
-                // 1个点：只保留标记点
-                window.PolylineModule.removeAllPolylines();
-                window.PolygonModule.removePolygon(map);
-                break;
+        if (total === 1) {
+            window.PolylineModule.removeAllPolylines(map);
+            window.PolygonModule.removePolygon(map);
+            safePost({ type: 'WEBVIEW_DOT_SUCCESS', message: '请继续添加下一个点位' });
+            return;
+        }
 
-            case 2:
-                // 2个点：绘制两点之间的线段
-                window.PolygonModule.removePolygon(map); // 移除可能存在的多边形
-                window.PolylineModule.removeAllPolylines();
-                const startPoint = coords[0];
-                const endPoint = coords[1];
-                window.PolylineModule.drawPolyline(map, startPoint, endPoint);
-                break;
+        if (total === 2) {
+            // 两点：清除多边形，仅绘制折线（且只有一条）
+            window.PolygonModule.removePolygon(map);
+            window.PolylineModule.removeAllPolylines(map);
 
-            default: // 3个点及以上
-                // 移除之前的多边形
-                window.PolygonModule.removePolygon(map);
-                
-                // 创建闭合多边形坐标
-                const closedCoords = [...coords, coords[0]];
-                const polygonResult = window.PolygonModule.drawPolygon(map, closedCoords);
-                
-                // 通知RN已形成闭合区域
-                if (polygonResult) {
-                    window.ReactNativeWebView?.postMessage(JSON.stringify({
-                        type: 'WEBVIEW_DOT_SUCCESS',
-                        message: `已形成闭合区域地块，面积: ${polygonResult.area}亩，是否保存`,
-                        area: polygonResult.area
-                    }));
-                }
-                break;
+            const start = coordsLonLat[0];
+            const end   = coordsLonLat[1];
+            window.PolylineModule.drawPolyline(map, start, end);
+
+            safePost({ type: 'WEBVIEW_DOT_SUCCESS', message: '已生成线段，请继续添加下一个点位' });
+            return;
+        }
+
+        // 3 个及以上：清除折线，绘制多边形（自动闭合）
+        window.PolylineModule.removeAllPolylines(map);
+        window.PolygonModule.removePolygon(map);
+
+        const polygonResult = window.PolygonModule.drawPolygon(map, coordsLonLat);
+        if (polygonResult) {
+            safePost({
+                type: 'WEBVIEW_DOT_SUCCESS',
+                message: `已形成闭合区域地块，面积: ${polygonResult.area}亩，是否保存`,
+                area: polygonResult.area
+            });
         }
     }
 
-
     /**
-     * 移除地图打点（同时处理线段和多边形）
-     * @param {ol.Map} map - 地图实例
+     * 撤销最后一个打点
+     * @param {ol.Map} map
      */
     function removeDotMarker(map) {
         if (dotMarkers.length === 0) return;
 
-        // 移除最后一个点标记
-        dotMarkerCoordinates.pop();
-        const lastMarker = dotMarkers.pop();
-        map.removeLayer(lastMarker);
+        // 移除最后一个点要素图层
+        const lastLayer = dotMarkers.pop();
+        map.removeLayer(lastLayer);
 
-        const dotTotal = dotMarkerCoordinates.length;
-        
-        // 重新处理线段和多边形状态
-        handlePolylineAndPolygon(map, dotTotal);
-        
-        // 通知RN更新计数
-        window.ReactNativeWebView?.postMessage(JSON.stringify({
-            type: 'WEBVIEW_UPDATE_DOT_TOTAL',
-            total: dotTotal
-        }));
+        // 同步经纬度数组
+        dotMarkerCoordinates.pop();
+
+        // 重新联动
+        handlePolylineAndPolygon(map);
+
+        // 数量通知
+        safePost({ type: 'WEBVIEW_UPDATE_DOT_TOTAL', total: dotMarkerCoordinates.length });
     }
 
     /**
-     * 移除所有地图打点（重置所有状态）
-     * @param {ol.Map} map - 地图实例
+     * 移除所有打点
+     * @param {ol.Map} map
      */
     function removeAllDotMarkers(map) {
-        // 移除所有点标记
-        dotMarkers.forEach(marker => map.removeLayer(marker));
+        dotMarkers.forEach(layer => map.removeLayer(layer));
         dotMarkers = [];
         dotMarkerCoordinates = [];
 
-        // 移除所有线段和多边形
-        window.PolylineModule.removeAllPolylines();
+        window.PolylineModule.removeAllPolylines(map);
         window.PolygonModule.removePolygon(map);
 
-        // 通知RN重置计数
-        window.ReactNativeWebView?.postMessage(JSON.stringify({
-            type: 'WEBVIEW_UPDATE_DOT_TOTAL',
-            total: 0
-        }));
-        window.ReactNativeWebView?.postMessage(JSON.stringify({
-            type: 'WEBVIEW_DOT_SUCCESS',
-            message: '请点击打点按钮打点或点击十字光标标点'
-        }));
+        safePost({ type: 'WEBVIEW_UPDATE_DOT_TOTAL', total: 0 });
+        safePost({ type: 'WEBVIEW_DOT_SUCCESS', message: '请点击打点按钮打点或点击十字光标标点' });
     }
 
     /**
-     * 过滤重复点（距离小于0.3米则视为重复）
+     * 过滤重复点（0.3m 内为重复）
      */
-    function filterPointDot(location, dotMarkerCoordinates) {
-        if (dotMarkerCoordinates.length === 0) return true;
-        
-        const points = dotMarkerCoordinates.map(dot => 
-            turf.point([dot.lon, dot.lat])
-        );
+    function filterPointDot(location, list) {
+        if (list.length === 0) return true;
         const newPoint = turf.point([location.lon, location.lat]);
-        let isTooClose = false;
-        
-        points.forEach(point => {
-            const distance = turf.distance(newPoint, point, { units: 'meters' });
-            if (distance < 0.3) isTooClose = true;
-        });
-        
-        return !isTooClose;
+        for (const dot of list) {
+            const p = turf.point([dot.lon, dot.lat]);
+            const d = turf.distance(newPoint, p, { units: 'meters' });
+            if (d < 0.3) return false;
+        }
+        return true;
     }
 
-    // 以下为原有方法（保持不变）
+    // —— 定位与朝向（保持原有接口不变） ——
     function toLocateSelf(map, location) {
         if (!selfMarkerLayer) {
             drawCurrentLocation(map, location);
@@ -201,48 +176,51 @@ window.MarkerModule = (function () {
                 rotateWithView: true
             })
         });
-        selfMarkerFeature = new ol.Feature({
+
+        const feature = new ol.Feature({
             geometry: new ol.geom.Point(ol.proj.fromLonLat([location.lon, location.lat]))
         });
-        selfMarkerFeature.setStyle(markerIcon);
+        feature.setStyle(markerIcon);
+
         selfMarkerLayer = new ol.layer.Vector({
-            source: new ol.source.Vector({ features: [selfMarkerFeature] }),
+            source: new ol.source.Vector({ features: [feature] }),
             zIndex: 101
         });
+
         map.addLayer(selfMarkerLayer);
     }
 
     function updateCurrentLocation(location, map) {
         const features = selfMarkerLayer?.getSource()?.getFeatures();
         if (!features || features.length === 0) {
-            window.ReactNativeWebView?.postMessage("⚠️ selfMarkerFeature 不存在，自动绘制");
+            safePost("⚠️ selfMarkerFeature 不存在，自动绘制");
             drawCurrentLocation(map, location);
             return;
         }
-        const markerGeometry = features[0].getGeometry();
-        const newCoord = ol.proj.fromLonLat([location.lon, location.lat]);
-        markerGeometry.setCoordinates(newCoord);
+        const geom = features[0].getGeometry();
+        geom.setCoordinates(ol.proj.fromLonLat([location.lon, location.lat]));
         map.renderSync();
     }
 
     function transformMarkerCoordinate(map, fromType, toType) {
-        if (!selfMarkerFeature || !selfMarkerFeature.getGeometry()) return;
-        const currentCoord = selfMarkerFeature.getGeometry().getCoordinates();
-        let [lon, lat] = ol.proj.toLonLat(currentCoord);
-        if (fromType === toType) return;
+        const features = selfMarkerLayer?.getSource()?.getFeatures();
+        if (!features || features.length === 0) return;
+        const current = features[0].getGeometry().getCoordinates();
+        let [lon, lat] = ol.proj.toLonLat(current);
         if (fromType === "WGS84" && toType === "GCJ02") {
             [lon, lat] = TransformModule.wgs84ToGcj02(lon, lat);
         } else if (fromType === "GCJ02" && toType === "WGS84") {
             [lon, lat] = TransformModule.gcj02ToWgs84(lon, lat);
         }
-        const transformedCoord = ol.proj.fromLonLat([lon, lat]);
-        selfMarkerFeature.getGeometry().setCoordinates(transformedCoord);
+        features[0].getGeometry().setCoordinates(ol.proj.fromLonLat([lon, lat]));
     }
 
     function updateMarkerRotation(map, degrees) {
-        if (!selfMarkerFeature) return;
+        const features = selfMarkerLayer?.getSource()?.getFeatures();
+        if (!features || features.length === 0) return;
+
         const radians = degrees * (Math.PI / 180);
-        const rotatedStyle = new ol.style.Style({
+        const style = new ol.style.Style({
             image: new ol.style.Icon({
                 anchor: [0.5, 0.5],
                 anchorXUnits: 'fraction',
@@ -254,9 +232,19 @@ window.MarkerModule = (function () {
                 rotation: radians
             })
         });
-        selfMarkerFeature.setStyle(rotatedStyle);
-        if (map && typeof map.render === 'function') {
-            map.render();
+
+        features[0].setStyle(style);
+        if (map && typeof map.render === 'function') map.render();
+    }
+
+    /** 安全发消息到 RN（存在性判断） */
+    function safePost(payload) {
+        if (window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function') {
+            if (typeof payload === 'string') {
+                window.ReactNativeWebView.postMessage(payload);
+            } else {
+                window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+            }
         }
     }
 
