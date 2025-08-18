@@ -1,5 +1,5 @@
 import {View, Text, TouchableOpacity, Image, Platform, PermissionsAndroid, ToastAndroid} from "react-native";
-import {styles} from "./styles/EnclosureScreen";
+import {EnclosureScreenStyles} from "./styles/EnclosureScreen";
 import {useEffect, useRef, useState} from "react";
 import {observer} from "mobx-react-lite";
 import {mapStore} from "@/stores/mapStore";
@@ -16,27 +16,17 @@ import {useNavigation, useFocusEffect} from "@react-navigation/native";
 import {BackHandler} from "react-native";
 import {ToastUtil} from "@/components/common/CustomCenterToast";
 import {checkLocationPermission, requestLocationPermission} from "@/utils/checkPermissions";
-import React from "react";
 
 const EnclosureScreen = observer(() => {
-  // 弹窗提示信息的状态
   const [popupTips, setPopupTips] = useState("请点击打点按钮打点或点击十字光标标点");
-  // 是否显示保存按钮的状态
   const [isShowSaveButton, setShowSaveButton] = useState(true);
-  // 打点总数的状态，初始值为 0
   const [dotTotal, setDotTotal] = useState(0);
-  // 显示地图图层切换弹窗的状态
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
-  // 是否显示定位权限弹窗的状态
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
-  // 创建一个 ref 对象，用于引用 WebView 组件实例
   const webViewRef = useRef<WebView>(null);
-  //  WebView 是否加载完成的状态
   const [isWebViewReady, setIsWebViewReady] = useState(false);
-  // 返回上级页面确认弹窗
   const [showBackPopup, setShowBackPopup] = useState(false);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
-  // 导航对象
   const navigation = useNavigation();
   const beforeRemoveRef = useRef<any>(null);
   const watchIdRef = useRef<number | null>(null);
@@ -374,7 +364,7 @@ const EnclosureScreen = observer(() => {
   });
 
   return (
-    <View style={styles.container}>
+    <View style={EnclosureScreenStyles.container}>
       {/* 权限弹窗 */}
       <PermissionPopup
         visible={showPermissionPopup}
@@ -392,11 +382,11 @@ const EnclosureScreen = observer(() => {
         }}
       />
       {/* 地图 */}
-      <View style={styles.mapBox}>
-        <View style={styles.popupTips}>
-          <Text style={styles.popupTipsText}>{popupTips}</Text>
+      <View style={EnclosureScreenStyles.mapBox}>
+        <View style={EnclosureScreenStyles.popupTips}>
+          <Text style={EnclosureScreenStyles.popupTipsText}>{popupTips}</Text>
         </View>
-        <View style={styles.map}>
+        <View style={EnclosureScreenStyles.map}>
           <WebView
             ref={webViewRef}
             source={{uri: "file:///android_asset/web/enclosureMap.html"}}
@@ -409,20 +399,22 @@ const EnclosureScreen = observer(() => {
             onMessage={receiveWebviewMessage}
             style={{flex: 1}}
           />
-          <View style={styles.mapCopyright}>
-            <Image source={require("../../assets/images/home/icon-td.png")} style={styles.iconImg} />
-            <Text style={styles.copyrightText}>©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471</Text>
+          <View style={EnclosureScreenStyles.mapCopyright}>
+            <Image source={require("../../assets/images/home/icon-td.png")} style={EnclosureScreenStyles.iconImg} />
+            <Text style={EnclosureScreenStyles.copyrightText}>
+              ©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471
+            </Text>
           </View>
         </View>
         {/* 右侧控制按钮 */}
-        <View style={styles.rightControl}>
+        <View style={EnclosureScreenStyles.rightControl}>
           <MapControlButton
             iconUrl={require("../../assets/images/home/icon-layer.png")}
             iconName="图层"
             onPress={onToggleMapLayer}
           />
         </View>
-        <View style={styles.locationControl}>
+        <View style={EnclosureScreenStyles.locationControl}>
           <MapControlButton
             iconUrl={require("../../assets/images/home/icon-location.png")}
             iconName="定位"
@@ -431,28 +423,28 @@ const EnclosureScreen = observer(() => {
           />
         </View>
         {/* 底部按钮 */}
-        <View style={styles.footerButtonGroup}>
-          <TouchableOpacity style={[styles.buttonBase, styles.buttonRevoke]} onPress={onRevokeDot}>
-            <Text style={styles.revokeText}>撤销</Text>
+        <View style={EnclosureScreenStyles.footerButtonGroup}>
+          <TouchableOpacity style={[EnclosureScreenStyles.buttonBase, EnclosureScreenStyles.buttonRevoke]} onPress={onRevokeDot}>
+            <Text style={EnclosureScreenStyles.revokeText}>撤销</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.buttonBase, styles.buttonDot]} onPress={onDot}>
-            <Image source={require("@/assets/images/common/icon-plus.png")} style={styles.dotIcon} />
-            <Text style={styles.dotText}>打点</Text>
+          <TouchableOpacity style={[EnclosureScreenStyles.buttonBase, EnclosureScreenStyles.buttonDot]} onPress={onDot}>
+            <Image source={require("@/assets/images/common/icon-plus.png")} style={EnclosureScreenStyles.dotIcon} />
+            <Text style={EnclosureScreenStyles.dotText}>打点</Text>
           </TouchableOpacity>
           {isShowSaveButton ? (
-            <TouchableOpacity style={[styles.buttonBase, styles.buttonSave]} onPress={onSave}>
-              <Text style={[styles.saveText, {color: dotTotal >= 3 ? "#08ae3c" : "#999"}]}>保存</Text>
+            <TouchableOpacity style={[EnclosureScreenStyles.buttonBase, EnclosureScreenStyles.buttonSave]} onPress={onSave}>
+              <Text style={[EnclosureScreenStyles.saveText, {color: dotTotal >= 3 ? "#08ae3c" : "#999"}]}>保存</Text>
             </TouchableOpacity>
           ) : (
-            <View style={[styles.buttonBase, styles.placeholder]} />
+            <View style={[EnclosureScreenStyles.buttonBase, EnclosureScreenStyles.placeholder]} />
           )}
         </View>
         {/* 十字光标 */}
-        <TouchableOpacity style={styles.locationCursor} activeOpacity={1} onPress={onMapCursorDot}>
+        <TouchableOpacity style={EnclosureScreenStyles.locationCursor} activeOpacity={1} onPress={onMapCursorDot}>
           {mapStore.mapType === "标准地图" ? (
-            <Image source={require("@/assets/images/common/icon-cursor-green.png")} style={styles.cursorIcon} />
+            <Image source={require("@/assets/images/common/icon-cursor-green.png")} style={EnclosureScreenStyles.cursorIcon} />
           ) : (
-            <Image source={require("@/assets/images/common/icon-cursor.png")} style={styles.cursorIcon} />
+            <Image source={require("@/assets/images/common/icon-cursor.png")} style={EnclosureScreenStyles.cursorIcon} />
           )}
         </TouchableOpacity>
         {/* 图层切换弹窗 */}
