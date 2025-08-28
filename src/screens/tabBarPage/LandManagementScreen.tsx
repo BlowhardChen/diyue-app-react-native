@@ -1,3 +1,4 @@
+// 土地管理
 import LandHomeCustomNavbar from "@/components/land/LandHomeCustomNavbar";
 import {View, Image, Text} from "react-native";
 import {styles} from "./styles/LandManagementScreen";

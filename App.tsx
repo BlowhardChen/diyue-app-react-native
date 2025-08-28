@@ -8,7 +8,7 @@ import {isTokenValid} from "@/utils/auth";
 import {AuthProvider} from "@/stores/useAuth";
 import {ActivityIndicator, View} from "react-native";
 import {RootStackParamList} from "@/types/navigation";
-import {RootSiblingParent} from "react-native-root-siblings"; // ✅ 引入这一行！
+import {RootSiblingParent} from "react-native-root-siblings";
 
 export default function App() {
   const routeNameRef = useRef<string>("");

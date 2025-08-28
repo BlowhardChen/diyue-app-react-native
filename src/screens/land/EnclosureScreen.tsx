@@ -1,3 +1,4 @@
+// 圈地
 import {View, Text, TouchableOpacity, Image, Platform, PermissionsAndroid, ToastAndroid} from "react-native";
 import {EnclosureScreenStyles} from "./styles/EnclosureScreen";
 import {useEffect, useRef, useState} from "react";

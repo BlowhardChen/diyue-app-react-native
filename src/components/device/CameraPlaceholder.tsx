@@ -32,13 +32,10 @@ const CameraPlaceholder = () => {
 
   return (
     <View style={styles.container}>
-      <ImageBackground
-        source={require("@/assets/images/device/web-camera-bg.png")} // 你提供的扫码框图片
-        style={styles.frame}
-        resizeMode="stretch">
+      <ImageBackground source={require("@/assets/images/device/web-camera-bg.png")} style={styles.frame} resizeMode="stretch">
         {/* 扫描线 */}
         <Animated.Image
-          source={require("@/assets/images/device/scan-line.png")} // 你提供的绿色扫描线图片
+          source={require("@/assets/images/device/scan-line.png")}
           style={[styles.scanLine, {transform: [{translateY}]}]}
           resizeMode="contain"
         />

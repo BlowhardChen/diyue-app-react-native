@@ -128,8 +128,8 @@ const LoginScreen = () => {
   // 同意并登录
   const handleAgreeAndLogin = async () => {
     try {
-      await handleLoginFun(phone.replace(/\s/g, ""), password);
       setShowAgreementModal(false);
+      await handleLoginFun(phone.replace(/\s/g, ""), password);
     } catch (error) {}
   };
 

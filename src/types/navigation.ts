@@ -37,6 +37,11 @@ export type AccountStackParamList = {
 // 设备
 export type DeviceStackParamList = {
   AddDevice: undefined;
+  CurrentConnect: {imei: string};
+  ManualInput: undefined;
+  BluetoothConnect: undefined;
+  DifferentialConfig: {deviceInfo: any};
+  DataUpload: {deviceInfo: any};
 };
 
 // 土地地图相关

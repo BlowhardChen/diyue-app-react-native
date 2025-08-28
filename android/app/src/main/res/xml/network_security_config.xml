@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+  <base-config cleartextTrafficPermitted="true">
+    <trust-anchors>
+      <!-- 信任系统默认证书 -->
+      <certificates src="system" />
+      <!-- 信任用户安装的证书（包括Proxyman） -->
+      <certificates src="user" />
+    </trust-anchors>
+  </base-config>
+</network-security-config>

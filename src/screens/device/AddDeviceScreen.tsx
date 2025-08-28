@@ -1,7 +1,7 @@
-// AddDeviceScreen.tsx
+// 添加设备
 import React, {useEffect, useRef, useState} from "react";
-import {View, Text, Image, TouchableOpacity, Vibration, StyleSheet, Dimensions} from "react-native";
-import {Camera, useCameraDevice, useCameraPermission} from "react-native-vision-camera";
+import {View, Text, Image, TouchableOpacity, Vibration} from "react-native";
+import {Camera, useCameraPermission} from "react-native-vision-camera";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {AddDeviceScreenStyles} from "./styles/AddDeviceScreen";
@@ -9,7 +9,7 @@ import {SafeAreaView} from "react-native-safe-area-context";
 import PermissionPopup from "@/components/common/PermissionPopup";
 import {ToastUtil} from "@/components/common/CustomCenterToast";
 import CameraPlaceholder from "@/components/device/CameraPlaceholder";
-import {GestureDetector, Gesture} from "react-native-gesture-handler";
+import FullscreenCamera from "@/components/device/FullscreenCamera";
 
 type AddDeviceStackParamList = {
   CurrentConnect: {imei: string};
@@ -19,44 +19,35 @@ type AddDeviceStackParamList = {
 
 const AddDeviceScreen = () => {
   const navigation = useNavigation<StackNavigationProp<AddDeviceStackParamList>>();
-  const device = useCameraDevice("back");
   const {hasPermission, requestPermission} = useCameraPermission();
   const camera = useRef<Camera>(null);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
+  const [permissionGranted, setPermissionGranted] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  const windowHeight = Dimensions.get("window").height;
+  useEffect(() => {
+    // 初始化时检查权限
+    (async () => {
+      if (!hasPermission) {
+        setShowPermissionPopup(true);
+      } else {
+        setPermissionGranted(true);
+      }
+    })();
+  }, [hasPermission]);
 
+  // 返回
   const handleGoBack = () => {
-    console.log("goBack clicked");
     navigation.goBack();
   };
-
-  // 点击对焦手势
-  const tapGesture = Gesture.Tap()
-    .onStart(e => {
-      // 限制在扫描框内识别
-      const inScanArea = e.y > windowHeight * 0.2 && e.y < windowHeight * 0.6;
-      return inScanArea;
-    })
-    .onEnd(async event => {
-      if (camera.current && device?.supportsFocus) {
-        try {
-          await camera.current.focus({
-            x: event.x / event.deviceEvent.pointerInside.width,
-            y: event.y / event.deviceEvent.pointerInside.height,
-          });
-        } catch (e) {
-          console.log("对焦失败:", e);
-        }
-      }
-    });
 
   // 同意开启相机权限
   const handleAcceptPermission = async () => {
     setShowPermissionPopup(false);
     const granted = await requestPermission();
-    if (!granted) {
+    if (granted) {
+      setPermissionGranted(true);
+    } else {
       ToastUtil.showErrorToast("未获得相机权限");
     }
   };
@@ -64,6 +55,14 @@ const AddDeviceScreen = () => {
   // 拒绝开启相机权限
   const handleRejectPermission = () => {
     setShowPermissionPopup(false);
+    setPermissionGranted(false);
+  };
+
+  const renderCameraArea = () => {
+    if (!permissionGranted) {
+      return <View style={{flex: 1, backgroundColor: "#000"}} />;
+    }
+    return <FullscreenCamera cameraRef={camera} />;
   };
 
   // 拍照
@@ -128,28 +127,11 @@ const AddDeviceScreen = () => {
 
   return (
     <View style={AddDeviceScreenStyles.container}>
-      {/* 相机区域 */}
-
-      {device && hasPermission ? (
-        <Camera
-          ref={camera}
-          style={StyleSheet.absoluteFill}
-          device={device}
-          isActive={true}
-          photo={true}
-          enableZoomGesture={true}>
-          {/* 仅在相机区域添加手势层 */}
-          <GestureDetector gesture={tapGesture}>
-            <View style={AddDeviceScreenStyles.gestureLayer} />
-          </GestureDetector>
-        </Camera>
-      ) : (
-        <View style={AddDeviceScreenStyles.fullCamera} />
-      )}
-
-      {/* 顶部导航 */}
+      {/* 相机区域（接收相同的 ref） */}
+      {renderCameraArea()}
+      {/* 顶部导航（只让内部元素可点，空白处透传） */}
       <SafeAreaView style={AddDeviceScreenStyles.headerOverlay} edges={["top"]} pointerEvents="box-none">
-        <View style={AddDeviceScreenStyles.header}>
+        <View style={AddDeviceScreenStyles.header} pointerEvents="box-none">
           <TouchableOpacity
             style={AddDeviceScreenStyles.headerIcon}
             onPress={handleGoBack}
@@ -161,33 +143,44 @@ const AddDeviceScreen = () => {
               resizeMode="contain"
             />
           </TouchableOpacity>
-          <Text style={AddDeviceScreenStyles.headerTitle}>添加设备</Text>
-          <View style={AddDeviceScreenStyles.headerIcon} />
+          <Text style={AddDeviceScreenStyles.headerTitle} pointerEvents="none">
+            添加设备
+          </Text>
+          <View style={AddDeviceScreenStyles.headerIcon} pointerEvents="none" />
         </View>
       </SafeAreaView>
 
-      {/* 扫描框 */}
-      <View style={AddDeviceScreenStyles.overlay}>
+      {/* 扫描框装饰层（纯展示，不拦截触摸） */}
+      <View style={AddDeviceScreenStyles.overlay} pointerEvents="none">
         <CameraPlaceholder />
       </View>
 
-      {/* 底部操作区域 */}
-      <View style={AddDeviceScreenStyles.bottomOverlay}>
-        <Text style={AddDeviceScreenStyles.tips}>请开启设备后扫描二维码</Text>
+      {/* 底部操作区域*/}
+      <View style={AddDeviceScreenStyles.bottomOverlay} pointerEvents="box-none">
+        <Text style={AddDeviceScreenStyles.tips} pointerEvents="none">
+          请开启设备后扫描二维码
+        </Text>
+
+        {/* 快门按钮：可点击 */}
         <TouchableOpacity style={[AddDeviceScreenStyles.button, AddDeviceScreenStyles.shot]} onPress={snapshot}>
           <Text style={AddDeviceScreenStyles.btnText}>点击识别二维码</Text>
         </TouchableOpacity>
-        <View style={AddDeviceScreenStyles.buttonBottom}>
-          <View style={AddDeviceScreenStyles.dividerRow}>
+
+        <View style={AddDeviceScreenStyles.buttonBottom} pointerEvents="box-none">
+          <View style={AddDeviceScreenStyles.dividerRow} pointerEvents="none">
             <View style={AddDeviceScreenStyles.line} />
             <Text style={AddDeviceScreenStyles.text}>或</Text>
             <View style={AddDeviceScreenStyles.line} />
           </View>
+
+          {/* 手动输入按钮：可点击 */}
           <TouchableOpacity
             style={[AddDeviceScreenStyles.button, AddDeviceScreenStyles.hand]}
             onPress={() => navigation.navigate("ManualInput")}>
             <Text style={AddDeviceScreenStyles.btnText}>手动输入</Text>
           </TouchableOpacity>
+
+          {/* 蓝牙连接按钮：可点击 */}
           <TouchableOpacity
             style={[AddDeviceScreenStyles.button, AddDeviceScreenStyles.bluetooth]}
             onPress={() => navigation.navigate("BluetoothConnect")}>

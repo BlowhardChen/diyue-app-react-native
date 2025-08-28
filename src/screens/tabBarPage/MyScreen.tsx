@@ -1,3 +1,4 @@
+// 我的
 import React, {useState, useCallback} from "react";
 import {View, Text, Image, TouchableOpacity, FlatList, StatusBar, ImageBackground, Platform} from "react-native";
 import {useNavigation, useFocusEffect} from "@react-navigation/native";

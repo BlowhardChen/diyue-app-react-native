@@ -3,8 +3,6 @@ import {CardStyleInterpolators, createStackNavigator} from "@react-navigation/st
 import SplashScreen from "../screens/bootPage/SplashScreen";
 import PrivacyPolicyScreen from "../screens/bootPage/PrivacyPolicyScreen";
 import BottomTabNavigator from "./BottomTabNavigator";
-import ServiceAgreement from "../screens/bootPage/ServiceAgreement";
-import PrivacyPolicyDetail from "../screens/bootPage/PrivacyPolicyDetail";
 import {RootStackParamList} from "@/types/navigation";
 import LoginScreen from "@/screens/account/LoginScreen";
 import RegisterScreen from "@/screens/account/RegisterScreen";
@@ -16,6 +14,13 @@ import EditPasswordScreen from "@/screens/account/EditPasswordScreen";
 import EditUserNameScreen from "@/screens/account/EditUserNameScreen";
 import AddDeviceScreen from "@/screens/device/AddDeviceScreen";
 import EnclosureScreen from "@/screens/land/EnclosureScreen";
+import CurrentConnectScreen from "@/screens/device/CurrentConnectScreen";
+import ManualInputScreen from "@/screens/device/ManualInputScreen";
+import BluetoothConnectScreen from "@/screens/device/BluetoothConnectScreen";
+import DifferentialConfigScreen from "@/screens/device/DifferentialConfigScreen";
+import DataUploadScreen from "@/screens/device/DataUploadScreen";
+import ServiceAgreementScreen from "../screens/bootPage/ServiceAgreementScreen";
+import PrivacyPolicyDetailScreen from "../screens/bootPage/PrivacyPolicyDetailScreen";
 
 type Props = {
   initialRouteName?: keyof RootStackParamList;
@@ -57,6 +62,11 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
           },
         },
       }}>
+      <Stack.Screen name="DataUpload" component={DataUploadScreen} />
+      <Stack.Screen name="DifferentialConfig" component={DifferentialConfigScreen} />
+      <Stack.Screen name="BluetoothConnect" component={BluetoothConnectScreen} />
+      <Stack.Screen name="ManualInput" component={ManualInputScreen} />
+      <Stack.Screen name="CurrentConnect" component={CurrentConnectScreen} />
       <Stack.Screen name="Enclosure" component={EnclosureScreen} />
       <Stack.Screen name="AddDevice" component={AddDeviceScreen} />
       <Stack.Screen name="EditUserName" component={EditUserNameScreen} />
@@ -69,8 +79,8 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
       <Stack.Screen name="SetPassword" component={SetPasswordScreen} />
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-      <Stack.Screen name="ServiceAgreement" component={ServiceAgreement} />
-      <Stack.Screen name="PrivacyPolicyDetail" component={PrivacyPolicyDetail} />
+      <Stack.Screen name="ServiceAgreement" component={ServiceAgreementScreen} />
+      <Stack.Screen name="PrivacyPolicyDetail" component={PrivacyPolicyDetailScreen} />
       <Stack.Screen name="Main" component={BottomTabNavigator} />
     </Stack.Navigator>
   );
