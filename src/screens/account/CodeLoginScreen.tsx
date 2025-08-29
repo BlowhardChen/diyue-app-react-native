@@ -1,18 +1,16 @@
+// 获取验证码&验证码登录
 import React, {useState, useEffect, useRef, useMemo, useCallback} from "react";
 import {View, Text, TextInput, TouchableOpacity, Image, StatusBar} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
-import {RouteProp, useNavigation, useRoute} from "@react-navigation/native";
+import {RouteProp, useNavigation, useRoute, useFocusEffect} from "@react-navigation/native";
 import {styles} from "./styles/CodeLoginScreen";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {codeLogin, getCodeForgotPwd, getCodeLogin, getCodeRegister} from "@/services/account";
-import {showCustomToast} from "@/components/common/CustomToast";
 import debounce from "lodash/debounce";
 
-// ---------- 常量 ----------
 const CODE_LENGTH = 6;
 const COUNTRY_CODE = "+86";
 
-// ---------- 类型 ----------
 type RootStackParamList = {
   Main: undefined;
   CodeLogin: {mobile: string; viewType: string};
@@ -25,8 +23,7 @@ type CodeLoginRouteParams = {
   mobile: string;
 };
 
-// ---------- 倒计时自定义 Hook ----------
-function useCountdown(initial: number, onFinish: () => void) {
+const useCountdown = (initial: number, onFinish: () => void) => {
   const [count, setCount] = useState(initial);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onFinishRef = useRef(onFinish);
@@ -44,10 +41,10 @@ function useCountdown(initial: number, onFinish: () => void) {
     return () => clearTimeout(timerRef.current!);
   }, [count]);
 
-  const reset = () => setCount(initial);
+  const reset = useCallback(() => setCount(initial), [initial]);
 
   return {count, reset};
-}
+};
 
 // API 映射
 const codeApiMap: Record<string, Function> = {
@@ -61,12 +58,22 @@ const CodeLoginScreen = () => {
   const route = useRoute<RouteProp<{params: CodeLoginRouteParams}>>();
   const {mobile, viewType} = route.params || {};
   const phoneNumber = mobile?.replace(/\s/g, "") || "";
-
   const [code, setCode] = useState("");
   const [focus, setFocus] = useState(true);
   const [isReget, setIsReget] = useState(false);
 
+  const inputRef = useRef<TextInput>(null);
   const {count, reset} = useCountdown(60, () => setIsReget(true));
+
+  // 页面重新聚焦时清空验证码并自动聚焦
+  useFocusEffect(
+    useCallback(() => {
+      setCode("");
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
+    }, []),
+  );
 
   // 隐藏手机号中间四位
   const hidePhoneNumber = (phone: string) => {
@@ -81,21 +88,16 @@ const CodeLoginScreen = () => {
 
   // 获取验证码
   const getCode = useCallback(async () => {
-    try {
-      const api = codeApiMap[viewType];
-      if (!api) return;
-      const res = await api({mobile: phoneNumber});
-      if (res) {
-        reset();
-        setIsReget(false);
-      }
-    } catch (error: any) {
-      console.log("error", error);
-      showCustomToast("error", error?.msg || "获取验证码失败");
+    const api = codeApiMap[viewType];
+    if (!api) return;
+    const res = await api({mobile: phoneNumber});
+    if (res) {
+      reset();
+      setIsReget(false);
     }
   }, [viewType, phoneNumber, reset]);
 
-  // 防抖的重新获取验证码方法
+  // 防抖重新获取验证码
   const debounceRef = useRef<ReturnType<typeof debounce> | null>(null);
 
   useEffect(() => {
@@ -119,23 +121,18 @@ const CodeLoginScreen = () => {
   // 验证码登录逻辑
   const handleAutoLogin = useCallback(
     async (enteredCode: string) => {
-      try {
-        const {data} = await codeLogin({
+      const {data} = await codeLogin({
+        mobile: phoneNumber,
+        mobileCode: enteredCode,
+      });
+      if (data?.register) {
+        navigation.navigate("SetPassword", {
+          viewType: "setPassword",
           mobile: phoneNumber,
           mobileCode: enteredCode,
         });
-
-        if (data?.register) {
-          navigation.navigate("SetPassword", {
-            viewType: "setPassword",
-            mobile: phoneNumber,
-            mobileCode: enteredCode,
-          });
-        } else {
-          navigation.navigate("Main");
-        }
-      } catch (error: any) {
-        showCustomToast("error", error?.msg || "登录失败");
+      } else {
+        navigation.navigate("Main");
       }
     },
     [navigation, phoneNumber],
@@ -157,7 +154,10 @@ const CodeLoginScreen = () => {
   }, [code, isCodeValid, handleAutoLogin, navigation, phoneNumber, viewType]);
 
   // 聚焦/失焦处理
-  const handleFocus = () => setFocus(true);
+  const handleFocus = () => {
+    setFocus(true);
+    inputRef.current?.focus();
+  };
   const handleBlur = () => setFocus(false);
   const handleBack = () => navigation.goBack();
 
@@ -187,24 +187,26 @@ const CodeLoginScreen = () => {
 
         {/* 验证码输入框 */}
         <View style={styles.codeInputContainer}>
+          {/* 隐形输入框，覆盖整块区域 */}
           <TextInput
+            ref={inputRef}
             style={styles.hiddenInput}
             value={code}
             onChangeText={handleCodeChange}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
             keyboardType="number-pad"
             maxLength={CODE_LENGTH}
-            autoFocus={true}
+            autoFocus
+            caretHidden // 隐藏光标
           />
 
-          <TouchableOpacity activeOpacity={1} onPress={handleFocus} style={styles.codeDisplay}>
+          {/* 格子显示层 */}
+          <View style={styles.codeDisplay} pointerEvents="none">
             {Array.from({length: CODE_LENGTH}).map((_, index) => (
               <View key={index} style={[styles.codeDigit, focus && index === code.length && styles.codeDigitFocused]}>
                 <Text style={styles.codeDigitText}>{code[index] || ""}</Text>
               </View>
             ))}
-          </TouchableOpacity>
+          </View>
         </View>
 
         {/* 倒计时或重发 */}

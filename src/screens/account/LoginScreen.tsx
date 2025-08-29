@@ -264,7 +264,7 @@ const LoginScreen = () => {
             {loginType === "code" && (
               <View style={styles.codeForm}>
                 {/* 手机号输入 */}
-                <View style={styles.inputItem}>
+                <View style={[styles.inputItem, {marginTop: 12}]}>
                   <View style={styles.iconContainer}>
                     <Image
                       source={require("../../assets/images/login/icon-phone.png")}

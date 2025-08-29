@@ -67,7 +67,6 @@ export const styles = StyleSheet.create({
     height: "100%",
     paddingHorizontal: 8,
     fontSize: 22,
-    fontWeight: "bold",
     color: "#000",
   },
   iconRight: {
@@ -79,7 +78,7 @@ export const styles = StyleSheet.create({
     padding: 8,
   },
   tips: {
-    fontSize: 14,
+    fontSize: 22,
     fontWeight: "400",
     color: "#999",
     alignSelf: "flex-start",
@@ -103,19 +102,23 @@ export const styles = StyleSheet.create({
     position: "absolute",
     bottom: 20,
     width: "100%",
-    paddingHorizontal: 24,
+    alignItems: "center",
   },
   radioButton: {
     flexDirection: "row",
     alignItems: "center",
   },
   radioIcon: {
-    width: 16,
-    height: 16,
-    marginRight: 8,
+    width: 20,
+    height: 20,
+    marginRight: 2,
   },
   agreementText: {
-    fontSize: 12,
+    fontSize: 14,
+    fontWeight: "500",
     color: "#666",
+  },
+  activeText: {
+    color: Global.colors.primary,
   },
 });

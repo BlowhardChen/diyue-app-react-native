@@ -43,6 +43,7 @@ export const styles = StyleSheet.create({
     position: "relative",
   },
   hiddenInput: {
+    ...StyleSheet.absoluteFillObject,
     position: "absolute",
     width: 1,
     height: 1,

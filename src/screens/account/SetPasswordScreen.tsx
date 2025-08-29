@@ -6,6 +6,8 @@ import Toast from "react-native-toast-message";
 import {SafeAreaView} from "react-native-safe-area-context";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {styles} from "./styles/SetPasswordScreen";
+import {showCustomToast} from "@/components/common/CustomToast";
+import {forgotPassword, registerAccount} from "@/services/account";
 
 type RootStackParamList = {
   Main: undefined;
@@ -33,6 +35,10 @@ const SetPasswordScreen = () => {
   const [isConfirmPasswordShow, setIsConfirmPasswordShow] = useState(true);
   const [isSelectRadio, setIsSelectRadio] = useState(false);
   const [phoneString, setPhoneString] = useState("");
+
+  // 聚焦状态（用于控制清空图标显示：有内容并且聚焦才显示）
+  const [isNewFocused, setIsNewFocused] = useState(false);
+  const [isConfirmFocused, setIsConfirmFocused] = useState(false);
 
   // 格式化手机号显示
   useEffect(() => {
@@ -68,29 +74,17 @@ const SetPasswordScreen = () => {
   // 验证密码格式
   const validatePassword = (password: string) => {
     if (!password) {
-      Toast.show({
-        type: "error",
-        text1: "错误",
-        text2: "请输入密码",
-      });
+      showCustomToast("error", "请输入密码");
       return false;
     }
 
     if (password.length < 6) {
-      Toast.show({
-        type: "error",
-        text1: "错误",
-        text2: "密码不得少于6位",
-      });
+      showCustomToast("error", "密码不得少于6位");
       return false;
     }
 
     if (!/\d/.test(password) || !/[a-zA-Z]/.test(password)) {
-      Toast.show({
-        type: "error",
-        text1: "错误",
-        text2: "密码必须包含字母数字",
-      });
+      showCustomToast("error", "密码必须包含字母数字");
       return false;
     }
 
@@ -99,41 +93,37 @@ const SetPasswordScreen = () => {
 
   // 提交表单
   const handleSubmit = async () => {
-    if (!validatePassword(newPassword) || !validatePassword(confirmPassword)) {
-      return;
-    }
+    if (!validatePassword(newPassword) || !validatePassword(confirmPassword)) return;
 
     if (newPassword !== confirmPassword) {
-      Toast.show({
-        type: "error",
-        text1: "错误",
-        text2: "两个密码不一致，请重试",
-      });
+      showCustomToast("error", "两次输入的密码不一致，请重试");
       return;
     }
 
     if (viewType === "register" && !isSelectRadio) {
-      Toast.show({
-        type: "error",
-        text1: "提示",
-        text2: "请先勾选用户协议和隐私政策",
-      });
+      showCustomToast("error", "请先勾选用户协议和隐私政策");
       return;
     }
 
-    // 这里应该调用相应的API
-    // 根据viewType调用不同的函数
-    // 例如: registerAccount(), forgotPassword(), setPassword()
-    // 成功后导航到相应页面
+    console.log("viewType", viewType);
 
-    // 模拟成功情况
-    Toast.show({
-      type: "success",
-      text1: "成功",
-      text2: viewType === "register" ? "注册成功" : "密码设置成功",
-    });
+    if (viewType === "forgetPassword") {
+      await forgotPassword({
+        mobile,
+        mobileCode,
+        password: newPassword,
+      });
+      showCustomToast("success", "密码设置成功");
+    }
 
-    // 导航到首页
+    if (viewType === "register") {
+      await registerAccount({
+        mobile,
+        mobileCode,
+        password: newPassword,
+      });
+    }
+
     navigation.navigate("Main");
   };
 
@@ -172,13 +162,16 @@ const SetPasswordScreen = () => {
               maxLength={20}
               placeholder="请输入新密码"
               placeholderTextColor="#999"
+              onFocus={() => setIsNewFocused(true)}
+              onBlur={() => setIsNewFocused(false)}
             />
             <View style={styles.iconRight}>
-              {newPassword ? (
+              {/* 有内容 && 聚焦 才显示清空按钮 */}
+              {newPassword && isNewFocused && (
                 <TouchableOpacity onPress={() => clearPassword("new")} style={styles.iconButton}>
                   <Image source={require("../../assets/images/login/icon-clear.png")} style={styles.inputIcon} />
                 </TouchableOpacity>
-              ) : null}
+              )}
               <TouchableOpacity onPress={() => togglePasswordVisibility("new")} style={styles.iconButton}>
                 <Image
                   source={
@@ -203,13 +196,16 @@ const SetPasswordScreen = () => {
               maxLength={20}
               placeholder="确认新密码"
               placeholderTextColor="#999"
+              onFocus={() => setIsConfirmFocused(true)}
+              onBlur={() => setIsConfirmFocused(false)}
             />
             <View style={styles.iconRight}>
-              {confirmPassword ? (
+              {/* 有内容 && 聚焦 才显示清空按钮 */}
+              {confirmPassword && isConfirmFocused && (
                 <TouchableOpacity onPress={() => clearPassword("confirm")} style={styles.iconButton}>
                   <Image source={require("../../assets/images/login/icon-clear.png")} style={styles.inputIcon} />
                 </TouchableOpacity>
-              ) : null}
+              )}
               <TouchableOpacity onPress={() => togglePasswordVisibility("confirm")} style={styles.iconButton}>
                 <Image
                   source={
@@ -226,12 +222,7 @@ const SetPasswordScreen = () => {
           <Text style={styles.tips}>密码需要6-20个字符，可以是数字、字母、特殊字符</Text>
 
           <TouchableOpacity
-            style={[
-              styles.submitButton,
-              {
-                opacity: newPassword && confirmPassword ? 1 : 0.5,
-              },
-            ]}
+            style={[styles.submitButton, {opacity: newPassword && confirmPassword ? 1 : 0.5}]}
             onPress={handleSubmit}
             disabled={!newPassword || !confirmPassword}>
             <Text style={styles.submitButtonText}>{viewType === "register" ? "注册" : "立即登录"}</Text>
@@ -250,7 +241,10 @@ const SetPasswordScreen = () => {
                 }
                 style={styles.radioIcon}
               />
-              <Text style={styles.agreementText}>我已阅读并同意《用户协议》和《隐私政策》</Text>
+              <Text style={styles.agreementText}>
+                我已阅读并同意<Text style={styles.activeText}>《用户服务协议》</Text>和
+                <Text style={styles.activeText}>《隐私政策》</Text>
+              </Text>
             </TouchableOpacity>
           </View>
         )}
