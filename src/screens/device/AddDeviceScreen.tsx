@@ -7,9 +7,14 @@ import {StackNavigationProp} from "@react-navigation/stack";
 import {AddDeviceScreenStyles} from "./styles/AddDeviceScreen";
 import {SafeAreaView} from "react-native-safe-area-context";
 import PermissionPopup from "@/components/common/PermissionPopup";
-import {ToastUtil} from "@/components/common/CustomCenterToast";
 import CameraPlaceholder from "@/components/device/CameraPlaceholder";
 import FullscreenCamera from "@/components/device/FullscreenCamera";
+import {showCustomToast} from "@/components/common/CustomToast";
+import {getToken} from "@/utils/tokenUtils";
+import {getDeviceImeiInfo} from "@/services/device";
+import CustomLoading from "@/components/common/CustomLoading";
+import {useOCR} from "@/utils/uploadImg";
+import {DeviceImeiInfoRequest} from "@/types/device";
 
 type AddDeviceStackParamList = {
   CurrentConnect: {imei: string};
@@ -23,7 +28,7 @@ const AddDeviceScreen = () => {
   const camera = useRef<Camera>(null);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const [permissionGranted, setPermissionGranted] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const {uploadImg, loading} = useOCR();
 
   useEffect(() => {
     // 初始化时检查权限
@@ -48,7 +53,7 @@ const AddDeviceScreen = () => {
     if (granted) {
       setPermissionGranted(true);
     } else {
-      ToastUtil.showErrorToast("未获得相机权限");
+      showCustomToast("error", "未获得相机权限");
     }
   };
 
@@ -71,7 +76,7 @@ const AddDeviceScreen = () => {
       setShowPermissionPopup(true);
       return;
     }
-    if (!camera.current || isUploading) return;
+    if (!camera.current || loading) return;
     try {
       Vibration.vibrate(100);
       const photo = await camera.current.takePhoto({flash: "off"});
@@ -85,43 +90,20 @@ const AddDeviceScreen = () => {
 
   // 上传 OCR
   const uploadOCRImg = async (filePath: string) => {
-    setIsUploading(true);
-    try {
-      const token = ""; // 从 storage 里取
-      const formData = new FormData();
-      formData.append("file", {uri: filePath, name: "ocr.jpg", type: "image/jpeg"} as any);
-      formData.append("type", "4");
-      const res = await fetch("http://60.205.213.205:8091/upload/uploadOCRImg", {
-        method: "POST",
-        headers: {token},
-        body: formData,
-      });
-      const json = await res.json();
-      setIsUploading(false);
-      if (json.code === 200) {
-        getDeviceBaseInfo(json.data);
-      } else {
-        ToastUtil.showErrorToast("图片识别失败，请重试");
-      }
-    } catch (err) {
-      setIsUploading(false);
-      ToastUtil.showErrorToast("图片识别失败，请重试");
+    const token = (await getToken()) as string;
+    const data = await uploadImg(filePath, token as string, "4");
+    if (data.success) {
+      getDeviceBaseInfo(data.ocrInfo);
     }
   };
 
   // 查询设备信息
   const getDeviceBaseInfo = async (imei: string) => {
-    const token = "";
-    const res = await fetch("http://60.205.213.205:8091/app/device/queryDeviceByImei", {
-      method: "POST",
-      headers: {"Content-Type": "application/json", token},
-      body: JSON.stringify({imei}),
-    });
-    const json = await res.json();
-    if (json.data.existsStatus === "0") {
-      navigation.navigate("CurrentConnect", {imei});
-    } else {
-      ToastUtil.showErrorToast("RTK设备暂未添加，请联系管理员添加设备再扫码使用");
+    try {
+      const data = (await getDeviceImeiInfo(imei)) as unknown as DeviceImeiInfoRequest;
+      navigation.navigate("CurrentConnect", {imei: data.device.imei});
+    } catch (error) {
+      showCustomToast("error", "RTK设备暂未添加，请联系管理员添加设备再扫码使用");
     }
   };
 
@@ -197,6 +179,9 @@ const AddDeviceScreen = () => {
         title={"开启相机权限"}
         message={"开启相机权限将用于识别设备IMEI码"}
       />
+
+      {/* loading */}
+      <CustomLoading visible={loading} text="图片识别中..." />
     </View>
   );
 };

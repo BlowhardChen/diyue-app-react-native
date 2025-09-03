@@ -153,12 +153,6 @@ const CodeLoginScreen = () => {
     }
   }, [code, isCodeValid, handleAutoLogin, navigation, phoneNumber, viewType]);
 
-  // 聚焦/失焦处理
-  const handleFocus = () => {
-    setFocus(true);
-    inputRef.current?.focus();
-  };
-  const handleBlur = () => setFocus(false);
   const handleBack = () => navigation.goBack();
 
   // 初始加载验证码

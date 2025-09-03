@@ -16,25 +16,30 @@ import {BleManager, Device} from "react-native-ble-plx";
 import CustomStatusBar from "@/components/common/CustomStatusBar";
 import PermissionPopup from "@/components/common/PermissionPopup";
 import {check, requestMultiple, PERMISSIONS, RESULTS} from "react-native-permissions";
+import {StackNavigationProp} from "@react-navigation/stack";
+import {showCustomToast} from "@/components/common/CustomToast";
 
 const manager = new BleManager();
 
-const BluetoothConnectScreen: React.FC = () => {
-  const navigation = useNavigation();
+type BluetoothConnectStackParamList = {
+  CurrentConnect: {imei: string};
+};
 
+const BluetoothConnectScreen: React.FC = () => {
+  const navigation = useNavigation<StackNavigationProp<BluetoothConnectStackParamList>>();
   const [blueDeviceList, setBlueDeviceList] = useState<Device[]>([]);
   const [isRotating, setIsRotating] = useState(false);
   const rotateAnim = useRef(new Animated.Value(0)).current;
-
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const [hasBluetoothPermission, setHasBluetoothPermission] = useState(false);
-
   const intervalRef = useRef<number | null>(null);
 
+  // 初始化蓝牙
   const initBluetooth = () => {
-    manager.startDeviceScan(null, {scanMode: 2}, (error, device) => {
+    manager.startDeviceScan(["0000ffe0-0000-1000-8000-00805f9b34fb"], {scanMode: 1}, (error, device) => {
       if (error) {
-        console.log("蓝牙初始化失败:", error);
+        console.log("蓝牙初始化失败", error);
+        showCustomToast("error", "蓝牙初始化失败");
         return;
       }
       if (device && device.name) {
@@ -49,30 +54,35 @@ const BluetoothConnectScreen: React.FC = () => {
     });
   };
 
+  // 开始扫描
   const startDiscovery = () => {
     initBluetooth();
   };
 
+  // 停止扫描
   const stopDiscovery = () => {
     manager.stopDeviceScan();
   };
 
+  // 单次扫描
   const scanOnce = () => {
     stopDiscovery();
     startDiscovery();
+    setTimeout(stopDiscovery, 5000);
   };
 
+  // 自动扫描
   const startAutoScan = () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
     const id = setInterval(() => {
-      console.log("自动重新扫描蓝牙设备...");
       scanOnce();
-    }, 10000);
+    }, 3000);
     intervalRef.current = id as unknown as number;
   };
 
+  // 停止自动扫描
   const stopAutoScan = () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -80,6 +90,7 @@ const BluetoothConnectScreen: React.FC = () => {
     }
   };
 
+  // 获取权限列表
   const getPermissionList = () => {
     if (Platform.OS === "android") {
       if (Platform.Version >= 31) {
@@ -91,6 +102,7 @@ const BluetoothConnectScreen: React.FC = () => {
     return [];
   };
 
+  // 检查权限
   const checkPermissionsOnStart = async () => {
     try {
       const permissions = getPermissionList();
@@ -111,6 +123,7 @@ const BluetoothConnectScreen: React.FC = () => {
     }
   };
 
+  // 接受权限
   const handleAcceptPermission = async () => {
     setShowPermissionPopup(false);
     try {
@@ -131,6 +144,7 @@ const BluetoothConnectScreen: React.FC = () => {
     }
   };
 
+  // 拒绝权限
   const handleRejectPermission = () => {
     setShowPermissionPopup(false);
     setHasBluetoothPermission(false);
@@ -138,6 +152,7 @@ const BluetoothConnectScreen: React.FC = () => {
     stopAutoScan();
   };
 
+  // 连接蓝牙
   const connectBluetooth = async (device: Device) => {
     try {
       console.log("连接设备:", device.name);
@@ -155,6 +170,7 @@ const BluetoothConnectScreen: React.FC = () => {
     outputRange: ["0deg", "360deg"],
   });
 
+  // 刷新
   const refresh = () => {
     setBlueDeviceList([]);
     scanOnce();
@@ -227,7 +243,7 @@ const BluetoothConnectScreen: React.FC = () => {
           onAccept={handleAcceptPermission}
           onReject={handleRejectPermission}
           title={"开启蓝牙权限"}
-          message={"开启蓝牙权限将用于连接设备"}
+          message={"开启蓝牙权限将用于搜索连接设备"}
         />
       </View>
     </SafeAreaView>

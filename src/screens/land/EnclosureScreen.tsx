@@ -15,8 +15,8 @@ import KeepAwake from "react-native-keep-awake";
 import Popup from "@/components/common/Popup";
 import {useNavigation, useFocusEffect} from "@react-navigation/native";
 import {BackHandler} from "react-native";
-import {ToastUtil} from "@/components/common/CustomCenterToast";
 import {checkLocationPermission, requestLocationPermission} from "@/utils/checkPermissions";
+import {showCustomToast} from "@/components/common/CustomToast";
 
 const EnclosureScreen = observer(() => {
   const [popupTips, setPopupTips] = useState("请点击打点按钮打点或点击十字光标标点");
@@ -199,11 +199,11 @@ const EnclosureScreen = observer(() => {
         console.error("watchPosition 错误:", err); // 更详细的错误日志
         // 根据错误类型显示不同提示
         if (err.code === 1) {
-          ToastUtil.showErrorToast("定位权限被拒绝");
+          showCustomToast("error", "定位权限被拒绝");
         } else if (err.code === 2) {
-          ToastUtil.showErrorToast("位置不可用");
+          showCustomToast("error", "位置不可用");
         } else if (err.code === 3) {
-          ToastUtil.showErrorToast("定位超时");
+          showCustomToast("error", "定位超时");
         }
       },
       {enableHighAccuracy: true, distanceFilter: 1, interval: 1000, fastestInterval: 500},
@@ -265,7 +265,7 @@ const EnclosureScreen = observer(() => {
         );
       },
       error => {
-        ToastUtil.showErrorToast("获取定位失败，请检查权限");
+        showCustomToast("error", "获取定位失败，请检查权限");
       },
       {enableHighAccuracy: true, timeout: 10000, maximumAge: 1000},
     );
@@ -275,7 +275,8 @@ const EnclosureScreen = observer(() => {
   const onSave = () => {
     console.log("保存", dotTotal, "面积:", polygonArea);
     if (dotTotal < 3) {
-      ToastUtil.showCenterToast("未形成闭合图形，请至少保证有3个及以上点位");
+      showCustomToast("error", "未形成闭合图形，请至少保证有3个及以上点位");
+
       return;
     }
   };
@@ -305,7 +306,7 @@ const EnclosureScreen = observer(() => {
         }
         break;
       case "WEBVIEW_DOT_REPEAT":
-        ToastUtil.showCenterToast("当前点位已保存，请前往下一个点位");
+        showCustomToast("error", "当前点位已保存，请前往下一个点位");
         break;
       case "WEBVIEW_DOT_SUCCESS":
         if (data.message) {

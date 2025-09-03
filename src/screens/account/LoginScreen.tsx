@@ -66,10 +66,12 @@ const LoginScreen = () => {
   const validatePassword = (pwd: string): boolean => {
     if (!pwd) {
       showCustomToast("error", "请输入密码");
+
       return false;
     }
     if (pwd.length < 6) {
       showCustomToast("error", "密码长度不能少于6位");
+
       return false;
     }
     return true;

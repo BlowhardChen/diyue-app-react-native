@@ -9,6 +9,7 @@ import {AuthProvider} from "@/stores/useAuth";
 import {ActivityIndicator, View} from "react-native";
 import {RootStackParamList} from "@/types/navigation";
 import {RootSiblingParent} from "react-native-root-siblings";
+import {getToken} from "@/utils/tokenUtils";
 
 export default function App() {
   const routeNameRef = useRef<string>("");
@@ -17,7 +18,7 @@ export default function App() {
   useEffect(() => {
     const initApp = async () => {
       const agreed = await AsyncStorage.getItem("userAgreed");
-      const token = await AsyncStorage.getItem("token");
+      const token = await getToken();
       console.log("token:", token);
       if (agreed !== "true") {
         setInitialRoute("PrivacyPolicy");
