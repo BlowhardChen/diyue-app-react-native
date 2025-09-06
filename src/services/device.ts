@@ -1,4 +1,4 @@
-import {DeviceImeiInfoRequest} from "@/types/device";
+import {DeviceDifferentialConfigRequsetParmer, DeviceImeiInfoResponse} from "@/types/device";
 import {http} from "@/utils/http";
 
 /**
@@ -12,12 +12,45 @@ export const getDeviceConnectStatus = () => {
 };
 
 /**
- * 设备-查询设备Imei信息
+ * 设备-查询设备信息
  */
-export const getDeviceImeiInfo = (imei: string) => {
-  return http<DeviceImeiInfoRequest>({
+export const getDeviceInfo = (imei: string) => {
+  return http<DeviceImeiInfoResponse>({
     method: "POST",
     url: "/app/device/queryDeviceByImei",
     data: {imei},
+  });
+};
+
+/**
+ * 当前连接-查询设备差分数据源配置
+ */
+export const getDeviceDifferentialConfig = (deviceId: string) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/device/queryDeviceDateList",
+    data: {deviceId},
+  });
+};
+
+/**
+ * 当前连接-更新设备差分数据源配置
+ */
+export const updateDeviceDifferentialConfig = (data: DeviceDifferentialConfigRequsetParmer) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/device/updateDeviceDate",
+    data,
+  });
+};
+
+/**
+ * 数据上传-查询设备上传数据配置
+ */
+export const getDeviceUploadConfig = (deviceId: string) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/device/queryDeviceUploadDateList",
+    data: {deviceId},
   });
 };

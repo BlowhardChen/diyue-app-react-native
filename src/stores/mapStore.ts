@@ -49,7 +49,7 @@ class MapStore {
 
   async loadPersistedState() {
     try {
-      const data = await AsyncStorage.getItem(MAP_STORE_KEY);
+      const {data} = await AsyncStorage.getItem(MAP_STORE_KEY);
       if (data) {
         const parsed: MapState = JSON.parse(data);
         runInAction(() => {

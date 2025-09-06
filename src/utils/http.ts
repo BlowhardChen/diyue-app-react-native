@@ -1,12 +1,11 @@
-import axios, {AxiosRequestConfig, InternalAxiosRequestConfig} from "axios";
-import {Alert} from "react-native";
+import axios, {AxiosRequestConfig, InternalAxiosRequestConfig, AxiosResponse} from "axios";
 import {getToken, removeToken} from "./tokenUtils";
 import {navigateToLogin} from "./navigationUtils";
 import {showCustomToast} from "@/components/common/CustomToast";
 
 // 接口返回结构
 export interface ApiResponse<T = any> {
-  code: number;
+  code: number | string;
   msg: string;
   data: T;
 }
@@ -33,21 +32,21 @@ instance.interceptors.request.use(
   error => Promise.reject(error),
 );
 
-// 响应拦截器
+// 响应拦截器（这里保持返回 AxiosResponse<ApiResponse<T>>）
 instance.interceptors.response.use(
-  response => {
+  (response: AxiosResponse<ApiResponse<any>>) => {
     const res = response.data;
     const errorCodes = [-1, -2, -3, -4, -5, -6, -7, -8, -9];
 
     if (response.status >= 200 && response.status < 300) {
       if (res.code === 200 || res.code === "200") {
-        return res;
+        return response;
       } else if (errorCodes.includes(Number(res.code))) {
         showCustomToast("error", res.msg);
-        return Promise.reject(res);
+        return Promise.reject(response);
       } else {
         showCustomToast("error", res.msg);
-        return Promise.reject(res);
+        return Promise.reject(response);
       }
     } else if (response.status === 401) {
       removeToken();
@@ -64,7 +63,18 @@ instance.interceptors.response.use(
   },
 );
 
-// 统一导出方法
-export const http = <T = any>(config: AxiosRequestConfig): Promise<ApiResponse<T>> => {
-  return instance.request<ApiResponse<T>>(config).then(res => res.data);
+/**
+ * 返回完整 ApiResponse<T>
+ */
+export const httpResponse = async <T = any>(config: AxiosRequestConfig): Promise<ApiResponse<T>> => {
+  const response = await instance.request<ApiResponse<T>>(config);
+  return response.data;
+};
+
+/**
+ * 只返回 data 部分
+ */
+export const http = async <T = any>(config: AxiosRequestConfig): Promise<{data: T}> => {
+  const response = await instance.request<ApiResponse<T>>(config);
+  return {data: response.data.data};
 };

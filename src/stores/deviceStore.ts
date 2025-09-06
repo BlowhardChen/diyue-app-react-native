@@ -15,7 +15,7 @@ class DeviceStore {
     this.loadPersistedState();
   }
 
-  // 设置状态
+  // 设置设备状态
   listenDeviceStatus(status: string) {
     this.status = status;
     this.persist();
@@ -54,7 +54,7 @@ class DeviceStore {
         });
       }
     } catch (e) {
-      console.warn("deviceStore load failed", e);
+      console.log("deviceStore load failed", e);
     }
   }
 }

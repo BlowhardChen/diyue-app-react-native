@@ -4,6 +4,10 @@ import {View, Text, Image, TouchableOpacity, ScrollView, StyleSheet, ImageBackgr
 import {useNavigation, useRoute} from "@react-navigation/native";
 import CustomStatusBar from "@/components/common/CustomStatusBar";
 import {StackNavigationProp} from "@react-navigation/stack";
+import {getDeviceInfo} from "@/services/device";
+import {observer} from "mobx-react-lite";
+import {deviceStore} from "@/stores/deviceStore";
+import {navigateToTargetRoute} from "@/utils/navigationUtils";
 
 const configList = [
   {title: "蓝牙", type: "1"},
@@ -16,10 +20,9 @@ type DeviceStackParamList = {
   DataUpload: {deviceInfo: any};
 };
 
-const CurrentConnectScreen = () => {
+const CurrentConnectScreen = observer(() => {
   const navigation = useNavigation<StackNavigationProp<DeviceStackParamList>>();
   const route = useRoute<any>();
-  const [imei, setImei] = useState<string>("");
   const [deviceInfo, setDeviceInfo] = useState<any>(null);
   const [configType, setConfigType] = useState<{title: string; type: string}>({
     title: "MQTT",
@@ -32,7 +35,23 @@ const CurrentConnectScreen = () => {
   };
 
   // 获取设备信息
-  const getDeviceBaseInfo = async (imeiValue: string) => {};
+  const getDeviceBaseInfo = async (imeiValue: string) => {
+    const {data} = await getDeviceInfo(imeiValue);
+    setDeviceInfo(data);
+    if (data.deviceDate.length) {
+      setConfigType({
+        title: "Ntrip",
+        type: "2",
+      });
+    }
+    if (data.deviceNetwork.length) {
+      setConfigType({
+        title: "MQTT",
+        type: "3",
+      });
+    }
+    deviceStore.listenDeviceStatus(data.deviceStatus);
+  };
 
   // 差分配置源
   const differenceConfig = () => {
@@ -45,11 +64,15 @@ const CurrentConnectScreen = () => {
   };
 
   // 配置完成
-  const completeConfig = async () => {};
+  const completeConfig = async () => {
+    console.log("route", route);
+    deviceStore.setDeviceImei(deviceInfo.device.imei);
+    await navigateToTargetRoute();
+  };
 
   useEffect(() => {
     const imeiValue = route.params?.imei;
-    setImei(imeiValue);
+
     getDeviceBaseInfo(imeiValue);
   }, [route.params]);
 
@@ -134,7 +157,7 @@ const CurrentConnectScreen = () => {
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: "#fff"},

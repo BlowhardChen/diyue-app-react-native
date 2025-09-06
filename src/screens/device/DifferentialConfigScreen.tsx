@@ -1,9 +1,11 @@
-// 差分配置
+// 差分配置源
 import React, {useEffect, useState} from "react";
 import {View, Text, TouchableOpacity, Image, StyleSheet, ScrollView} from "react-native";
 import CustomStatusBar from "@/components/common/CustomStatusBar";
 import DeviceNtripConfig from "@/components/device/DeviceNtripConfig";
 import DeviceMqttConfig from "@/components/device/DeviceMqttConfig";
+import {getDeviceDifferentialConfig, getDeviceInfo, updateDeviceDifferentialConfig} from "@/services/device";
+import {showCustomToast} from "@/components/common/CustomToast";
 
 interface ConfigItem {
   title: string;
@@ -22,10 +24,8 @@ const DifferentialConfig = ({route, navigation}: any) => {
     title: "Ntrip",
     type: "2",
   });
-
   const [showNtripConfig, setShowNtripConfig] = useState(false);
   const [showMqttConfig, setShowMqttConfig] = useState(false);
-
   const [ntripConfig, setNtripConfig] = useState({
     ip: "rtk.ntrip.qxwz.com",
     port: "8002",
@@ -33,7 +33,6 @@ const DifferentialConfig = ({route, navigation}: any) => {
     pwd: "35ddfe7",
     topic: "AUTO",
   });
-
   const [mqttConfig, setMqttConfig] = useState({
     ip: "mqtt.com",
     port: "1883",
@@ -41,12 +40,33 @@ const DifferentialConfig = ({route, navigation}: any) => {
     pwd: "password",
     topic: "1234567890",
   });
-
   const [deviceInfo, setDeviceInfo] = useState<any>(null);
   const [configData, setConfigData] = useState<any[]>([]);
   const [configId, setConfigId] = useState("");
 
-  /** 选择配置 */
+  useEffect(() => {
+    if (route?.params?.deviceInfo) {
+      console.log("route", route);
+      const {deviceInfo} = route.params;
+      const {id} = route.params.deviceInfo.device;
+      if (deviceInfo.deviceDate.length) {
+        setConfigSelect({
+          title: "Ntrip",
+          type: "2",
+        });
+      }
+      if (deviceInfo.deviceNetwork.length) {
+        setConfigSelect({
+          title: "MQTT",
+          type: "3",
+        });
+      }
+      setDeviceInfo(deviceInfo);
+      getDeviceConfigData(id);
+    }
+  }, [route?.params?.deviceInfo]);
+
+  // 选择配置
   const selectConfig = (item: ConfigItem) => {
     setIsSelected(item.type);
     setConfigSelect(item);
@@ -55,16 +75,9 @@ const DifferentialConfig = ({route, navigation}: any) => {
     if (target) {
       setConfigId(target.id);
     }
-
-    if (item.title === "Ntrip") {
-      saveNtripConfig(ntripConfig);
-    }
-    if (item.title === "MQTT") {
-      saveMqttConfig(mqttConfig);
-    }
   };
 
-  /** 修改配置 */
+  // 修改配置
   const updateConfig = () => {
     if (configSelect.title === "Ntrip") {
       setShowNtripConfig(true);
@@ -74,81 +87,58 @@ const DifferentialConfig = ({route, navigation}: any) => {
     }
   };
 
-  /** 保存 Ntrip 配置 */
+  // 保存 Ntrip 配置
   const saveNtripConfig = async (config: typeof ntripConfig) => {
     setNtripConfig(config);
-    try {
-      //   await updateDeviceData({
-      //     deviceId: deviceInfo.device.id,
-      //     id: configId,
-      //     type: configSelect.type,
-      //     ...config,
-      //   });
-      //   getDeviceBaseInfo(deviceInfo.device.imei);
-      //   setShowNtripConfig(false);
-      //   getDeviceConfigData(deviceInfo.device.id);
-    } catch (error: any) {
-      console.log("保存失败", error);
-      setShowNtripConfig(false);
-    }
+    const {data} = await updateDeviceDifferentialConfig({
+      deviceId: deviceInfo.device.id,
+      id: configId,
+      type: configSelect.type,
+      ...config,
+    });
+    showCustomToast("success", data ?? "操作成功");
+    getDeviceBaseInfo(deviceInfo.device.imei);
+    setShowNtripConfig(false);
+    getDeviceConfigData(deviceInfo.device.id);
+    setShowNtripConfig(false);
   };
 
-  /** 保存 MQTT 配置 */
+  // 保存 MQTT 配置
   const saveMqttConfig = async (config: typeof mqttConfig) => {
     setMqttConfig(config);
-    try {
-      //   await updateDeviceData({
-      //     deviceId: deviceInfo.device.id,
-      //     id: configId,
-      //     type: configSelect.type,
-      //     ...config,
-      //   });
-      //   getDeviceBaseInfo(deviceInfo.device.imei);
-      //   setShowMqttConfig(false);
-      //   getDeviceConfigData(deviceInfo.device.id);
-    } catch (error: any) {
-      console.log("保存失败", error);
-      setShowMqttConfig(false);
-    }
+    const {data} = await updateDeviceDifferentialConfig({
+      deviceId: deviceInfo.device.id,
+      id: configId,
+      type: configSelect.type,
+      ...config,
+    });
+    showCustomToast("success", data ?? "操作成功");
+    getDeviceBaseInfo(deviceInfo.device.imei);
+    setShowMqttConfig(false);
+    getDeviceConfigData(deviceInfo.device.id);
+    setShowMqttConfig(false);
   };
 
-  /** 获取设备信息 */
+  // 获取设备信息
   const getDeviceBaseInfo = async (imei: string) => {
-    try {
-      //   const {data} = await getDeviceMsg(imei);
-      //   setDeviceInfo(data);
-    } catch (error: any) {
-      console.log("请求失败", error);
-    }
+    const {data} = await getDeviceInfo(imei);
+    setDeviceInfo(data);
   };
 
-  /** 获取设备配置 */
+  // 获取设备配置
   const getDeviceConfigData = async (deviceId: string) => {
-    try {
-      //   const {data} = await getDeviceDateConfig({deviceId});
-      //   setConfigData(data);
-      //   const active = data.find((item: any) => item.status === "0");
-      //   if (active) {
-      //     const {ip, port, userName, pwd, topic} = active;
-      //     if (configSelect.title === "MQTT") {
-      //       setMqttConfig({ip, port, userName, pwd, topic});
-      //     } else {
-      //       setNtripConfig({ip, port, userName, pwd, topic});
-      //     }
-      //   }
-    } catch (error) {
-      console.log("获取配置失败", error);
+    const {data} = await getDeviceDifferentialConfig(deviceId);
+    setConfigData(data);
+    const active = data.find((item: any) => item.status === "0");
+    if (active) {
+      const {ip, port, userName, pwd, topic} = active;
+      if (configSelect.title === "MQTT") {
+        setMqttConfig({ip, port, userName, pwd, topic});
+      } else {
+        setNtripConfig({ip, port, userName, pwd, topic});
+      }
     }
   };
-
-  useEffect(() => {
-    if (route.params?.deviceInfo) {
-      const info = JSON.parse(route.params.deviceInfo);
-      setDeviceInfo(info);
-      setIsSelected(info.deviceDate[0].type);
-      getDeviceConfigData(info.device.id);
-    }
-  }, [route.params]);
 
   return (
     <View style={styles.differential}>
@@ -156,11 +146,8 @@ const DifferentialConfig = ({route, navigation}: any) => {
       <ScrollView style={styles.contentBox}>
         {/* 配置列表 */}
         {configList.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[styles.configItem, isSelected === item.type && styles.active]}
-            onPress={() => selectConfig(item)}>
-            <Text style={styles.title}>{item.title}</Text>
+          <TouchableOpacity key={index} style={styles.configItem} onPress={() => selectConfig(item)}>
+            <Text style={[styles.title, isSelected === item.type && styles.active]}>{item.title}</Text>
             {isSelected === item.type && <Image style={styles.icon} source={require("@/assets/images/device/icon-agree.png")} />}
           </TouchableOpacity>
         ))}
@@ -218,6 +205,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e7e7e7",
+    shadowColor: "#E7E7E7",
+    shadowOffset: {width: 0, height: 0},
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   title: {
     fontSize: 18,
@@ -239,8 +230,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginTop: 8,
     backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#e7e7e7",
+    shadowColor: "#E7E7E7",
+    shadowOffset: {width: 0, height: 0},
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   text: {
     fontSize: 18,

@@ -23,14 +23,10 @@ export const useOCR = () => {
         body: formData,
       });
 
-      const data = await res.json();
-      if (data.code === 200) {
-        const ocrInfo = data.data;
-        return {success: true, ocrInfo};
-      } else {
-        showCustomToast("error", "图片识别失败，请重试");
-        return {success: false};
-      }
+      const {data} = await res.json();
+      console.log("uploadImg", data);
+      const ocrInfo = data;
+      return {success: true, ocrInfo};
     } catch (err) {
       showCustomToast("error", "上传失败");
       return {success: false};

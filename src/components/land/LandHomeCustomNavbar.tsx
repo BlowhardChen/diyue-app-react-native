@@ -1,10 +1,12 @@
 import React, {useEffect, useState} from "react";
 import {View, Text, TouchableOpacity, Image, StyleSheet, Platform, StatusBar} from "react-native";
-import {useNavigation} from "@react-navigation/native";
+import {useNavigation, useRoute} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import LinearGradient from "react-native-linear-gradient";
 import {observer} from "mobx-react-lite";
 import {deviceStore} from "@/stores/deviceStore";
+import {saveTargetRoute} from "@/utils/navigationUtils";
+import {getDeviceConnectStatus} from "@/services/device";
 
 type HomeStackParamList = {
   AddDevice: undefined;
@@ -25,18 +27,24 @@ const deviceDisconnected = require("@/assets/images/common/device-disconnect.png
 const LandHomeCustomNavbar: React.FC<Props> = observer(({onChangeTab}) => {
   const navigation = useNavigation<StackNavigationProp<HomeStackParamList>>();
   const [activeTab, setActiveTab] = useState(0);
+  const route = useRoute();
 
+  // 切换tab
   const changeTab = (tab: {title: string; type: string}, index: number) => {
     setActiveTab(index);
     onChangeTab(tab.title, tab.type);
   };
 
+  // 连接设备
   const connectDevice = () => {
+    saveTargetRoute(route.name);
     navigation.navigate("AddDevice");
   };
 
+  // 获取设备连接状态
   const getDeviceConnect = async () => {
-    // 模拟异步操作
+    const {data} = await getDeviceConnectStatus();
+    deviceStore.listenDeviceStatus(data.deviceStatus);
   };
 
   useEffect(() => {

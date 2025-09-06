@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {Animated, Easing, Linking, Platform, StyleSheet, View, LayoutChangeEvent} from "react-native";
-import {Camera, useCameraDevice, useCameraPermission} from "react-native-vision-camera";
+import {Animated, Easing, StyleSheet, View, LayoutChangeEvent} from "react-native";
+import {Camera, CameraDevice, useCameraDevice} from "react-native-vision-camera";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
 
 type Props = {
@@ -15,9 +15,7 @@ type Props = {
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 
 const FullscreenCamera: React.FC<Props> = ({initialZoom = 0, focusIndicatorDuration = 800, cameraRef: externalRef}) => {
-  // 设备 + 权限
   const device = useCameraDevice("back");
-  const {hasPermission, requestPermission} = useCameraPermission();
 
   // 内部相机 ref，与外部 ref 合并
   const innerRef = useRef<Camera>(null);
@@ -37,15 +35,6 @@ const FullscreenCamera: React.FC<Props> = ({initialZoom = 0, focusIndicatorDurat
     const {width, height} = e.nativeEvent.layout;
     setViewSize({width, height});
   }, []);
-
-  // 权限（这里只做一次请求，避免闪黑）
-  const [permissionChecked, setPermissionChecked] = useState(false);
-  useEffect(() => {
-    (async () => {
-      const status = await requestPermission();
-      setPermissionChecked(true);
-    })();
-  }, [requestPermission]);
 
   // 缩放（普通 state）
   const minZoom = device?.minZoom ?? 1;
@@ -123,28 +112,6 @@ const FullscreenCamera: React.FC<Props> = ({initialZoom = 0, focusIndicatorDurat
 
   const gestures = useMemo(() => Gesture.Simultaneous(pinch, tapToFocus), [pinch, tapToFocus]);
 
-  // 渲染分支
-  if (!permissionChecked) return <View style={styles.black} />;
-  if (!hasPermission) {
-    return (
-      <View style={[styles.black, styles.center]}>
-        <View style={styles.permissionCard}>
-          <Animated.Text style={styles.permissionTitle}>需要相机权限</Animated.Text>
-          <Animated.Text style={styles.permissionText}>请在系统设置中开启相机权限后返回应用。</Animated.Text>
-          <View
-            style={styles.permissionButton}
-            onTouchEnd={() => {
-              if (Platform.OS === "ios") Linking.openURL("app-settings:");
-              else Linking.openSettings();
-            }}>
-            <Animated.Text style={styles.permissionBtnText}>打开设置</Animated.Text>
-          </View>
-        </View>
-      </View>
-    );
-  }
-  if (!device) return <View style={styles.black} />;
-
   return (
     <View style={styles.container} onLayout={onLayout}>
       <GestureDetector gesture={gestures}>
@@ -152,9 +119,9 @@ const FullscreenCamera: React.FC<Props> = ({initialZoom = 0, focusIndicatorDurat
           <Camera
             ref={setMergedRef}
             style={styles.fill}
-            device={device}
+            device={device as CameraDevice}
             isActive
-            enableZoomGesture={false} // 我们用自定义 Pinch
+            enableZoomGesture={false}
             zoom={zoom}
             photo
             video={false}

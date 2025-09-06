@@ -96,7 +96,7 @@ const MyScreen = () => {
 
   const fetchUserInfo = async () => {
     try {
-      const data = await getUserInfo();
+      const {data} = await getUserInfo();
       console.log("data", data);
       setUserInfo(data);
       setOrdersList([

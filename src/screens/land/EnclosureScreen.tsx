@@ -110,7 +110,7 @@ const EnclosureScreen = observer(() => {
   const getLocationByIP = async () => {
     try {
       const response = await fetch("http://ip-api.com/json/");
-      const data = await response.json();
+      const {data} = await response.json();
       if (data.status === "success") {
         const {lat, lon} = data;
         locateDevicePosition(false, {lon, lat});

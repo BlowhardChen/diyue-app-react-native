@@ -2,7 +2,7 @@ import React, {useEffect, useRef, useState} from "react";
 import {NavigationContainer} from "@react-navigation/native";
 import AppNavigator from "./src/navigation/AppNavigator";
 import {navigationRef} from "@/navigation/navigationRef";
-import {getActiveRouteName} from "@/utils/navigationUtils";
+import {getActiveRouteName, saveLastRoute} from "@/utils/navigationUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {isTokenValid} from "@/utils/auth";
 import {AuthProvider} from "@/stores/useAuth";
@@ -54,6 +54,7 @@ export default function App() {
             const currentRouteName = getActiveRouteName(state!);
             if (previousRouteName !== currentRouteName) {
               console.log("路由切换:", previousRouteName, "→", currentRouteName);
+              saveLastRoute(currentRouteName);
             }
             routeNameRef.current = currentRouteName;
           }}>

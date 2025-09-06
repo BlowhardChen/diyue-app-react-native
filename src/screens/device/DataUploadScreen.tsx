@@ -1,9 +1,10 @@
-// 数据上传
 import React, {useEffect, useState} from "react";
-import {View, Text, Switch, StyleSheet, Image, ToastAndroid, ScrollView} from "react-native";
+import {View, Text, Switch, StyleSheet, Image, ScrollView} from "react-native";
 import {useNavigation, useRoute, RouteProp} from "@react-navigation/native";
 import CustomStatusBar from "@/components/common/CustomStatusBar";
 import DeviceMqttConfig from "@/components/device/DeviceMqttConfig";
+import {getDeviceUploadConfig, updateDeviceDifferentialConfig} from "@/services/device";
+import {showCustomToast} from "@/components/common/CustomToast";
 
 type RootStackParamList = {
   DeviceUpload: {deviceInfo: any};
@@ -14,9 +15,8 @@ export default function DeviceUploadScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "DeviceUpload">>();
   const {deviceInfo} = route.params;
 
-  const [mqttUpload, setMqttUpload] = useState(false);
-  const [serverUpload, setServerUpload] = useState(false);
-  const [bluetoothUpload, setBluetoothUpload] = useState(false);
+  // 当前激活的上传方式，"1"=MQTT, "2"=808, "3"=蓝牙, null=全部关闭
+  const [activeType, setActiveType] = useState<"1" | "2" | "3" | null>(null);
 
   const [mqttConfig, setMqttConfig] = useState({
     ip: "mqtt.com",
@@ -25,34 +25,29 @@ export default function DeviceUploadScreen() {
     pwd: "password",
     topic: "1234567890",
   });
-
   const [showMqttConfig, setShowMqttConfig] = useState(false);
-  const [uploadType, setUploadType] = useState<"1" | "2" | "3">("1");
   const [configData, setConfigData] = useState<any[]>([]);
   const [configId, setConfigId] = useState("");
 
-  // 切换switch
+  // 切换开关
   const changeSwitch = (type: "1" | "2" | "3") => {
-    setUploadType(type);
-
-    if (type === "1") {
-      setMqttUpload(true);
-      setServerUpload(false);
-      setBluetoothUpload(false);
-    } else if (type === "2") {
-      setServerUpload(true);
-      setMqttUpload(false);
-      setBluetoothUpload(false);
-    } else if (type === "3") {
-      setBluetoothUpload(true);
-      setMqttUpload(false);
-      setServerUpload(false);
+    // 如果当前就是激活的，再次点击则关闭
+    if (activeType === type) {
+      setActiveType(null);
+      setConfigId("");
+      return;
     }
+
+    // 否则切换到新的类型
+    setActiveType(type);
 
     const config = configData.find(ite => ite.type === type);
     setConfigId(config ? config.id : "");
 
-    saveMqttConfig(mqttConfig);
+    // 如果是 MQTT，立即保存配置
+    if (type === "1") {
+      saveMqttConfig(mqttConfig, type, config ? config.id : "");
+    }
   };
 
   // 修改配置
@@ -61,37 +56,34 @@ export default function DeviceUploadScreen() {
   };
 
   // 保存mqtt配置
-  const saveMqttConfig = async (config: typeof mqttConfig) => {
-    try {
-      //   await updateDeviceUploadSource({
-      //     deviceId: deviceInfo.device.id,
-      //     id: configId,
-      //     type: uploadType,
-      //     ...config,
-      //   });
-      //   await getDeviceConfigData(deviceInfo.device.id);
-      //   setShowMqttConfig(false);
-    } catch (error: any) {
-      ToastAndroid.show(error?.data?.msg ? error.data.msg : "保存失败", ToastAndroid.SHORT);
-      setShowMqttConfig(false);
-    }
+  const saveMqttConfig = async (config: typeof mqttConfig, type: "1" | "2" | "3" = activeType || "1", id: string = configId) => {
+    setMqttConfig(config);
+    const {data} = await updateDeviceDifferentialConfig({
+      deviceId: deviceInfo.device.id,
+      id,
+      type,
+      ...config,
+    });
+    showCustomToast("success", data ?? "操作成功");
+    setShowMqttConfig(false);
   };
 
   // 获取设备配置
   const getDeviceConfigData = async (deviceId: string) => {
-    try {
-      //   const {data} = await getDeviceUploadConfig({deviceId});
-      //   setConfigData(data);
-      //   const {id, ip, port, userName, pwd, topic, type} = data.find((item: any) => item.status === "0") || {};
-      //   setConfigId(id || "");
-      //   if (type === "1") setMqttUpload(true);
-      //   if (type === "2") setServerUpload(true);
-      //   if (type === "3") setBluetoothUpload(true);
-      //   if (ip && port && userName && pwd && topic) {
-      //     setDeviceConfig({ip, port, userName, pwd, topic});
-      //   }
-    } catch (error) {
-      console.log("获取设备配置失败", error);
+    const {data} = await getDeviceUploadConfig(deviceId);
+    setConfigData(data);
+
+    const activeConfig = data.find((item: any) => item.status === "0");
+    if (activeConfig) {
+      const {id, ip, port, userName, pwd, topic, type} = activeConfig;
+      setConfigId(id || "");
+      setActiveType(type as "1" | "2" | "3");
+
+      if (ip && port && userName && pwd && topic) {
+        setMqttConfig({ip, port, userName, pwd, topic});
+      }
+    } else {
+      setActiveType(null);
     }
   };
 
@@ -109,7 +101,7 @@ export default function DeviceUploadScreen() {
         <View style={styles.switchItem}>
           <Text style={styles.switchTitle}>启用MQTT数据上传</Text>
           <Switch
-            value={mqttUpload}
+            value={activeType === "1"}
             onValueChange={() => changeSwitch("1")}
             trackColor={{false: "#CDCDCD", true: "#08AE3C"}}
             thumbColor={"#fff"}
@@ -119,7 +111,7 @@ export default function DeviceUploadScreen() {
         <View style={styles.mqttConfig}>
           <Text style={styles.text}>MQTT配置</Text>
           <View style={styles.config} onTouchEnd={updateConfig}>
-            <Text style={styles.configText}>{deviceInfo?.deviceDate?.length ? "已配置" : "未配置"}</Text>
+            <Text style={styles.configText}>{activeType === "1" ? "已配置" : "未配置"}</Text>
             <Image source={require("@/assets/images/common/icon-right.png")} style={styles.icon} />
           </View>
         </View>
@@ -128,7 +120,7 @@ export default function DeviceUploadScreen() {
         <View style={styles.item}>
           <Text style={styles.switchTitle}>启用808服务器数据上传</Text>
           <Switch
-            value={serverUpload}
+            value={activeType === "2"}
             onValueChange={() => changeSwitch("2")}
             trackColor={{false: "#CDCDCD", true: "#08AE3C"}}
             thumbColor={"#fff"}
@@ -139,7 +131,7 @@ export default function DeviceUploadScreen() {
         <View style={styles.item}>
           <Text style={styles.switchTitle}>启用SPP蓝牙上传</Text>
           <Switch
-            value={bluetoothUpload}
+            value={activeType === "3"}
             onValueChange={() => changeSwitch("3")}
             trackColor={{false: "#CDCDCD", true: "#08AE3C"}}
             thumbColor={"#fff"}

@@ -1,4 +1,3 @@
-// 蓝牙连接
 import React, {useEffect, useState, useRef} from "react";
 import {
   View,
@@ -32,26 +31,31 @@ const BluetoothConnectScreen: React.FC = () => {
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const [hasBluetoothPermission, setHasBluetoothPermission] = useState(false);
-  const intervalRef = useRef<number | null>(null);
+  const timerRef = useRef<number | null>(null);
 
   // 初始化蓝牙
   const initBluetooth = () => {
-    manager.startDeviceScan(["0000ffe0-0000-1000-8000-00805f9b34fb"], {scanMode: 1}, (error, device) => {
-      if (error) {
-        console.log("蓝牙初始化失败", error);
-        showCustomToast("error", "蓝牙初始化失败");
-        return;
-      }
-      if (device && device.name) {
-        setBlueDeviceList(prev => {
-          const exists = prev.find(d => d.id === device.id);
-          if (!exists) {
-            return [...prev, device];
-          }
-          return prev;
-        });
-      }
-    });
+    manager.startDeviceScan(
+      null,
+      {scanMode: 1}, // 改为ScanMode.Balanced模式
+      (error, device) => {
+        if (error) {
+          console.log("蓝牙扫描错误", error);
+          return;
+        }
+
+        // 过滤无效设备
+        if (device && device.name && device.rssi && device.rssi > -90) {
+          setBlueDeviceList(prev => {
+            const exists = prev.find(d => d.id === device.id);
+            if (!exists) {
+              return [...prev, device];
+            }
+            return prev;
+          });
+        }
+      },
+    );
   };
 
   // 开始扫描
@@ -68,33 +72,17 @@ const BluetoothConnectScreen: React.FC = () => {
   const scanOnce = () => {
     stopDiscovery();
     startDiscovery();
-    setTimeout(stopDiscovery, 5000);
-  };
-
-  // 自动扫描
-  const startAutoScan = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-    const id = setInterval(() => {
-      scanOnce();
-    }, 3000);
-    intervalRef.current = id as unknown as number;
-  };
-
-  // 停止自动扫描
-  const stopAutoScan = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
   };
 
   // 获取权限列表
   const getPermissionList = () => {
     if (Platform.OS === "android") {
       if (Platform.Version >= 31) {
-        return [PERMISSIONS.ANDROID.BLUETOOTH_SCAN, PERMISSIONS.ANDROID.BLUETOOTH_CONNECT];
+        return [
+          PERMISSIONS.ANDROID.BLUETOOTH_SCAN,
+          PERMISSIONS.ANDROID.BLUETOOTH_CONNECT,
+          PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
+        ];
       } else {
         return [PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION];
       }
@@ -112,13 +100,16 @@ const BluetoothConnectScreen: React.FC = () => {
       if (allGranted) {
         setHasBluetoothPermission(true);
         scanOnce();
-        startAutoScan();
+
+        // 设置20秒后自动停止扫描
+        timerRef.current = setTimeout(() => {
+          stopDiscovery();
+        }, 20000);
       } else {
         setHasBluetoothPermission(false);
-        setShowPermissionPopup(true); // 没权限 -> 弹窗
+        setShowPermissionPopup(true);
       }
     } catch (err) {
-      console.warn("检查权限失败:", err);
       setShowPermissionPopup(true);
     }
   };
@@ -134,12 +125,15 @@ const BluetoothConnectScreen: React.FC = () => {
       if (allGranted) {
         setHasBluetoothPermission(true);
         scanOnce();
-        startAutoScan();
+
+        // 设置20秒后自动停止扫描
+        timerRef.current = setTimeout(() => {
+          stopDiscovery();
+        }, 20000);
       } else {
         setHasBluetoothPermission(false);
       }
     } catch (err) {
-      console.warn("请求权限失败:", err);
       setHasBluetoothPermission(false);
     }
   };
@@ -149,7 +143,6 @@ const BluetoothConnectScreen: React.FC = () => {
     setShowPermissionPopup(false);
     setHasBluetoothPermission(false);
     stopDiscovery();
-    stopAutoScan();
   };
 
   // 连接蓝牙
@@ -159,9 +152,9 @@ const BluetoothConnectScreen: React.FC = () => {
       const connectedDevice = await manager.connectToDevice(device.id);
       await connectedDevice.discoverAllServicesAndCharacteristics();
       stopDiscovery();
-      console.log("连接成功:", connectedDevice.id);
+      navigation.navigate("CurrentConnect", {imei: device.name as string});
     } catch (err) {
-      console.log("连接失败:", err);
+      showCustomToast("error", "蓝牙连接失败");
     }
   };
 
@@ -173,7 +166,9 @@ const BluetoothConnectScreen: React.FC = () => {
   // 刷新
   const refresh = () => {
     setBlueDeviceList([]);
+    stopDiscovery();
     scanOnce();
+
     if (isRotating) return;
 
     setIsRotating(true);
@@ -193,8 +188,9 @@ const BluetoothConnectScreen: React.FC = () => {
 
     return () => {
       stopDiscovery();
-      stopAutoScan();
-      manager.destroy();
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
     };
   }, []);
 

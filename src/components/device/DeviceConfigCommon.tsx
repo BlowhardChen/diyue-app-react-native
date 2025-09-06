@@ -1,5 +1,5 @@
 import React, {ReactNode} from "react";
-import {View, Text, StyleSheet, TouchableOpacity, Modal, Image} from "react-native";
+import {View, Text, StyleSheet, TouchableOpacity, Image} from "react-native";
 
 interface DeviceConfigCommonProps {
   visible: boolean;
@@ -18,8 +18,11 @@ const DeviceConfigCommon: React.FC<DeviceConfigCommonProps> = ({
   onClickCancel,
   onClickSave,
 }) => {
+  if (!visible) return null; // 不显示时直接返回 null
+
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    // 不使用Moadl是因为自定义Toast无法穿透Moadl
+    <View style={styles.overlay} pointerEvents="box-none">
       <View style={styles.popup}>
         <View style={styles.popupBox}>
           {/* Header */}
@@ -44,17 +47,25 @@ const DeviceConfigCommon: React.FC<DeviceConfigCommonProps> = ({
           </View>
         </View>
       </View>
-    </Modal>
+    </View>
   );
 };
 
 export default DeviceConfigCommon;
 
 const styles = StyleSheet.create({
-  popup: {
-    flex: 1,
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-end",
+    zIndex: 999, // 保证在最顶层
+  },
+  popup: {
+    width: "100%",
   },
   popupBox: {
     backgroundColor: "#fff",

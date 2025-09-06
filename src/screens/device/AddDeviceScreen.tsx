@@ -11,10 +11,9 @@ import CameraPlaceholder from "@/components/device/CameraPlaceholder";
 import FullscreenCamera from "@/components/device/FullscreenCamera";
 import {showCustomToast} from "@/components/common/CustomToast";
 import {getToken} from "@/utils/tokenUtils";
-import {getDeviceImeiInfo} from "@/services/device";
+import {getDeviceInfo} from "@/services/device";
 import CustomLoading from "@/components/common/CustomLoading";
 import {useOCR} from "@/utils/uploadImg";
-import {DeviceImeiInfoRequest} from "@/types/device";
 
 type AddDeviceStackParamList = {
   CurrentConnect: {imei: string};
@@ -91,16 +90,16 @@ const AddDeviceScreen = () => {
   // 上传 OCR
   const uploadOCRImg = async (filePath: string) => {
     const token = (await getToken()) as string;
-    const data = await uploadImg(filePath, token as string, "4");
-    if (data.success) {
-      getDeviceBaseInfo(data.ocrInfo);
+    const {success, ocrInfo} = await uploadImg(filePath, token as string, "4");
+    if (success) {
+      getDeviceBaseInfo(ocrInfo);
     }
   };
 
   // 查询设备信息
   const getDeviceBaseInfo = async (imei: string) => {
     try {
-      const data = (await getDeviceImeiInfo(imei)) as unknown as DeviceImeiInfoRequest;
+      const {data} = await getDeviceInfo(imei);
       navigation.navigate("CurrentConnect", {imei: data.device.imei});
     } catch (error) {
       showCustomToast("error", "RTK设备暂未添加，请联系管理员添加设备再扫码使用");

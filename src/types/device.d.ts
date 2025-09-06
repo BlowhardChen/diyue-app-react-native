@@ -19,12 +19,25 @@ export type DeviceImeiInfo = {
   updateUserId: string;
   userId: number;
 };
+
 // 设备Imei信息
-export type DeviceImeiInfoRequest = {
+export type DeviceImeiInfoResponse = {
   device: DeviceImeiInfo;
   deviceDate: [];
   deviceNetwork: [];
   deviceStatus: string;
   dyDeviceUploadDate: [];
   existsStatus: string;
+};
+
+// 修改差分数据源配置请求参数
+export type DeviceDifferentialConfigRequsetParmer = {
+  id?: string;
+  deviceId: string;
+  type: string;
+  ip: string;
+  port: string;
+  topic: string;
+  userName: string;
+  pwd: string;
 };
