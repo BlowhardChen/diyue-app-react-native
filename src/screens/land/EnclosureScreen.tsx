@@ -20,7 +20,6 @@ import {showCustomToast} from "@/components/common/CustomToast";
 
 const EnclosureScreen = observer(() => {
   const [popupTips, setPopupTips] = useState("请点击打点按钮打点或点击十字光标标点");
-  const [isShowSaveButton, setShowSaveButton] = useState(true);
   const [dotTotal, setDotTotal] = useState(0);
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
@@ -32,12 +31,11 @@ const EnclosureScreen = observer(() => {
   const beforeRemoveRef = useRef<any>(null);
   const watchIdRef = useRef<number | null>(null);
   const isFirstLocationRef = useRef(true);
-  const [polygonArea, setPolygonArea] = useState("");
+  const [polygonArea, setPolygonArea] = useState<string>();
 
   // 启用屏幕常亮
   useEffect(() => {
     KeepAwake.activate();
-    // 组件卸载时关闭屏幕常亮，恢复系统默认行为
     return () => {
       KeepAwake.deactivate();
     };
@@ -51,7 +49,7 @@ const EnclosureScreen = observer(() => {
     initLocationPermission();
   }, []);
 
-  // 初始化定位权限
+  // 初始化定位权限和地图图层
   const initLocationPermission = async () => {
     const granted = await checkLocationPermission();
     if (granted) {
@@ -65,6 +63,30 @@ const EnclosureScreen = observer(() => {
     }
   };
 
+  // 当WebView准备好时，应用保存的地图类型
+  useEffect(() => {
+    if (isWebViewReady) {
+      applySavedMapType();
+    }
+  }, [isWebViewReady]);
+
+  // 应用保存的地图类型
+  const applySavedMapType = () => {
+    switch (mapStore.mapType) {
+      case "标准地图":
+        switchMapLayer("TIANDITU_ELEC");
+        break;
+      case "卫星地图":
+        switchMapLayer("TIANDITU_SAT");
+        break;
+      case "自定义":
+        switchMapLayer("CUSTOM", mapStore.customMapLayer);
+        break;
+      default:
+        switchMapLayer("TIANDITU_SAT");
+    }
+  };
+
   // 切换地图图层
   const onToggleMapLayer = () => {
     setShowMapSwitcher(true);
@@ -72,6 +94,20 @@ const EnclosureScreen = observer(() => {
 
   // 处理地图选择
   const handleSelectMap = ({type, layerUrl}: {type: string; layerUrl: string}) => {
+    // 保存选择的地图类型到mapStore
+    mapStore.setMapType(type);
+    if (type === "自定义" && layerUrl) {
+      mapStore.setCustomMapType(layerUrl);
+    }
+
+    // 应用选择的地图
+    handleSelectMapLayer(type, layerUrl);
+
+    setShowMapSwitcher(false);
+  };
+
+  // 处理地图图层选择逻辑
+  const handleSelectMapLayer = (type: string, layerUrl: string) => {
     switch (type) {
       case "标准地图":
         switchMapLayer("TIANDITU_ELEC");
@@ -80,20 +116,32 @@ const EnclosureScreen = observer(() => {
         switchMapLayer("TIANDITU_SAT");
         break;
       case "自定义":
-        switchMapLayer("CUSTOM", layerUrl);
+        if (layerUrl) {
+          switchMapLayer("CUSTOM", layerUrl);
+        } else {
+          showCustomToast("error", "请输入有效的自定义图层URL");
+        }
         break;
       default:
         break;
     }
   };
 
-  // 切换地图图层
+  // 切换地图图层 - 修复自定义图层URL传递问题
   const switchMapLayer = (layerType: string, layerUrl?: string) => {
-    if (layerType === "CUSTOM") {
-      webViewRef.current?.postMessage(JSON.stringify({type: "SWITCH_LAYER", layerType, layerUrl}));
-    } else {
-      webViewRef.current?.postMessage(JSON.stringify({type: "SWITCH_LAYER", layerType}));
+    if (!isWebViewReady) return;
+
+    const message = {
+      type: "SWITCH_LAYER",
+      layerType,
+    };
+
+    // 只有自定义图层才添加layerUrl属性
+    if (layerType === "CUSTOM" && layerUrl) {
+      (message as any).customUrl = layerUrl;
     }
+
+    webViewRef.current?.postMessage(JSON.stringify(message));
   };
 
   // 获取定位服务
@@ -110,13 +158,13 @@ const EnclosureScreen = observer(() => {
   const getLocationByIP = async () => {
     try {
       const response = await fetch("http://ip-api.com/json/");
-      const {data} = await response.json();
+      const data = await response.json();
       if (data.status === "success") {
         const {lat, lon} = data;
         locateDevicePosition(false, {lon, lat});
       }
     } catch (error) {
-      console.error("❌ IP定位请求失败:", error);
+      showCustomToast("error", "IP定位失败");
     }
   };
 
@@ -187,7 +235,7 @@ const EnclosureScreen = observer(() => {
     const watchId = Geolocation.watchPosition(
       pos => {
         const {latitude, longitude} = pos.coords;
-        console.log("位置更新:", longitude, latitude); // 添加日志
+        console.log("位置更新:", longitude, latitude);
         webViewRef.current?.postMessage(
           JSON.stringify({
             type: "UPDATE_ICON_LOCATION",
@@ -196,8 +244,7 @@ const EnclosureScreen = observer(() => {
         );
       },
       err => {
-        console.error("watchPosition 错误:", err); // 更详细的错误日志
-        // 根据错误类型显示不同提示
+        console.error("watchPosition 错误:", err);
         if (err.code === 1) {
           showCustomToast("error", "定位权限被拒绝");
         } else if (err.code === 2) {
@@ -223,7 +270,6 @@ const EnclosureScreen = observer(() => {
   // 地图十字光标点击
   const onMapCursorDot = () => {
     setDotTotal(dotTotal + 1);
-    setPopupTips("打点成功，请继续添加下一个点位");
     webViewRef.current?.postMessage(JSON.stringify({type: "CURSOR_DOT_MARKER"}));
   };
 
@@ -233,7 +279,6 @@ const EnclosureScreen = observer(() => {
       return;
     }
     setDotTotal(dotTotal - 1);
-    setPopupTips("撤销成功，请继续添加下一个点位");
     webViewRef.current?.postMessage(JSON.stringify({type: "REMOVE_DOT_MARKER"}));
   };
 
@@ -253,10 +298,7 @@ const EnclosureScreen = observer(() => {
     await Geolocation.getCurrentPosition(
       position => {
         const {latitude, longitude} = position.coords;
-
         setDotTotal(prev => prev + 1);
-        setPopupTips("打点成功，请继续添加下一个点位");
-
         webViewRef.current?.postMessage(
           JSON.stringify({
             type: "DOT_MARKER",
@@ -273,33 +315,29 @@ const EnclosureScreen = observer(() => {
 
   // 保存
   const onSave = () => {
-    console.log("保存", dotTotal, "面积:", polygonArea);
     if (dotTotal < 3) {
-      showCustomToast("error", "未形成闭合图形，请至少保证有3个及以上点位");
-
       return;
     }
   };
 
   // 接收WebView消息
   const receiveWebviewMessage = (event: any) => {
-    console.log("📬 WebView Message:", event.nativeEvent.data);
+    console.log("📬 收WebView消息:", event.nativeEvent.data);
     let data = event.nativeEvent?.data;
     if (!data) return;
     try {
       data = JSON.parse(data);
     } catch (e) {
-      console.log("WebView raw:", event.nativeEvent.data);
       return;
     }
     if (data && data.type) handleWebviewMessage(data);
   };
 
   // 处理webview消息
-  const handleWebviewMessage = (data: {type: string; message?: string; area?: string}) => {
+  const handleWebviewMessage = (data: {type: string; total?: number; message?: string; area?: string}) => {
     console.log("处理webview消息", data);
     switch (data.type) {
-      case "WEBVIEW_MAP_READY":
+      case "WEBVIEW_READY": // 修复消息类型匹配问题
         setIsWebViewReady(true);
         if (hasLocationPermission) {
           startPositionWatch();
@@ -308,23 +346,34 @@ const EnclosureScreen = observer(() => {
       case "WEBVIEW_DOT_REPEAT":
         showCustomToast("error", "当前点位已保存，请前往下一个点位");
         break;
-      case "WEBVIEW_DOT_SUCCESS":
-        if (data.message) {
-          setPopupTips(data.message);
-        }
-        if (data.area) {
-          setPolygonArea(data.area);
-        }
-        break;
-      case "WEBVIEW_CANCEL_DOT_SUCCESS":
-        if (data.message) {
-          setPopupTips(data.message);
-        }
-        if (data.area) {
-          setPolygonArea(data.area);
-        }
+      case "WEBVIEW_UPDATE_DOT_TOTAL":
+        handleDotTotalChange(data);
         break;
       default:
+        break;
+    }
+  };
+
+  // 处理点变换消息提示
+  const handleDotTotalChange = (data: {type: string; total?: number; message?: string; area?: string}) => {
+    if (!data.total) return;
+    switch (data.total) {
+      case 0:
+        setPopupTips("请点击打点按钮或十字光标打点");
+        break;
+      case 1:
+        setPopupTips("请继续添加下一个点位");
+        break;
+      case 2:
+        setPopupTips("已生成线段，请继续添加下一个点位");
+        break;
+      case 3:
+        setPopupTips(data.message ? data.message : "已形成闭合区域，是否保存");
+        setPolygonArea(data.area);
+        break;
+      default:
+        setPopupTips(data.message ? data.message : "已形成闭合区域，是否保存");
+        setPolygonArea(data.area);
         break;
     }
   };
@@ -341,21 +390,18 @@ const EnclosureScreen = observer(() => {
 
   useFocusEffect(() => {
     beforeRemoveRef.current = navigation.addListener("beforeRemove", e => {
-      // 阻止默认行为（阻止返回）
       e.preventDefault();
-
-      // 如果确认弹窗已显示，说明已经拦截过一次，不需要重复弹出
       if (!showBackPopup) {
-        setShowBackPopup(true); // 显示确认弹窗
+        setShowBackPopup(true);
       }
     });
 
-    // Android 实体返回键监听（同样拦截）
+    // Android 实体返回键监听
     const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
       if (!showBackPopup) {
         setShowBackPopup(true);
       }
-      return true; // 阻止默认行为
+      return true;
     });
 
     return () => {
@@ -433,13 +479,9 @@ const EnclosureScreen = observer(() => {
             <Image source={require("@/assets/images/common/icon-plus.png")} style={EnclosureScreenStyles.dotIcon} />
             <Text style={EnclosureScreenStyles.dotText}>打点</Text>
           </TouchableOpacity>
-          {isShowSaveButton ? (
-            <TouchableOpacity style={[EnclosureScreenStyles.buttonBase, EnclosureScreenStyles.buttonSave]} onPress={onSave}>
-              <Text style={[EnclosureScreenStyles.saveText, {color: dotTotal >= 3 ? "#08ae3c" : "#999"}]}>保存</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={[EnclosureScreenStyles.buttonBase, EnclosureScreenStyles.placeholder]} />
-          )}
+          <TouchableOpacity style={[EnclosureScreenStyles.buttonBase, EnclosureScreenStyles.buttonSave]} onPress={onSave}>
+            <Text style={[EnclosureScreenStyles.saveText, {color: dotTotal >= 3 ? "#08ae3c" : "#999"}]}>保存</Text>
+          </TouchableOpacity>
         </View>
         {/* 十字光标 */}
         <TouchableOpacity style={EnclosureScreenStyles.locationCursor} activeOpacity={1} onPress={onMapCursorDot}>

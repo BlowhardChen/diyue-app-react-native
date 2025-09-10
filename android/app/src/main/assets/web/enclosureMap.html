@@ -29,18 +29,19 @@
 
 <body>
     <div id="map"></div>
+
     <!-- JS 报错监听 -->
     <script>
         window.onerror = function (msg, url, lineNo, columnNo, error) {
-            if (window.ReactNativeWebView) {
-                window.ReactNativeWebView.postMessage(`JS ERROR: ${msg} at ${lineNo}:${columnNo}`);
-            }
+            WebBridge.postError(`JS ERROR: ${msg} at ${lineNo}:${columnNo}`);
         };
     </script>
-    <!-- 引入基础库 -->
+
+    <!-- 基础库 -->
     <script src="./ol.js"></script>
     <script src="./turf.min.js"></script>
-    <!-- 模块化文件按顺序加载 -->
+
+    <!-- 模块化文件 -->
     <script src="./transform.js"></script>
     <script src="./mapBaseTool.js"></script>
     <script src="./layerModule.js"></script>
@@ -48,6 +49,7 @@
     <script src="./polygonModule.js"></script>
     <script src="./markerModule.js"></script>
     <script src="./switchMapLayer.js"></script>
+    <script src="./webBridge.js"></script>
     <script src="./main.js"></script>
 </body>
 
