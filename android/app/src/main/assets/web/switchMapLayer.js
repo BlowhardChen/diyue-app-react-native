@@ -20,7 +20,6 @@ window.SwitchMapLayer = (function () {
      * @param {*} customUrl 自定义图层URL
      */
     function switchMapLayer(map, layerType, customUrl) {
-        WebBridge.postMessage(`切换地图图层: ${layerType}`);
         let layersToLoad = [];
         
         switch (layerType) {
@@ -87,6 +86,7 @@ window.SwitchMapLayer = (function () {
         currentLayers = newLayers;
     }
 
-    return { switchMapLayer, switchBaseLayers };
+
+    return {getTdAnnotationLayer, switchMapLayer, switchBaseLayers };
 })();
     

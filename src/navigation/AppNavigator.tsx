@@ -21,6 +21,7 @@ import DifferentialConfigScreen from "@/screens/device/DifferentialConfigScreen"
 import DataUploadScreen from "@/screens/device/DataUploadScreen";
 import ServiceAgreementScreen from "../screens/bootPage/ServiceAgreementScreen";
 import PrivacyPolicyDetailScreen from "../screens/bootPage/PrivacyPolicyDetailScreen";
+import LandInfoEditScreen from "@/screens/land/LandInfoEditScreen";
 
 type Props = {
   initialRouteName?: keyof RootStackParamList;
@@ -62,6 +63,7 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
           },
         },
       }}>
+      <Stack.Screen name="LandInfoEdit" component={LandInfoEditScreen} />
       <Stack.Screen name="DataUpload" component={DataUploadScreen} />
       <Stack.Screen name="DifferentialConfig" component={DifferentialConfigScreen} />
       <Stack.Screen name="BluetoothConnect" component={BluetoothConnectScreen} />

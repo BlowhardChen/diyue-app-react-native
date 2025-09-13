@@ -77,10 +77,43 @@ window.MarkerModule = (function () {
         PolylineModule.removeAllPolylines(map);
         PolygonModule.removePolygon(map);
 
+        // 判断多边形是否相交
+        const path = dotMarkerCoordinates.concat([dotMarkerCoordinates[0]])
+        const isPolygonIntersect = isPolygonSelfIntersecting(path)
+        WebBridge.postMessage({ 
+            type: 'WEBVIEW_POLYGON_INTERSECT',
+            isPolygonIntersect,
+            message: isPolygonIntersect ? '生成的地块区域自相交，请检查点位顺序' : '' // 自相交时才带提示文本
+        });
+
         const polygonResult = PolygonModule.drawPolygon(map, coordsLonLat);
         if (polygonResult) {
-            WebBridge.postMessage({ type: 'WEBVIEW_UPDATE_DOT_TOTAL', total: dotMarkerCoordinates.length, message: `已形成闭合区域地块，面积: ${polygonResult.area.toFixed(2)} 亩` });
+            WebBridge.postMessage({ 
+                type: 'WEBVIEW_UPDATE_DOT_TOTAL', 
+                total: dotMarkerCoordinates.length, 
+                message: `${isPolygonIntersect ? '地块区域自相交' : '已形成闭合区域地块'}，面积: ${polygonResult.area.toFixed(2)} 亩` 
+            });
         }
+    }
+
+    /**
+     * 检查多边形是否自相交
+     * @param {Array<Array<number>>} path - 多边形顶点坐标数组 [ [lon,lat], ... ]
+     * @returns {boolean} 是否相交
+     */
+    function isPolygonSelfIntersecting(path) {
+        let polygonPath = []
+        let features= []
+
+        path.forEach((item) => {
+            polygonPath.push([item.lon, item.lat])
+            features.push(turf.point([item.lon, item.lat]))
+        })
+
+        const poly = turf.polygon([polygonPath])
+        const kinks = turf.kinks(poly)
+
+        return kinks.features.length > 0
     }
 
     /**
@@ -95,8 +128,6 @@ window.MarkerModule = (function () {
         dotMarkerCoordinates.pop();
 
         handlePolylineAndPolygon(map);
-
-        WebBridge.postMessage({ type: 'WEBVIEW_UPDATE_DOT_TOTAL', total: dotMarkerCoordinates.length });
     }
 
     /**
@@ -224,7 +255,143 @@ window.MarkerModule = (function () {
         features[0].setStyle(style);
         if (map && typeof map.render === 'function') map.render();
     }
+    /**
+     * 保存地块数据并传递给React Native
+     */
+    async function savePolygonToNative(token) {
+        try {
+            // 地块坐标点
+            let polygonPath = [...dotMarkerCoordinates];
+            const firstPoint = polygonPath[0];
+            const lastPoint = polygonPath[polygonPath.length - 1];
+            if (firstPoint.lon !== lastPoint.lon || firstPoint.lat !== lastPoint.lat) {
+                polygonPath.push(firstPoint);
+            }
 
+            // 获取面积
+            const area = PolygonModule.getCurrentPolygonArea() || 0;
+            if (area <= 0) {
+                WebBridge.postError('计算地块面积失败');
+                return;
+            }
+
+            const mapImageFile = await getMapScreenshot()
+
+            const imageUrl = await uploadImageToOSS(mapImageFile, token);
+
+            // 发送参数数据到RN
+            WebBridge.postMessage({
+                type: 'SAVE_POLYGON',
+                saveLandParams: {
+                    polygonPath: polygonPath.map(point => ({
+                        lng: parseFloat(point.lon.toFixed(8)),
+                        lat: parseFloat(point.lat.toFixed(8))
+                    })),
+                    area: parseFloat(area.toFixed(2)),
+                    imageUrl 
+                }
+            });
+
+        } catch (error) {
+            WebBridge.postMessage({
+                type: 'SAVE_ERROR',
+                message: `保存失败: ${error.message}`
+            });
+        }
+
+        /**
+         * 获取地图截图
+         */
+        async function getMapScreenshot() {
+            const map = MapCore.getMap();
+            const target = map.getTarget();
+            const mapElement = typeof target === 'string' ? document.getElementById(target) : target;
+
+            if (!mapElement) {
+                WebBridge.postError('无法获取地图容器元素');
+                return;
+            }
+
+            // 移除天地图层（避免跨域）
+            let getTdAnnotationLayer = SwitchMapLayer.getTdAnnotationLayer()
+
+            const canvas = mapElement.querySelector('canvas')
+
+            // 设置Canvas的尺寸与地图视图相同
+            canvas.width = map.getSize()[0]
+            canvas.height = map.getSize()[1]
+
+            WebBridge.postMessage({
+                type: 'SAVE_ERROR',
+                width: canvas.width,
+                height: canvas.height,
+            });
+            // 移除天地图层
+            // map.removeLayer(getTdAnnotationLayer)
+
+            // 返回一个Promise，用于在地图渲染完成后获取Blob
+            const getCanvasBlob = () => {
+                return new Promise((resolve) => {
+                    canvas.toBlob(
+                        (blob) => {
+                            resolve(blob)
+                        },
+                        'image/jpeg',
+                        0.5
+                    )
+                })
+            }
+            let blob = await getCanvasBlob()
+
+            // map.addLayer(getTdAnnotationLayer)
+
+            // 创建File对象
+            const file = new File([blob], 'map-screenshot.jpg', { type: 'image/jpeg' });
+            return file;
+        }
+
+        /**
+         * 上传地块图片到OSS
+         */
+        function uploadImageToOSS(file, token) {
+             return new Promise((resolve, reject) => {
+                  try {
+                    // 创建 FormData 对象
+                    const formData = new FormData();
+                    formData.append("multipartFile", file);
+                    formData.append("type", "0");
+                    formData.append("fileName", "other");
+                    // 发送 POST 请求
+                    fetch("http://xtnf.com/app/aliyun/oss/uploadToAliOss", {
+                      method: "POST",
+                      headers: {
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: formData,
+                    })
+                      .then(response => {
+                        console.log("response", response);
+                        if (!response.ok) {
+                          WebBridge.postError("图片上传失败");
+                          reject;
+                        }
+                        return response.json();
+                      })
+                      .then(data => {
+                        // 处理成功的响应
+                        resolve(data.data);
+                      })
+                        .catch(error => {
+                            WebBridge.postError("图片上传失败");
+                            reject(error);
+                      });
+                  } catch (error) {
+                    WebBridge.postError("图片上传失败")
+                    reject(error);
+                  }
+            });
+        }
+    }
 
     return {
         toLocateSelf,
@@ -234,6 +401,7 @@ window.MarkerModule = (function () {
         drawDotMarker,
         removeDotMarker,
         removeAllDotMarkers,
-        filterPointDot
+        filterPointDot,
+        savePolygonToNative,
     };
 })();

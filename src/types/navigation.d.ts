@@ -47,4 +47,5 @@ export type DeviceStackParamList = {
 // 土地地图相关
 export type LandMapStackParamList = {
   Enclosure: undefined;
+  LandInfoEdit: {landInfo: SaveLandResponse};
 };

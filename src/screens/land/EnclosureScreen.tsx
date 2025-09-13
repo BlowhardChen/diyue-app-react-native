@@ -17,8 +17,18 @@ import {useNavigation, useFocusEffect} from "@react-navigation/native";
 import {BackHandler} from "react-native";
 import {checkLocationPermission, requestLocationPermission} from "@/utils/checkPermissions";
 import {showCustomToast} from "@/components/common/CustomToast";
+import {MapWebviewMessage, SaveLandParams, SaveLandResponse} from "@/types/land";
+import {getToken} from "@/utils/tokenUtils";
+import {addLand, getLandListData} from "@/services/land";
+import {getNowDate} from "@/utils/public";
+import {StackNavigationProp} from "@react-navigation/stack";
+
+type EnclosureStackParamList = {
+  LandInfoEdit: {landInfo: SaveLandResponse};
+};
 
 const EnclosureScreen = observer(() => {
+  const navigation = useNavigation<StackNavigationProp<EnclosureStackParamList>>();
   const [popupTips, setPopupTips] = useState("请点击打点按钮打点或点击十字光标标点");
   const [dotTotal, setDotTotal] = useState(0);
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
@@ -27,11 +37,12 @@ const EnclosureScreen = observer(() => {
   const [isWebViewReady, setIsWebViewReady] = useState(false);
   const [showBackPopup, setShowBackPopup] = useState(false);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
-  const navigation = useNavigation();
   const beforeRemoveRef = useRef<any>(null);
   const watchIdRef = useRef<number | null>(null);
   const isFirstLocationRef = useRef(true);
-  const [polygonArea, setPolygonArea] = useState<string>();
+  const [isPolygonIntersect, setIsPolygonIntersect] = useState(false);
+  const [showSaveSuccessPopup, setShowSaveSuccessPopup] = useState(false);
+  const [landInfo, setLandInfo] = useState<SaveLandResponse>();
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -41,13 +52,27 @@ const EnclosureScreen = observer(() => {
     };
   }, []);
 
+  // 初始化定位服务
   useEffect(() => {
     getLocationService();
   }, []);
 
+  // 初始化定位权限
   useEffect(() => {
     initLocationPermission();
   }, []);
+
+  // 获取已圈地地块数据
+  useEffect(() => {
+    getEnclosureLandData();
+  }, []);
+
+  // 当WebView准备好时，应用保存的地图类型
+  useEffect(() => {
+    if (isWebViewReady) {
+      applySavedMapType();
+    }
+  }, [isWebViewReady]);
 
   // 初始化定位权限和地图图层
   const initLocationPermission = async () => {
@@ -62,13 +87,6 @@ const EnclosureScreen = observer(() => {
       setShowPermissionPopup(true);
     }
   };
-
-  // 当WebView准备好时，应用保存的地图类型
-  useEffect(() => {
-    if (isWebViewReady) {
-      applySavedMapType();
-    }
-  }, [isWebViewReady]);
 
   // 应用保存的地图类型
   const applySavedMapType = () => {
@@ -314,15 +332,68 @@ const EnclosureScreen = observer(() => {
   };
 
   // 保存
-  const onSave = () => {
+  const onSave = async () => {
     if (dotTotal < 3) {
       return;
     }
+
+    if (isPolygonIntersect) {
+      return;
+    }
+    const token = await getToken();
+    // 向WebView发送保存请求
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "SAVE_POLYGON",
+        token,
+      }),
+    );
+  };
+
+  // 保存地块
+  const saveLandFunc = async (landParams: SaveLandParams) => {
+    const {data} = await addLand({
+      landName: getNowDate(),
+      list: landParams.polygonPath,
+      acreageNum: landParams.area,
+      actualAcreNum: landParams.area,
+      url: landParams.landUrl,
+    });
+    console.log("保存地块", data);
+    setLandInfo(data);
+    setShowSaveSuccessPopup(true);
+  };
+
+  // 编辑地块信息
+  const editEnclosureInfo = async () => {
+    navigation.navigate("LandInfoEdit", {landInfo: landInfo as SaveLandResponse});
+  };
+
+  // 继续圈地
+  const continueEnclosure = async () => {
+    setShowSaveSuccessPopup(false);
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "CONTINUE_ENCLOSURE",
+      }),
+    );
+  };
+
+  // 获取已圈地地块数据
+  const getEnclosureLandData = async () => {
+    const {data} = await getLandListData({quitStatus: "0"});
+    console.log("获取已圈地地块数据", data);
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "DRAW_ENCLOSURE_LAND",
+        data,
+      }),
+    );
   };
 
   // 接收WebView消息
   const receiveWebviewMessage = (event: any) => {
-    console.log("📬 收WebView消息:", event.nativeEvent.data);
+    console.log("📬 接收WebView消息:", event.nativeEvent.data);
     let data = event.nativeEvent?.data;
     if (!data) return;
     try {
@@ -334,20 +405,40 @@ const EnclosureScreen = observer(() => {
   };
 
   // 处理webview消息
-  const handleWebviewMessage = (data: {type: string; total?: number; message?: string; area?: string}) => {
-    console.log("处理webview消息", data);
+  const handleWebviewMessage = async (data: MapWebviewMessage) => {
     switch (data.type) {
-      case "WEBVIEW_READY": // 修复消息类型匹配问题
+      // 地图准备完成
+      case "WEBVIEW_READY":
         setIsWebViewReady(true);
         if (hasLocationPermission) {
           startPositionWatch();
         }
         break;
+      // 重复打点
       case "WEBVIEW_DOT_REPEAT":
         showCustomToast("error", "当前点位已保存，请前往下一个点位");
         break;
+      // 打点更新
       case "WEBVIEW_UPDATE_DOT_TOTAL":
         handleDotTotalChange(data);
+        break;
+      // 地块多边形自相交
+      case "WEBVIEW_POLYGON_INTERSECT":
+        setIsPolygonIntersect(data.isPolygonIntersect as boolean);
+        if (data.isPolygonIntersect && data.message) {
+          setPopupTips(data.message);
+        }
+        break;
+      // 保存地块
+      case "SAVE_POLYGON":
+        saveLandFunc(data.saveLandParams as SaveLandParams);
+        break;
+      // 报错处理
+      case "WEBVIEW_ERROR":
+        showCustomToast("error", data.message ?? "操作失败");
+        break;
+      case "WEBVIEW_CONSOLE_LOG":
+        console.log("WEBVIEW_CONSOLE_LOG", data);
         break;
       default:
         break;
@@ -355,8 +446,7 @@ const EnclosureScreen = observer(() => {
   };
 
   // 处理点变换消息提示
-  const handleDotTotalChange = (data: {type: string; total?: number; message?: string; area?: string}) => {
-    if (!data.total) return;
+  const handleDotTotalChange = (data: MapWebviewMessage) => {
     switch (data.total) {
       case 0:
         setPopupTips("请点击打点按钮或十字光标打点");
@@ -369,11 +459,9 @@ const EnclosureScreen = observer(() => {
         break;
       case 3:
         setPopupTips(data.message ? data.message : "已形成闭合区域，是否保存");
-        setPolygonArea(data.area);
         break;
       default:
         setPopupTips(data.message ? data.message : "已形成闭合区域，是否保存");
-        setPolygonArea(data.area);
         break;
     }
   };
@@ -434,10 +522,10 @@ const EnclosureScreen = observer(() => {
         <View style={EnclosureScreenStyles.popupTips}>
           <Text style={EnclosureScreenStyles.popupTipsText}>{popupTips}</Text>
         </View>
-        <View style={EnclosureScreenStyles.map}>
+        <View style={EnclosureScreenStyles.map} collapsable={false}>
           <WebView
             ref={webViewRef}
-            source={{uri: "file:///android_asset/web/enclosureMap.html"}}
+            source={{uri: "file:///android_asset/web/map.html"}}
             originWhitelist={["*"]}
             mixedContentMode="always"
             javaScriptEnabled
@@ -507,6 +595,20 @@ const EnclosureScreen = observer(() => {
           }}
           onRightBtn={() => {
             setShowBackPopup(false);
+          }}
+        />
+        {/* 保存成功弹窗 */}
+        <Popup
+          visible={showSaveSuccessPopup}
+          title="地块保存成功"
+          msgText="退出后不会保留已打点位"
+          leftBtnText="信息编辑"
+          rightBtnText="继续圈地"
+          onLeftBtn={() => {
+            editEnclosureInfo();
+          }}
+          onRightBtn={() => {
+            continueEnclosure();
           }}
         />
       </View>
