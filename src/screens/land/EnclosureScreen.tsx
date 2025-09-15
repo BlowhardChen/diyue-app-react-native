@@ -22,6 +22,7 @@ import {getToken} from "@/utils/tokenUtils";
 import {addLand, getLandListData} from "@/services/land";
 import {getNowDate} from "@/utils/public";
 import {StackNavigationProp} from "@react-navigation/stack";
+import CustomLoading from "@/components/common/CustomLoading";
 
 type EnclosureStackParamList = {
   LandInfoEdit: {landInfo: SaveLandResponse};
@@ -43,6 +44,7 @@ const EnclosureScreen = observer(() => {
   const [isPolygonIntersect, setIsPolygonIntersect] = useState(false);
   const [showSaveSuccessPopup, setShowSaveSuccessPopup] = useState(false);
   const [landInfo, setLandInfo] = useState<SaveLandResponse>();
+  const [isSaving, setIsSaving] = useState(false);
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -352,15 +354,17 @@ const EnclosureScreen = observer(() => {
 
   // 保存地块
   const saveLandFunc = async (landParams: SaveLandParams) => {
+    setIsSaving(true);
     const {data} = await addLand({
       landName: getNowDate(),
       list: landParams.polygonPath,
       acreageNum: landParams.area,
       actualAcreNum: landParams.area,
-      url: landParams.landUrl,
+      url: landParams.landUrl ?? "",
     });
     console.log("保存地块", data);
     setLandInfo(data);
+    setIsSaving(false);
     setShowSaveSuccessPopup(true);
   };
 
@@ -437,6 +441,11 @@ const EnclosureScreen = observer(() => {
       case "WEBVIEW_ERROR":
         showCustomToast("error", data.message ?? "操作失败");
         break;
+      // 借点成功
+      case "WEBVIEW_BORROW_DOT":
+        setPopupTips(data.message ?? "借点成功，请继续添加下一个点位");
+        break;
+      // 控制台日志
       case "WEBVIEW_CONSOLE_LOG":
         console.log("WEBVIEW_CONSOLE_LOG", data);
         break;
@@ -600,8 +609,9 @@ const EnclosureScreen = observer(() => {
         {/* 保存成功弹窗 */}
         <Popup
           visible={showSaveSuccessPopup}
-          title="地块保存成功"
-          msgText="退出后不会保留已打点位"
+          showIcon={true}
+          showTitle={false}
+          msgText="地块保存成功"
           leftBtnText="信息编辑"
           rightBtnText="继续圈地"
           onLeftBtn={() => {
@@ -612,6 +622,8 @@ const EnclosureScreen = observer(() => {
           }}
         />
       </View>
+      {/* loading弹窗 */}
+      <CustomLoading visible={isSaving} text="地块保存中..." />
     </View>
   );
 });

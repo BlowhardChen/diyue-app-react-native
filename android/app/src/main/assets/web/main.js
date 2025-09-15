@@ -62,8 +62,9 @@
                   PolygonModule?.drawLandPolygonList(map,data.data);
                 break;
                 // 继续圈地
-               case 'CONTINUE_ENCLOSURE':
-                  MarkerModule?.removeAllDotMarkers(map);
+              case 'CONTINUE_ENCLOSURE':
+                PolygonModule?.clearCurrentPolygon(map);
+                MarkerModule?.removeAllDotMarkers(map);
                 break
               default:
                   WebBridge.postMessage("未处理的消息类型:" + data.type);

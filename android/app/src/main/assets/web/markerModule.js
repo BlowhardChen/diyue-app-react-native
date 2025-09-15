@@ -3,6 +3,7 @@ window.MarkerModule = (function () {
     let selfMarkerLayer;                 // 当前设备点位图层
     let dotMarkers = [];                 // 地图打点图层数组
     let dotMarkerCoordinates = [];       // 打点经纬度数组（[{lon,lat}, ...]）
+    let commonPointMarkers = [];        // 公共点图层数组
 
     /**
      * 绘制地图打点（核心）
@@ -140,7 +141,6 @@ window.MarkerModule = (function () {
         dotMarkerCoordinates = [];
 
         PolylineModule.removeAllPolylines(map);
-        window.PolygonModule.removePolygon(map);
 
         WebBridge.postMessage({ type: 'WEBVIEW_UPDATE_DOT_TOTAL', total: 0 }); 
     }
@@ -255,6 +255,8 @@ window.MarkerModule = (function () {
         features[0].setStyle(style);
         if (map && typeof map.render === 'function') map.render();
     }
+    
+
     /**
      * 保存地块数据并传递给React Native
      */
@@ -275,9 +277,9 @@ window.MarkerModule = (function () {
                 return;
             }
 
-            const mapImageFile = await getMapScreenshot()
+            // const mapImageFile = await getMapScreenshot()
 
-            const imageUrl = await uploadImageToOSS(mapImageFile, token);
+            // const imageUrl = await uploadImageToOSS(mapImageFile, token);
 
             // 发送参数数据到RN
             WebBridge.postMessage({
@@ -288,9 +290,11 @@ window.MarkerModule = (function () {
                         lat: parseFloat(point.lat.toFixed(8))
                     })),
                     area: parseFloat(area.toFixed(2)),
-                    imageUrl 
+                    // imageUrl 
                 }
             });
+
+            // PolygonModule.initPolygonCommonPointClickEvent()
 
         } catch (error) {
             WebBridge.postMessage({
@@ -298,99 +302,157 @@ window.MarkerModule = (function () {
                 message: `保存失败: ${error.message}`
             });
         }
+    }
 
-        /**
-         * 获取地图截图
-         */
-        async function getMapScreenshot() {
-            const map = MapCore.getMap();
-            const target = map.getTarget();
-            const mapElement = typeof target === 'string' ? document.getElementById(target) : target;
+    /**
+    * 获取地图截图
+    */
+    async function getMapScreenshot() {
+        const map = MapCore.getMap();
+        const target = map.getTarget();
+        const mapElement = typeof target === 'string' ? document.getElementById(target) : target;
 
-            if (!mapElement) {
-                WebBridge.postError('无法获取地图容器元素');
-                return;
-            }
+        if (!mapElement) {
+            WebBridge.postError('无法获取地图容器元素');
+            return;
+        }
 
-            // 移除天地图层（避免跨域）
-            let getTdAnnotationLayer = SwitchMapLayer.getTdAnnotationLayer()
+        // 移除天地图层（避免跨域）
+        let getTdAnnotationLayer = SwitchMapLayer.getTdAnnotationLayer()
 
-            const canvas = mapElement.querySelector('canvas')
+        const canvas = mapElement.querySelector('canvas')
 
-            // 设置Canvas的尺寸与地图视图相同
-            canvas.width = map.getSize()[0]
-            canvas.height = map.getSize()[1]
+        // 设置Canvas的尺寸与地图视图相同
+        canvas.width = map.getSize()[0]
+        canvas.height = map.getSize()[1]
 
-            WebBridge.postMessage({
-                type: 'SAVE_ERROR',
-                width: canvas.width,
-                height: canvas.height,
-            });
-            // 移除天地图层
-            // map.removeLayer(getTdAnnotationLayer)
+        WebBridge.postMessage({
+            type: 'SAVE_ERROR',
+            width: canvas.width,
+            height: canvas.height,
+        });
+        // 移除天地图层
+        map.removeLayer(getTdAnnotationLayer)
 
-            // 返回一个Promise，用于在地图渲染完成后获取Blob
-            const getCanvasBlob = () => {
-                return new Promise((resolve) => {
-                    canvas.toBlob(
-                        (blob) => {
-                            resolve(blob)
-                        },
-                        'image/jpeg',
-                        0.5
-                    )
+        // 返回一个Promise，用于在地图渲染完成后获取Blob
+        const getCanvasBlob = () => {
+            return new Promise((resolve) => {
+                canvas.toBlob(
+                    (blob) => {
+                        resolve(blob)
+                    },
+                    'image/jpeg',
+                    0.5
+                )
+            })
+        }
+        let blob = await getCanvasBlob()
+
+        map.addLayer(getTdAnnotationLayer)
+
+        // 创建File对象
+        const file = new File([blob], 'map-screenshot.jpg', { type: 'image/jpeg' });
+        return file;
+    }
+
+      /**
+        * 上传图片到OSS    
+        */
+    function uploadImageToOSS(file, token) {
+        return new Promise((resolve, reject) => {
+            try {
+                // 创建 FormData 对象
+                const formData = new FormData();
+                formData.append("multipartFile", file);
+                formData.append("type", "0");
+                formData.append("fileName", "other");
+                // 发送 POST 请求
+                fetch("http://xtnf.com/app/aliyun/oss/uploadToAliOss", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: formData,
                 })
-            }
-            let blob = await getCanvasBlob()
-
-            // map.addLayer(getTdAnnotationLayer)
-
-            // 创建File对象
-            const file = new File([blob], 'map-screenshot.jpg', { type: 'image/jpeg' });
-            return file;
-        }
-
-        /**
-         * 上传地块图片到OSS
-         */
-        function uploadImageToOSS(file, token) {
-             return new Promise((resolve, reject) => {
-                  try {
-                    // 创建 FormData 对象
-                    const formData = new FormData();
-                    formData.append("multipartFile", file);
-                    formData.append("type", "0");
-                    formData.append("fileName", "other");
-                    // 发送 POST 请求
-                    fetch("http://xtnf.com/app/aliyun/oss/uploadToAliOss", {
-                      method: "POST",
-                      headers: {
-                        Authorization: `Bearer ${token}`,
-                      },
-                      body: formData,
-                    })
-                      .then(response => {
-                        console.log("response", response);
-                        if (!response.ok) {
-                          WebBridge.postError("图片上传失败");
-                          reject;
-                        }
-                        return response.json();
-                      })
-                      .then(data => {
-                        // 处理成功的响应
-                        resolve(data.data);
-                      })
-                        .catch(error => {
-                            WebBridge.postError("图片上传失败");
-                            reject(error);
-                      });
-                  } catch (error) {
-                    WebBridge.postError("图片上传失败")
+                .then(response => {
+                    if (!response.ok) {
+                        WebBridge.postError("图片上传失败");
+                        reject;
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // 处理成功的响应
+                    resolve(data.data);
+                })
+                .catch(error => {
+                    WebBridge.postError("图片上传失败");
                     reject(error);
-                  }
-            });
+                });
+            } catch (error) {
+                WebBridge.postError("图片上传失败")
+                reject(error);
+            }
+        });
+    }
+
+    /**
+     * 绘制公共点
+     */
+    function drawCommonPointMarker(map, polygonPath) {
+        removeCommonPointMarker(map)
+        
+        let path = [];
+        if (polygonPath.length > 3) {
+            path = polygonPath.slice(0, -1)
+        } else {
+            path = polygonPath
         }
+
+        path.forEach((position) => {
+            // 创建一个新的Style
+            const markerIcon = new ol.style.Icon({
+                image: new ol.style.Icon({
+                    anchor: [0.5, 0.5],
+                    anchorXUnits: 'fraction',
+                    anchorYUnits: 'fraction',
+                    src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAAAXNSR0IArs4c6QAAApJJREFUWEfNmDtoFEEYx3+DoDYWgoI2gopEwUpQfMTYSCxMqaCmNxEUbNTG0kYrQcFH7QtiqYVi4ztEkipgJIJgo2DAwsYIMu5/mX3Nrs7enRdm4OBuduab333P+dbQ4bCWjcAhYBDYBmwAVjkxP4DPwHvgFfDEGD51coRps9halgFHgdPAXqDVPsACb4DrwIQx/A6dFxRsLQeBa8DWkLDA8zngjDE8+9e6vwJZy0rgKnCyA42EmKWx28BZY/jZtLgRyFrWAo+Tz876Jm3ZDxxOXGQPsAVY7ZZ9B+YTF3vrtr90VqtJeScBxvDNf1IDcjAvmk10BLgEDIQ04Z5/AC4CD5vWy4RDPlQFyJlJMJ5mFFj3gN0tQfxlk8AJqAecNCWo3Hw+0E1grCrugPuHa7qEybYtANLwc1/OLWMYzyZzIBdNT6sOLBhNLe8RJtv+K8kCwz6UHH04i74UyOWZ2arfyExTSQrpVTP+f5Gmdvnmkz9tV57KgI4lnnq/ulWR0q3PhBQqn1KEVsZxY3iQASnN7ysey9YTIak9Plfir0Tf68Rsg8ZaNgEfC98Ro0pR29DulkspQaVQLpQOfdksIHn4jULsUFMkdHtqYJ+CRlkmH6cEdCdJr6PF3BXgXJ8AfLE660J58q6ApoEdxayIVRqWYqi0yCL5mBGQ6kkptr8A65aCBvgKrC+ftSAgpe0Vxaz3s69oi5BeKvKxGCVQdCaLzqm9sL8MnO+r51RTTD3so0uMcZWOtIjYtIeKo7g6oOiuH2oE47mgOS2pIYzjCpuFobXEc8l3WlJhiacNclDqWuNoFEuma9FKj7gmoKmV1iX+EfAfWukSVDwvG8qFLJrXMR5UPC+s/LLv2ib1w315pfcHfpD3xwJR4DUAAAAASUVORK5CYII=',
+                    scale: 0.8, // 缩放比例
+                    crossOrigin: 'anonymous',
+                }),
+            });
+            // 创建一个新的Feature，并设置其几何形状为Point
+            const markerFeature = new ol.Feature({
+                geometry: new ol.geom.Point(position),
+            });
+            markerFeature.setStyle(markerIcon)
+            // 创建一个新的VectorLayer，并将marker添加到其中
+            const markerLayer = new ol.layer.Vector({
+                source: new ol.source.Vector({
+                    features: [markerFeature],
+                }),
+                zIndex: 99,
+            });
+            // 将VectorLayer添加到地图中
+            map.addLayer(markerLayer);
+            markerList.push({ layer: markerLayer, feature: markerFeature })
+            commonPointMarkers = markerList
+        })
+
+        return markerList
+    }
+
+    /**
+     * 清除公共点
+    */
+    function removeCommonPointMarker(map) {
+        if (!commonPointMarkers.length) return; 
+        commonPointMarkers.forEach(marker => {
+            if (marker.layer) {
+                map.removeLayer(marker.layer)
+            }  
+        })
+        commonPointMarkers = []
     }
 
     return {
@@ -403,5 +465,7 @@ window.MarkerModule = (function () {
         removeAllDotMarkers,
         filterPointDot,
         savePolygonToNative,
+        drawCommonPointMarker,
+        removeCommonPointMarker,
     };
 })();

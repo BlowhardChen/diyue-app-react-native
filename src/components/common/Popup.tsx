@@ -1,5 +1,5 @@
 import React from "react";
-import {Modal, View, Text, TouchableOpacity, StyleSheet, TextStyle} from "react-native";
+import {Modal, View, Text, Image, TouchableOpacity, StyleSheet, TextStyle} from "react-native";
 
 /**
  * Popup 组件的属性接口
@@ -21,6 +21,7 @@ interface PopupProps {
   visible: boolean;
   title?: string;
   showTitle?: boolean;
+  showIcon?: boolean;
   msgText?: string;
   showLeftBtnText?: boolean;
   leftBtnText?: string;
@@ -41,6 +42,7 @@ const Popup: React.FC<PopupProps> = ({
   visible,
   title = "",
   showTitle = true,
+  showIcon = false,
   msgText = "",
   showLeftBtnText = true,
   leftBtnText = "",
@@ -61,6 +63,11 @@ const Popup: React.FC<PopupProps> = ({
             {showTitle && (
               <View style={styles.title}>
                 <Text style={styles.titleText}>{title}</Text>
+              </View>
+            )}
+            {showIcon && (
+              <View style={styles.icon}>
+                <Image source={require("@/assets/images/common/icon-success.png")} style={styles.iconImg} />
               </View>
             )}
             <View style={styles.msg}>
@@ -126,6 +133,15 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "500",
     color: "#000",
+  },
+  icon: {
+    marginTop: 12,
+    width: 32,
+    height: 32,
+  },
+  iconImg: {
+    width: "100%",
+    height: "100%",
   },
   msg: {
     paddingHorizontal: 16,

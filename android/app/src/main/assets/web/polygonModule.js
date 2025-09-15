@@ -4,9 +4,9 @@ window.PolygonModule = (function () {
     let polygonFeature = null; // 当前多边形 Feature
     let polygonArea = 0;       // 当前多边形面积（亩）
     let polygonFeatureList = []; // 多边形 Feature 列表
-    let currentActivePolygon = null; // 当前激活的多边形
-    let lineFeatures = []; // 存储边长标注Feature
-    let commonPointMarkers = []; // 公共点标记列表
+    let currentDrawPolygons = []; // 保存当前绘制多边形
+    let commonPointMarkerList = []; // 公共点列表
+    let lineFeatures = []; // 边长文本特性列表
 
 
     /**
@@ -63,7 +63,7 @@ window.PolygonModule = (function () {
             zIndex: 99,
         });
 
-        map.addLayer(polygonLayer);
+        
 
         // 边长标注：显式指定投影，避免单位误差
         for (let i = 0; i < closed3857.length - 1; i++) {
@@ -93,6 +93,7 @@ window.PolygonModule = (function () {
             polygonLayer.getSource().addFeature(lineFeature);
         }
 
+        map.addLayer(polygonLayer);
         return { layer: polygonLayer, feature: polygonFeature, area: polygonArea };
     }
 
@@ -108,10 +109,6 @@ window.PolygonModule = (function () {
      * 绘制地块多边型
      */
     function drawLandPolygon(map,data) {
-        WebBridge.postMessage(JSON.stringify({
-            type: "WEBVIEW_CONSOLE_LOG",
-            data:data
-        }))
         if (!data || !Array.isArray(data.gpsList) || data.gpsList.length < 3) {
             WebBridge.postError(`无效的地块数据: ${JSON.stringify(data)}`);
             return null;
@@ -210,11 +207,35 @@ window.PolygonModule = (function () {
             data.forEach(item => {
                 drawLandPolygon(map,item)
             })
+            // initPolygonCommonPointClickEvent()
+        }
+    }
+
+    /**
+     * 获取圈地多边形
+     */
+    function getPolygon() {
+        return {
+            layer: polygonLayer,
+            feature: polygonFeature,
+            area: polygonArea,
         }
     }
 
     /**
      * 移除地块多边形
+     */
+    function removePolygon(map) {
+        if (polygonLayer) {
+            map.removeLayer(polygonLayer)
+            polygonLayer = null
+            polygonFeature = null
+            polygonArea = 0
+        }
+    }   
+
+    /**
+     * 移除所有地块多边形
      * @param {ol.Map} map
      */
     function removeLandPolygon(map) {
@@ -227,100 +248,111 @@ window.PolygonModule = (function () {
     }
 
     /**
-     * 初始化多边形点击事件（显示公共点）
+     * 初始化多边形公共点点击事件
      * @param {ol.Map} map 地图实例
      */
-    function initPolygonClickEvent(map) {
+    function initPolygonCommonPointClickEvent() {
+        const map = MapCore.getMap()
         map.on('click', (event) => {
-            let clickedMarker = false;
-
-            // 检查是否点击了公共点标记
-            commonPointMarkers.forEach(marker => {
-                if (map.hasFeatureAtPixel(event.pixel, { feature: marker.feature })) {
-                    handleCommonPointClick(marker.feature);
-                    clickedMarker = true;
-                }
-            });
-
-            if (clickedMarker) return;
-
-            // 处理多边形点击
-            map.forEachFeatureAtPixel(event.pixel, (feature, layer) => {
-                // 判断是否为多边形Feature（排除线和其他类型）
-                if (feature.getGeometry() instanceof ol.geom.Polygon) {
-                    // 重置之前激活的多边形
-                    resetActivePolygon();
-                    
-                    // 激活当前点击的多边形
-                    currentActivePolygon = { feature, layer };
-                    highlightPolygon(feature);
-                    showPolygonEdges(feature, layer);
-                    showCommonPoints(feature, map);
-                    
-                    // 发送事件到RN
-                    WebBridge.postMessage({
-                        type: 'POLYGON_CLICKED',
-                        data: {
-                            id: feature.get('id'),
-                            message: '请点击白点作为要借用的点位'
+            let clickedMarker = false
+            map.forEachFeatureAtPixel(event.pixel, (feature) => {
+                // 判断点击的是不是标注点
+                if (commonPointMarkerList.some((marker) => marker.feature === feature)) {
+                    const clickedCoordinate = feature.getGeometry().getCoordinates()
+                    const wgsCoordinate = ol.proj.transform(clickedCoordinate, 'EPSG:3857', 'EPSG:4326')
+                    clickedMarker = true
+                    // 处理标注点的点击事件
+                    MarkerModule.drawDotMarker(map, { lon: wgsCoordinate[0].toFixed(8), lat: wgsCoordinate[1].toFixed(8) })
+                    event.stopPropagation() // 阻止事件传播
+                    WebBridge.postMessage({ type: 'WEBVIEW_BORROW_DOT', message: '借点成功，请继续添加下一个点位' })
+                    return // 立即返回，阻止执行多边形的点击事件
+                 }
+            })
+            if (!clickedMarker) {
+                if (polygonFeature) {
+                    resetActivePolygon()
+                    polygonFeature = null
+                    MarkerModule.removeCommonPointMarker()
+                    commonPointMarkerList = []
+                    WebBridge.postMessage({ type: 'WEBVIEW_BORROW_DOT', message: '请点击打点按钮打点或点击十字光标标点' })
+                } else {
+                    map.forEachFeatureAtPixel(event.pixel, (feature, layer) => {
+                        polygonFeature = feature
+                        polygonLayer = layer
+                        feature.setStyle(
+                            new ol.style.Style({
+                                stroke: new ol.style.Stroke({
+                                    color: '#FFFF00',
+                                    width: 2,
+                                }),
+                                fill: new ol.style.Fill({
+                                    color: 'rgba(161, 255, 131, 0.1)',
+                                }),
+                                text: new ol.style.Text({
+                                    text: feature.getStyle().getText().text_,
+                                    font: '16px Arial',
+                                    fill: new ol.style.Fill({ color: '#FFFF00' }),
+                                    stroke: new ol.style.Stroke({
+                                        color: '#000',
+                                        width: 2,
+                                    }),
+                                }),
+                            })
+                        )
+                        // 获取多边形的几何对象
+                        let polygonGeometry = feature.getGeometry()
+                        // 获取多边形的坐标集合
+                        let polygonCoordinates = polygonGeometry.getCoordinates()[0]
+                        // 计算每条边的长度并显示
+                        for (let i = 0; i < polygonCoordinates.length - 1; i++){
+                            let start = polygonCoordinates[i]
+                            // 使用模运算来获取下一个点，当i为最后一个索引时，会返回第一个点
+                            let end = polygonCoordinates[(i + 1) % polygonCoordinates.length] 
+                            // 创建线段几何对象
+                            let line = new ol.geom.LineString([start, end])
+                            // 计算线段长度
+                            let length = ol.sphere.getLength(line)
+                            // 创建特性并设置样式
+                            let lineFeature = new ol.Feature({
+                                geometry: line,
+                            })
+                            // 设置样式
+                            lineFeature.setStyle(
+                                new ol.style.Style({
+                                    text:new ol.style.Text({
+                                        text: length.toFixed(2) + 'm',
+                                        font: '16px Arial',
+                                        textAlign: 'center',
+                                        textBaseline: 'middle',
+                                        placement: 'line',
+                                        offsetY: -15,
+                                        fill: new ol.style.Fill({ color: '#FFFF00' }),
+                                        stroke: new ol.style.Stroke({
+                                            color: '#000',
+                                            width: 2,
+                                        }),
+                                    }),
+                                    stroke: new ol.style.Stroke({
+                                        color: '#FFFF00',
+                                        width: 2,
+                                    }),
+                                })
+                            )
+                            // 将边长文本特性添加到图层
+                            lineFeatures.push(lineFeature)
+                            layer.getSource().addFeature(lineFeature)
                         }
-                    });
-                    return true; // 停止事件传播
+                        // 获取多边形的边界框
+                        let polygonExtent = feature.getGeometry().getExtent()
+                        // 计算多边形中心点
+                        let polygonCenter = ol.extent.getCenter(polygonExtent)
+                        commonPointMarkerList = MarkerModule?.drawCommonPointMarker(map, polygonFeature.getGeometry().getCoordinates()[0])
+                        // 设置地图视图中心点和缩放级别
+                        map.getView().setCenter(polygonCenter)
+                        map.getView().setZoom(18)
+                        WebBridge.postMessage({ type: 'WEBVIEW_BORROW_DOT', message: '请点击白点作为要借用的点位' })
+                    })
                 }
-            });
-        });
-    }
-
-    /**
-     * 显示多边形公共点（顶点）
-     * @param {ol.Feature} feature 多边形要素
-     * @param {ol.Map} map 地图实例
-     */
-    function showCommonPoints(feature, map) {
-        const coordinates = feature.getGeometry().getCoordinates()[0];
-        const source = new ol.source.Vector();
-        const layer = new ol.layer.Vector({ source, zIndex: 100 });
-        map.addLayer(layer);
-
-        coordinates.forEach(coord => {
-            // 跳过最后一个点（与第一个点重复的闭合点）
-            if (coordinates.indexOf(coord) === coordinates.length - 1) return;
-            
-            const pointFeature = new ol.Feature({
-                geometry: new ol.geom.Point(coord)
-            });
-            
-            pointFeature.setStyle(new ol.style.Style({
-                image: new ol.style.Circle({
-                    radius: 6,
-                    fill: new ol.style.Fill({ color: '#FFFFFF' }),
-                    stroke: new ol.style.Stroke({ color: '#000000', width: 2 })
-                })
-            }));
-            
-            source.addFeature(pointFeature);
-            commonPointMarkers.push({
-                feature: pointFeature,
-                layer: layer
-            });
-        });
-    }
-
-    /**
-     * 处理公共点点击事件
-     * @param {ol.Feature} pointFeature 点要素
-     */
-    function handleCommonPointClick(pointFeature) {
-        const coord3857 = pointFeature.getGeometry().getCoordinates();
-        const coord4326 = ol.proj.transform(coord3857, 'EPSG:3857', 'EPSG:4326');
-        
-        // 发送公共点坐标到RN
-        WebBridge.postMessage({
-            type: 'COMMON_POINT_CLICKED',
-            data: {
-                lng: coord4326[0].toFixed(8),
-                lat: coord4326[1].toFixed(8),
-                message: '借点成功，继续添加下一个点位'
             }
         });
     }
@@ -329,37 +361,58 @@ window.PolygonModule = (function () {
      * 重置激活的多边形样式
      */
     function resetActivePolygon() {
-        if (!currentActivePolygon) return;
-        
-        const { feature, layer } = currentActivePolygon;
-        
-        // 恢复原始样式
-        if (feature.get('originalStyle')) {
-            feature.setStyle(feature.get('originalStyle'));
+        if (lineFeatures.length) {
+            lineFeatures.forEach(f => polygonLayer.getSource().removeFeature(f))
+            lineFeatures = []
         }
-        
-        // 移除边长标注
-        lineFeatures.forEach(line => {
-            layer.getSource().removeFeature(line);
+        if (polygonFeature) {
+            polygonFeature.setStyle(
+                new ol.style.Style({
+                   stroke: new ol.style.Stroke({
+                        color:polygonFeature.values_.landType === '1'? '#A1FF83' : polygonFeature.values_.landType === '2'?'#5BF3FF':'#ffffff',
+                        width: 2,
+                    }),
+                    fill: new ol.style.Fill({
+                        color: polygonFeature.values_.landType === '1'? 'rgba(161, 255, 131, 0.1)' : polygonFeature.values_.landType === '2'?'rgba(91, 243, 255, 0.2)':'rgba(0, 0, 0, 0.3)',
+                    }),
+                    text: new ol.style.Text({
+                        text: polygonFeature.getStyle().getText().text_,
+                        font: '16px Arial',
+                        fill: new ol.style.Fill({ color: '#fff' }),
+                        stroke: new ol.style.Stroke({
+                            color: '#000',
+                            width: 2,
+                        }),
+                    }),
+               })
+            )
+            MarkerModule.removeCommonPointMarker()
+       }
+    }
+
+    
+    // 继续圈地时仅清除当前多边形，保留已经绘制的多边形
+    function clearCurrentPolygon(map) {
+        currentDrawPolygons.push(polygonLayer);
+        map.removeLayer(polygonLayer);
+        polygonLayer = null;
+        polygonFeature = null;
+        polygonArea = 0;
+        currentDrawPolygons.forEach(polygon => {
+            map.addLayer(polygon);
         });
-        lineFeatures = [];
-        
-        // 移除公共点标记
-        commonPointMarkers.forEach(marker => {
-            marker.layer.getSource().removeFeature(marker.feature);
-        });
-        commonPointMarkers = [];
-        
-        currentActivePolygon = null;
     }
 
     return {
         drawPolygon,
+        getPolygon,
+        removePolygon,
         removeLandPolygon,
         getCurrentPolygonArea,
         drawLandPolygon,
         drawLandPolygonList,
-        initPolygonClickEvent,
-        resetActivePolygon
+        initPolygonCommonPointClickEvent,
+        resetActivePolygon,
+        clearCurrentPolygon,
     };
 })();
