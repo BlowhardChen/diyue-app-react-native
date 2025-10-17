@@ -112,7 +112,7 @@ const AddDeviceScreen = () => {
       {renderCameraArea()}
       {/* 顶部导航（只让内部元素可点，空白处透传） */}
       <SafeAreaView style={AddDeviceScreenStyles.headerOverlay} edges={["top"]} pointerEvents="box-none">
-        <View style={AddDeviceScreenStyles.header} pointerEvents="box-none">
+        <View style={AddDeviceScreenStyles.header} pointerEvents="auto">
           <TouchableOpacity
             style={AddDeviceScreenStyles.headerIcon}
             onPress={handleGoBack}

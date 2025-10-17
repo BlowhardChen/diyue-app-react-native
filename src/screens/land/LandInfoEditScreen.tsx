@@ -1,18 +1,5 @@
 import React, {useState, useEffect, useRef} from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  Image,
-  ScrollView,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  Keyboard,
-  Modal,
-  FlatList,
-  Alert,
-} from "react-native";
+import {View, Text, TextInput, Image, ScrollView, TouchableOpacity, Alert} from "react-native";
 import {useNavigation} from "@react-navigation/native";
 import debounce from "lodash/debounce";
 import {PermissionsAndroid, NativeModules, ImagePropsAndroid} from "react-native";
@@ -20,6 +7,7 @@ import axios from "axios";
 import {LandInfoEditScreenStyles} from "./styles/LandInfoEditScreen";
 import {StackNavigationProp} from "@react-navigation/stack";
 import CustomStatusBar from "@/components/common/CustomStatusBar";
+import HTMLView from "react-native-htmlview";
 
 // 类型定义
 interface LandFormInfo {
@@ -463,10 +451,11 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
                       key={index}
                       style={LandInfoEditScreenStyles.searchResultItem}
                       onPress={() => selectLandNameResult(item)}>
-                      <Text
-                        style={LandInfoEditScreenStyles.name}
-                        dangerouslySetInnerHTML={{
-                          __html: highlightKeyword(item.relename, landFormInfo.landName),
+                      <HTMLView
+                        value={`<div>${highlightKeyword(item.relename, landFormInfo.landName)}</div>`}
+                        stylesheet={{
+                          span: {color: "#08AE3C"},
+                          div: {fontSize: 16},
                         }}
                       />
                       <Text style={LandInfoEditScreenStyles.cardidText}>{item.cardid}</Text>

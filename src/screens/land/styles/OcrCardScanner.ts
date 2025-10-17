@@ -1,31 +1,21 @@
 import {StyleSheet} from "react-native";
 
-export const AddDeviceScreenStyles = StyleSheet.create({
+export const OcrCardScannerStyles = StyleSheet.create({
   container: {flex: 1, backgroundColor: "#4e4e4f"},
-  overlay: {
+  fullCamera: {
     position: "absolute",
-    top: "20%",
+    top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 0,
+    backgroundColor: "#000",
   },
-  bottomOverlay: {
+  overlay: {
     position: "absolute",
+    top: "26%",
     left: 0,
     right: 0,
-    bottom: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 0,
-  },
-  gestureLayer: {
-    position: "absolute",
-    top: "20%",
-    left: 0,
-    right: 0,
-    bottom: "40%",
-    backgroundColor: "transparent",
+    bottom: 0,
     zIndex: 0,
   },
   headerOverlay: {
@@ -34,6 +24,15 @@ export const AddDeviceScreenStyles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
+  },
+  bottomOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: "52%",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 0,
   },
   header: {
     flexDirection: "row",
@@ -77,20 +76,7 @@ export const AddDeviceScreenStyles = StyleSheet.create({
     color: "#fff",
     textAlign: "center",
   },
-  buttonBottom: {alignItems: "center", marginTop: 50},
-  dividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: 250,
-    height: 20,
-    justifyContent: "center",
-  },
-  line: {width: 90, height: 1, backgroundColor: "#fff", opacity: 0.7},
-  text: {
-    textAlign: "center",
-    paddingHorizontal: 12,
-    color: "#fff",
-  },
+  buttonBottom: {alignItems: "center", marginTop: 70},
   button: {
     width: 250,
     height: 52,
@@ -100,28 +86,30 @@ export const AddDeviceScreenStyles = StyleSheet.create({
   },
   btnText: {fontSize: 20, fontWeight: "500", color: "#fff"},
   shot: {marginTop: 24, backgroundColor: "#f58700"},
-  hand: {marginTop: 20, backgroundColor: "#08ae3c"},
-  bluetooth: {marginTop: 16, backgroundColor: "#007cff"},
-  popupContent: {
+  photoAlbum: {
     position: "absolute",
-    top: "50%",
-    left: "10%",
-    right: "10%",
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 16,
+    top: "88%",
+    left: "70%",
+    right: 0,
+    bottom: 0,
+    width: "100%",
   },
-  popupContentTop: {alignItems: "center"},
-  title: {fontSize: 20, fontWeight: "500", color: "#000", marginTop: 16},
-  msg: {fontSize: 16, color: "#000", marginTop: 16, textAlign: "center"},
-  divider: {height: 1, backgroundColor: "#ededed", marginVertical: 8},
-  popupBottom: {
-    flexDirection: "row",
-    justifyContent: "space-around",
+  photoAlbumItem: {
+    flexDirection: "column",
     alignItems: "center",
-    paddingVertical: 12,
+    justifyContent: "center",
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(255,255,255,0.17)",
   },
-  btnLeft: {fontSize: 18, color: "#000"},
-  btnRight: {fontSize: 18, color: "#08ae3c"},
-  cross: {width: 1, height: 20, backgroundColor: "#ededed"},
+  photoIcon: {
+    width: 32,
+    height: 32,
+  },
+  photoAlbumText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#fff",
+  },
 });

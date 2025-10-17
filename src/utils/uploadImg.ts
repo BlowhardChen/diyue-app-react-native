@@ -22,8 +22,10 @@ export const useOCR = () => {
         headers: {token},
         body: formData,
       });
-
       const {data} = await res.json();
+      if (!data) {
+        return {success: false};
+      }
       console.log("uploadImg", data);
       const ocrInfo = data;
       return {success: true, ocrInfo};

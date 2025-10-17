@@ -4,10 +4,11 @@ import {http} from "@/utils/http";
 /**
  * 设备-获取设备连接状态
  */
-export const getDeviceConnectStatus = () => {
+export const getDeviceConnectStatus = (data: {imei: string; taskType: string}) => {
   return http<any>({
-    method: "GET",
+    method: "POST",
     url: "/app/device/queryDeviceStatus",
+    data,
   });
 };
 

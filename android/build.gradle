@@ -18,4 +18,21 @@ buildscript {
     }
 }
 
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty("android")) {
+            project.android {
+                // 强制排除旧 support 库
+                configurations.all {
+                    exclude group: 'com.android.support', module: 'support-compat'
+                    exclude group: 'com.android.support', module: 'support-v4'
+                    exclude group: 'com.android.support', module: 'appcompat-v7'
+                    exclude group: 'com.android.support', module: 'support-annotations'
+                    exclude group: 'com.android.support', module: 'design'
+                }
+            }
+        }
+    }
+}
+
 apply plugin: "com.facebook.react.rootproject"

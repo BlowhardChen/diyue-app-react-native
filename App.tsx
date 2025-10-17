@@ -10,6 +10,7 @@ import {ActivityIndicator, View} from "react-native";
 import {RootStackParamList} from "@/types/navigation";
 import {RootSiblingParent} from "react-native-root-siblings";
 import {getToken} from "@/utils/tokenUtils";
+import {TabBarProvider} from "@/navigation/TabBarContext";
 
 export default function App() {
   const routeNameRef = useRef<string>("");
@@ -58,7 +59,9 @@ export default function App() {
             }
             routeNameRef.current = currentRouteName;
           }}>
-          <AppNavigator initialRouteName={initialRoute} />
+          <TabBarProvider>
+            <AppNavigator initialRouteName={initialRoute} />
+          </TabBarProvider>
         </NavigationContainer>
       </AuthProvider>
     </RootSiblingParent>

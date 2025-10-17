@@ -43,7 +43,10 @@ const LandHomeCustomNavbar: React.FC<Props> = observer(({onChangeTab}) => {
 
   // 获取设备连接状态
   const getDeviceConnect = async () => {
-    const {data} = await getDeviceConnectStatus();
+    if (!deviceStore.deviceImei) {
+      return;
+    }
+    const {data} = await getDeviceConnectStatus({imei: deviceStore.deviceImei, taskType: "1"});
     deviceStore.listenDeviceStatus(data.deviceStatus);
   };
 

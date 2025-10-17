@@ -1,13 +1,24 @@
 // 土地管理
 import LandHomeCustomNavbar from "@/components/land/LandHomeCustomNavbar";
 import {View, Image, Text} from "react-native";
-import {styles} from "./styles/LandManagementScreen";
+import {LandManagementScreenStyles} from "./styles/LandManagementScreen";
 import MapControlButton from "@/components/land/MapControlButton";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import MapSwitcher from "@/components/common/MapSwitcher";
-import {useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import WebView from "react-native-webview";
+import {checkLocationPermission, requestLocationPermission} from "@/utils/checkPermissions";
+import Geolocation from "@react-native-community/geolocation";
+import PermissionPopup from "@/components/common/PermissionPopup";
+import {mapStore} from "@/stores/mapStore";
+import {showCustomToast} from "@/components/common/CustomToast";
+import {MapWebviewMessage} from "@/types/land";
+import KeepAwake from "react-native-keep-awake";
+import {StatusBar} from "react-native";
+import {useTabBar} from "@/navigation/TabBarContext";
+import {getLandListData} from "@/services/land";
+import LandListModel from "@/components/land/LandListModel";
 
 type LandStackParamList = {
   Enclosure: undefined;
@@ -17,10 +28,71 @@ const HomeScreen = () => {
   const navigation = useNavigation<StackNavigationProp<LandStackParamList>>();
 
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
+  const webViewRef = useRef<WebView>(null);
+  const [showPermissionPopup, setShowPermissionPopup] = useState(false);
+  const [hasLocationPermission, setHasLocationPermission] = useState(false);
+  const [isWebViewReady, setIsWebViewReady] = useState(false);
+  const isFirstLocationRef = useRef(true);
+  const watchIdRef = useRef<number | null>(null);
+  const [isShowMapFullScreen, setIsShowMapFullScreen] = useState(false);
+  const {hideTabBar, showTabBar} = useTabBar();
+  const [isMapType, setIsMapType] = useState(true);
+
+  // 启用屏幕常亮
+  useEffect(() => {
+    KeepAwake.activate();
+    return () => {
+      KeepAwake.deactivate();
+    };
+  }, []);
+
+  // 初始化定位服务
+  useEffect(() => {
+    getLocationService();
+  }, []);
+
+  // 初始化定位权限
+  useEffect(() => {
+    initLocationPermission();
+  }, []);
+
+  // 获取地块数据
+  useEffect(() => {
+    getLandInfoList();
+  }, []);
+
+  // 当WebView准备好时，应用保存的地图类型
+  useEffect(() => {
+    if (isWebViewReady) {
+      applySavedMapType();
+    }
+  }, [isWebViewReady]);
 
   // 切换tab
   const changeTab = (title: string, type: string) => {
-    console.log(title, type);
+    console.log("切换tab", type);
+    if (type === "map") {
+      setIsMapType(true);
+    } else {
+      setIsMapType(false);
+    }
+  };
+
+  // 应用保存的地图类型
+  const applySavedMapType = () => {
+    switch (mapStore.mapType) {
+      case "标准地图":
+        switchMapLayer("TIANDITU_ELEC");
+        break;
+      case "卫星地图":
+        switchMapLayer("TIANDITU_SAT");
+        break;
+      case "自定义":
+        switchMapLayer("CUSTOM", mapStore.customMapLayer);
+        break;
+      default:
+        switchMapLayer("TIANDITU_SAT");
+    }
   };
 
   // 切换图层
@@ -28,11 +100,56 @@ const HomeScreen = () => {
     setShowMapSwitcher(true);
   };
 
-  // 切换地图
+  // 处理地图选择
   const handleSelectMap = ({type, layerUrl}: {type: string; layerUrl: string}) => {
-    console.log("选中的地图类型:", type);
-    console.log("地图地址:", layerUrl);
-    // 这里可以调用地图组件的切换逻辑或更新状态等
+    // 保存选择的地图类型到mapStore
+    mapStore.setMapType(type);
+    if (type === "自定义" && layerUrl) {
+      mapStore.setCustomMapType(layerUrl);
+    }
+
+    // 应用选择的地图
+    handleSelectMapLayer(type, layerUrl);
+
+    setShowMapSwitcher(false);
+  };
+
+  // 处理地图图层选择逻辑
+  const handleSelectMapLayer = (type: string, layerUrl: string) => {
+    switch (type) {
+      case "标准地图":
+        switchMapLayer("TIANDITU_ELEC");
+        break;
+      case "卫星地图":
+        switchMapLayer("TIANDITU_SAT");
+        break;
+      case "自定义":
+        if (layerUrl) {
+          switchMapLayer("CUSTOM", layerUrl);
+        } else {
+          showCustomToast("error", "请输入有效的自定义图层URL");
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
+  // 切换地图图层 - 修复自定义图层URL传递问题
+  const switchMapLayer = (layerType: string, layerUrl?: string) => {
+    if (!isWebViewReady) return;
+
+    const message = {
+      type: "SWITCH_LAYER",
+      layerType,
+    };
+
+    // 只有自定义图层才添加layerUrl属性
+    if (layerType === "CUSTOM" && layerUrl) {
+      (message as any).customUrl = layerUrl;
+    }
+
+    webViewRef.current?.postMessage(JSON.stringify(message));
   };
 
   // 圈地
@@ -41,78 +158,294 @@ const HomeScreen = () => {
   };
 
   // 隐藏地图按钮
-  const hideMapControl = () => {};
+  const hideMapControl = () => {
+    setIsShowMapFullScreen(true);
+    // 隐藏状态栏
+    StatusBar.setHidden(true);
+    // 隐藏底部 TabBar
+    hideTabBar();
+  };
 
   // 显示地图按钮
-  const showMapControl = () => {};
+  const showMapControl = () => {
+    setIsShowMapFullScreen(false);
 
-  // 定位
-  const locationControl = () => {};
+    // 显示状态栏
+    StatusBar.setHidden(false);
+    // 恢复底部 TabBar
+    showTabBar();
+  };
 
-  const handleMessage = (event: any) => {
-    console.log("🌐 WebView Message:", event.nativeEvent.data);
+  // 初始化定位权限和地图图层
+  const initLocationPermission = async () => {
+    const granted = await checkLocationPermission();
+    if (granted) {
+      setHasLocationPermission(true);
+      // 如果 WebView 已经准备好，直接启动
+      if (isWebViewReady) {
+        startPositionWatch();
+      }
+    } else {
+      setShowPermissionPopup(true);
+    }
+  };
+
+  // 获取定位服务
+  const getLocationService = async () => {
+    const hasPermission = await checkLocationPermission();
+    if (hasPermission) {
+      locateDevicePosition(true);
+    } else {
+      getLocationByIP();
+    }
+  };
+
+  // 定位位置
+  const onLocatePosition = async () => {
+    const hasPermission = await checkLocationPermission();
+    if (hasPermission) {
+      locateDevicePosition(true);
+    } else {
+      setShowPermissionPopup(true);
+    }
+  };
+
+  // 同意定位权限
+  const handleAcceptPermission = async () => {
+    const granted = await requestLocationPermission();
+    if (granted) {
+      setHasLocationPermission(true);
+      setShowPermissionPopup(false);
+      if (isWebViewReady) {
+        startPositionWatch();
+      }
+    }
+  };
+
+  // 拒绝定位权限
+  const handleRejectPermission = () => {
+    getLocationByIP();
+    setShowPermissionPopup(false);
+  };
+
+  // 定位设备位置
+  const locateDevicePosition = async (isShowIcon: boolean, coordinate?: {lon: number; lat: number}) => {
+    if (isShowIcon) {
+      await Geolocation.getCurrentPosition(position => {
+        const {latitude, longitude} = position.coords;
+        webViewRef.current?.postMessage(
+          JSON.stringify({
+            type: "SET_ICON_LOCATION",
+            location: {lon: longitude, lat: latitude},
+          }),
+        );
+      });
+    } else if (coordinate) {
+      webViewRef.current?.postMessage(JSON.stringify({type: "SET_LOCATION", location: coordinate}));
+    }
+  };
+
+  // 通过IP定位
+  const getLocationByIP = async () => {
+    try {
+      const response = await fetch("http://ip-api.com/json/");
+      const data = await response.json();
+      if (data.status === "success") {
+        const {lat, lon} = data;
+        locateDevicePosition(false, {lon, lat});
+      }
+    } catch (error) {
+      showCustomToast("error", "IP定位失败");
+    }
+  };
+
+  // 开启定位
+  const startPositionWatch = async () => {
+    stopPositionWatch();
+
+    Geolocation.getCurrentPosition(
+      pos => {
+        const {latitude, longitude} = pos.coords;
+        webViewRef.current?.postMessage(
+          JSON.stringify({
+            type: "SET_ICON_LOCATION",
+            location: {lon: longitude, lat: latitude},
+          }),
+        );
+        isFirstLocationRef.current = false;
+      },
+      () => {},
+      {enableHighAccuracy: true, timeout: 10000, maximumAge: 1000},
+    );
+
+    const watchId = Geolocation.watchPosition(
+      pos => {
+        const {latitude, longitude} = pos.coords;
+        webViewRef.current?.postMessage(
+          JSON.stringify({
+            type: "UPDATE_ICON_LOCATION",
+            location: {lon: longitude, lat: latitude},
+          }),
+        );
+      },
+      err => {
+        console.error("watchPosition 错误:", err);
+        if (err.code === 1) {
+          showCustomToast("error", "定位权限被拒绝");
+        } else if (err.code === 2) {
+          showCustomToast("error", "位置不可用");
+        } else if (err.code === 3) {
+          showCustomToast("error", "定位超时");
+        }
+      },
+      {enableHighAccuracy: true, distanceFilter: 1, interval: 1000, fastestInterval: 500},
+    );
+
+    watchIdRef.current = watchId as any;
+  };
+
+  // 停止定位
+  const stopPositionWatch = () => {
+    if (watchIdRef.current != null) {
+      Geolocation.clearWatch(watchIdRef.current as any);
+      watchIdRef.current = null;
+    }
+  };
+
+  // 获取地块信息列表
+  const getLandInfoList = async () => {
+    const {data} = await getLandListData({quitStatus: "0"});
+  };
+
+  // 接收WebView消息
+  const receiveWebviewMessage = (event: any) => {
+    console.log("📬 接收WebView消息:", event.nativeEvent.data);
+    let data = event.nativeEvent?.data;
+    if (!data) return;
+    try {
+      data = JSON.parse(data);
+    } catch (e) {
+      return;
+    }
+    if (data && data.type) handleWebviewMessage(data);
+  };
+
+  // 处理webview消息
+  const handleWebviewMessage = async (data: MapWebviewMessage) => {
+    switch (data.type) {
+      // 地图准备完成
+      case "WEBVIEW_READY":
+        setIsWebViewReady(true);
+        if (hasLocationPermission) {
+          startPositionWatch();
+        }
+        break;
+      // 控制台日志
+      case "WEBVIEW_CONSOLE_LOG":
+        console.log("WEBVIEW_CONSOLE_LOG", data);
+        break;
+      default:
+        break;
+    }
   };
 
   return (
-    <View style={styles.container}>
+    <View style={LandManagementScreenStyles.container}>
       {/* 顶部导航 */}
-      <LandHomeCustomNavbar onChangeTab={changeTab} />
-      <View style={styles.map}>
-        {/* 地图 */}
-        <View style={styles.map}>
-          <WebView
-            source={{uri: "file:///android_asset/web/homeMap.html"}}
-            originWhitelist={["*"]}
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
-            allowFileAccess={true}
-            allowFileAccessFromFileURLs={true}
-            onMessage={handleMessage}
-            style={{flex: 1}}
-          />
-          <View style={styles.mapCopyright}>
-            <Image source={require("../../assets/images/home/icon-td.png")} style={styles.iconImg} />
-            <Text style={styles.copyrightText}>©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471</Text>
+      {!isShowMapFullScreen && <LandHomeCustomNavbar onChangeTab={changeTab} />}
+      {isMapType ? (
+        // 地图模式
+        <View style={LandManagementScreenStyles.map}>
+          {/* 地图 */}
+          <View style={[LandManagementScreenStyles.map, isShowMapFullScreen && {marginTop: 0, flex: 1}]}>
+            <WebView
+              source={{uri: "file:///android_asset/web/map.html"}}
+              ref={webViewRef}
+              originWhitelist={["*"]}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              allowFileAccess={true}
+              allowFileAccessFromFileURLs={true}
+              onMessage={receiveWebviewMessage}
+              style={{flex: 1}}
+            />
+            <View style={LandManagementScreenStyles.mapCopyright}>
+              <Image source={require("../../assets/images/home/icon-td.png")} style={LandManagementScreenStyles.iconImg} />
+              <Text style={LandManagementScreenStyles.copyrightText}>
+                ©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471
+              </Text>
+            </View>
           </View>
+          {/* 右侧按钮 */}
+          <View style={LandManagementScreenStyles.rightControl}>
+            {!isShowMapFullScreen && (
+              <MapControlButton
+                iconUrl={require("../../assets/images/home/icon-layer.png")}
+                iconName="图层"
+                onPress={expandMapLayer}
+              />
+            )}
+            {!isShowMapFullScreen && (
+              <MapControlButton
+                iconUrl={require("../../assets/images/home/icon-enclosure.png")}
+                iconName="圈地"
+                onPress={startEnclosure}
+                style={{marginTop: 16}}
+              />
+            )}
+            {!isShowMapFullScreen && (
+              <MapControlButton
+                iconUrl={require("../../assets/images/home/icon-hide.png")}
+                iconName="隐藏"
+                onPress={hideMapControl}
+                style={{marginTop: 16}}
+              />
+            )}
+          </View>
+          {/* 地块类型图标 */}
+          <View style={LandManagementScreenStyles.landType}>
+            <View style={LandManagementScreenStyles.landTypeItem}>
+              <Image source={require("@/assets/images/home/icon-green.png")} style={LandManagementScreenStyles.icon} />
+              <Text style={LandManagementScreenStyles.text}>流转</Text>
+            </View>
+
+            <View style={LandManagementScreenStyles.landTypeItem}>
+              <Image source={require("@/assets/images/home/icon-blue.png")} style={LandManagementScreenStyles.icon} />
+              <Text style={LandManagementScreenStyles.text}>托管</Text>
+            </View>
+          </View>
+          {/* 定位按钮 */}
+          <View style={LandManagementScreenStyles.locationControl}>
+            {isShowMapFullScreen && (
+              <MapControlButton
+                iconUrl={require("../../assets/images/home/icon-show.png")}
+                iconName="显示"
+                onPress={showMapControl}
+                style={{marginTop: 16}}
+              />
+            )}
+            <MapControlButton
+              iconUrl={require("../../assets/images/home/icon-location.png")}
+              iconName="定位"
+              onPress={onLocatePosition}
+              style={{marginTop: 16}}
+            />
+          </View>
+          {/* 地图切换弹窗组件 */}
+          {showMapSwitcher && <MapSwitcher onClose={() => setShowMapSwitcher(false)} onSelectMap={handleSelectMap} />}
+          {/* 权限弹窗 */}
+          <PermissionPopup
+            visible={showPermissionPopup}
+            onAccept={handleAcceptPermission}
+            onReject={handleRejectPermission}
+            title={"开启位置权限"}
+            message={"获取位置权限将用于获取当前定位与记录轨迹"}
+          />
         </View>
-        {/* 右侧按钮 */}
-        <View style={styles.rightControl}>
-          <MapControlButton
-            iconUrl={require("../../assets/images/home/icon-layer.png")}
-            iconName="图层"
-            onPress={expandMapLayer}
-          />
-          <MapControlButton
-            iconUrl={require("../../assets/images/home/icon-enclosure.png")}
-            iconName="圈地"
-            onPress={startEnclosure}
-            style={{marginTop: 16}}
-          />
-          <MapControlButton
-            iconUrl={require("../../assets/images/home/icon-hide.png")}
-            iconName="隐藏"
-            onPress={hideMapControl}
-            style={{marginTop: 16}}
-          />
-        </View>
-        {/* 定位按钮 */}
-        <View style={styles.locationControl}>
-          <MapControlButton
-            iconUrl={require("../../assets/images/home/icon-show.png")}
-            iconName="显示"
-            onPress={showMapControl}
-            style={{marginTop: 16}}
-          />
-          <MapControlButton
-            iconUrl={require("../../assets/images/home/icon-location.png")}
-            iconName="定位"
-            onPress={locationControl}
-            style={{marginTop: 16}}
-          />
-        </View>
-        {/* 地图切换弹窗组件 */}
-        {showMapSwitcher && <MapSwitcher onClose={() => setShowMapSwitcher(false)} onSelectMap={handleSelectMap} />}
-      </View>
+      ) : (
+        // 列表模式
+        <LandListModel />
+      )}
     </View>
   );
 };

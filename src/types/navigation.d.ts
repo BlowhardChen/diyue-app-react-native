@@ -48,4 +48,5 @@ export type DeviceStackParamList = {
 export type LandMapStackParamList = {
   Enclosure: undefined;
   LandInfoEdit: {landInfo: SaveLandResponse};
+  OcrCardScanner: {type: string};
 };

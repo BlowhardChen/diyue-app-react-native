@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 24,
     alignItems: "center",
-    justifyContent: "center", // 可选
+    justifyContent: "center", 
     shadowColor: Global.colors.textDark,
     shadowOffset: {
       width: 0,

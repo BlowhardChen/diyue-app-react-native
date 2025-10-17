@@ -2,6 +2,7 @@ import React, {useCallback} from "react";
 import {createBottomTabNavigator, BottomTabNavigationOptions} from "@react-navigation/bottom-tabs";
 import {Image, StyleSheet, ImageSourcePropType, Pressable, PressableProps} from "react-native";
 import {RouteProp} from "@react-navigation/native";
+import {useTabBar} from "@/navigation/TabBarContext";
 import LandManagementScreen from "../screens/tabBarPage/LandManagementScreen";
 import MyScreen from "../screens/tabBarPage/MyScreen";
 import FarmManagementScreen from "../screens/tabBarPage/FarmManagementScreen";
@@ -58,6 +59,8 @@ const renderTabBarIcon =
   };
 
 const BottomTabNavigator: React.FC = () => {
+  const {visible} = useTabBar();
+
   // 记忆化 screenOptions
   const screenOptions = useCallback(
     ({route}: {route: RouteProp<TabParamList, keyof TabParamList>}): BottomTabNavigationOptions => ({
@@ -68,14 +71,17 @@ const BottomTabNavigator: React.FC = () => {
         fontSize: 12,
         marginBottom: 3,
       },
-      tabBarStyle: {
-        height: 60,
-        paddingTop: 5,
-        backgroundColor: "#fff",
-      },
+      tabBarStyle: [
+        {
+          height: 60,
+          paddingTop: 5,
+          backgroundColor: "#fff",
+        },
+        !visible && {display: "none"},
+      ],
       tabBarButton: props => <CustomTabBarButton {...props} />,
     }),
-    [],
+    [visible],
   );
 
   return (

@@ -147,7 +147,7 @@ const EnclosureScreen = observer(() => {
     }
   };
 
-  // 切换地图图层 - 修复自定义图层URL传递问题
+  // 切换地图图层
   const switchMapLayer = (layerType: string, layerUrl?: string) => {
     if (!isWebViewReady) return;
 

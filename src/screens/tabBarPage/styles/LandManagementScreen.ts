@@ -1,6 +1,6 @@
 import {StyleSheet} from "react-native";
 
-export const styles = StyleSheet.create({
+export const LandManagementScreenStyles = StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -14,4 +14,34 @@ export const styles = StyleSheet.create({
     right: 16,
   },
   locationControl: {position: "absolute", bottom: 32, right: 16},
+  landType: {
+    position: "absolute",
+    bottom: 32,
+    left: 16,
+    zIndex: 999,
+    alignItems: "center",
+    justifyContent: "space-around",
+    width: 86,
+    height: 76,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 16 / 2,
+    shadowColor: "#000",
+    shadowOffset: {width: 0, height: 0},
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  landTypeItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  icon: {
+    width: 16,
+    height: 16,
+    marginRight: 6,
+  },
+  text: {
+    fontSize: 18,
+    color: "#fff",
+  },
 });
