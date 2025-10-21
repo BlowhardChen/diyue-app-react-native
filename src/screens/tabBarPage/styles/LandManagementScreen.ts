@@ -3,6 +3,24 @@ import {StyleSheet} from "react-native";
 export const LandManagementScreenStyles = StyleSheet.create({
   container: {
     flex: 1,
+    position: "relative",
+  },
+  mapContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1, // 默认地图在顶层
+  },
+  listContainer: {
+    position: "absolute",
+    top: 90,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#fff", // 用背景色覆盖地图
+    zIndex: -1, // 默认列表在底层
   },
   map: {flex: 1},
   mapCopyright: {position: "absolute", bottom: 0, left: 0, flexDirection: "row", alignItems: "flex-end"},
@@ -10,7 +28,7 @@ export const LandManagementScreenStyles = StyleSheet.create({
   copyrightText: {fontSize: 8, color: "#fff"},
   rightControl: {
     position: "absolute",
-    top: 16,
+    top: 106,
     right: 16,
   },
   locationControl: {position: "absolute", bottom: 32, right: 16},

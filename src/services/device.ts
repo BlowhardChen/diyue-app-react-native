@@ -55,3 +55,25 @@ export const getDeviceUploadConfig = (deviceId: string) => {
     data: {deviceId},
   });
 };
+
+/**
+ * RTK连接-获取设备弹窗提醒状态
+ */
+export const getRtkPopupStatus = (data: any) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/device/queryDevicePopUpWindows",
+    data,
+  });
+};
+
+/**
+ * RTK连接-设置设备弹窗提醒
+ */
+export const setRtkPopupTips = (data: any) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/device/devicePopUpWindows",
+    data,
+  });
+};

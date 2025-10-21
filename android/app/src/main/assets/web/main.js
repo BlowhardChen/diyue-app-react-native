@@ -57,14 +57,14 @@
               case "SAVE_POLYGON":
                   MarkerModule?.savePolygonToNative(data.token);
                 break;
-              // 绘制地块
+              // 绘制已圈地地块
               case "DRAW_ENCLOSURE_LAND":
                   PolygonModule?.drawLandPolygonList(map,data.data);
                 break;
-                // 继续圈地
+              // 继续圈地
               case 'CONTINUE_ENCLOSURE':
-                PolygonModule?.clearCurrentPolygon(map);
-                MarkerModule?.removeAllDotMarkers(map);
+                  PolygonModule?.clearCurrentPolygon(map);
+                  MarkerModule?.removeAllDotMarkers(map);
                 break
               default:
                   WebBridge.postMessage("未处理的消息类型:" + data.type);

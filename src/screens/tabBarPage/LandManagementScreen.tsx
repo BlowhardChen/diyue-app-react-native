@@ -3,7 +3,7 @@ import LandHomeCustomNavbar from "@/components/land/LandHomeCustomNavbar";
 import {View, Image, Text} from "react-native";
 import {LandManagementScreenStyles} from "./styles/LandManagementScreen";
 import MapControlButton from "@/components/land/MapControlButton";
-import {useNavigation} from "@react-navigation/native";
+import {useFocusEffect, useNavigation, useRoute} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import MapSwitcher from "@/components/common/MapSwitcher";
 import {useEffect, useRef, useState} from "react";
@@ -19,14 +19,19 @@ import {StatusBar} from "react-native";
 import {useTabBar} from "@/navigation/TabBarContext";
 import {getLandListData} from "@/services/land";
 import LandListModel from "@/components/land/LandListModel";
+import DeviceConnectionPopup from "@/components/device/DeviceConnectionPopup";
+import {saveTargetRoute} from "@/utils/navigationUtils";
+import {getRtkPopupStatus, setRtkPopupTips} from "@/services/device";
+import {deviceStore} from "@/stores/deviceStore";
+import useOptimizedHeading from "@/hooks/useOptimizedHeading";
 
 type LandStackParamList = {
   Enclosure: undefined;
+  AddDevice: undefined;
 };
 
-const HomeScreen = () => {
+const LandManagementScreen = () => {
   const navigation = useNavigation<StackNavigationProp<LandStackParamList>>();
-
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const webViewRef = useRef<WebView>(null);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
@@ -37,6 +42,8 @@ const HomeScreen = () => {
   const [isShowMapFullScreen, setIsShowMapFullScreen] = useState(false);
   const {hideTabBar, showTabBar} = useTabBar();
   const [isMapType, setIsMapType] = useState(true);
+  const [showDeviceConnectionPopup, setShowDeviceConnectionPopup] = useState(false);
+  const route = useRoute();
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -68,9 +75,18 @@ const HomeScreen = () => {
     }
   }, [isWebViewReady]);
 
+  // 监听朝向变化，发送给WebView
+  useOptimizedHeading(heading => {
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "UPDATE_MARKER_ROTATION",
+        rotation: heading,
+      }),
+    );
+  });
+
   // 切换tab
   const changeTab = (title: string, type: string) => {
-    console.log("切换tab", type);
     if (type === "map") {
       setIsMapType(true);
     } else {
@@ -135,26 +151,44 @@ const HomeScreen = () => {
     }
   };
 
-  // 切换地图图层 - 修复自定义图层URL传递问题
+  // 切换地图图层
   const switchMapLayer = (layerType: string, layerUrl?: string) => {
     if (!isWebViewReady) return;
-
     const message = {
       type: "SWITCH_LAYER",
       layerType,
     };
-
     // 只有自定义图层才添加layerUrl属性
     if (layerType === "CUSTOM" && layerUrl) {
       (message as any).customUrl = layerUrl;
     }
-
     webViewRef.current?.postMessage(JSON.stringify(message));
   };
 
-  // 圈地
-  const startEnclosure = () => {
+  // 处理取消提醒
+  const handleAbortRemind = async () => {
+    await setRtkPopupTips({});
+    setShowDeviceConnectionPopup(false);
     navigation.navigate("Enclosure");
+  };
+
+  // 处理连接设备
+  const handleConnectDevice = () => {
+    saveTargetRoute(route.name);
+    navigation.navigate("AddDevice");
+    setShowDeviceConnectionPopup(false);
+  };
+
+  // 圈地
+  const startEnclosure = async () => {
+    const {data} = await getRtkPopupStatus({});
+    if (data.status) {
+      navigation.navigate("Enclosure");
+    } else if (deviceStore.status === "1") {
+      navigation.navigate("Enclosure");
+    } else {
+      setShowDeviceConnectionPopup(true);
+    }
   };
 
   // 隐藏地图按钮
@@ -315,6 +349,12 @@ const HomeScreen = () => {
   // 获取地块信息列表
   const getLandInfoList = async () => {
     const {data} = await getLandListData({quitStatus: "0"});
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "DRAW_ENCLOSURE_LAND",
+        data,
+      }),
+    );
   };
 
   // 接收WebView消息
@@ -353,8 +393,11 @@ const HomeScreen = () => {
     <View style={LandManagementScreenStyles.container}>
       {/* 顶部导航 */}
       {!isShowMapFullScreen && <LandHomeCustomNavbar onChangeTab={changeTab} />}
-      {isMapType ? (
-        // 地图模式
+      <View
+        style={[
+          LandManagementScreenStyles.mapContainer,
+          !isMapType && {zIndex: -1}, // 列表模式时将地图置于底层
+        ]}>
         <View style={LandManagementScreenStyles.map}>
           {/* 地图 */}
           <View style={[LandManagementScreenStyles.map, isShowMapFullScreen && {marginTop: 0, flex: 1}]}>
@@ -370,7 +413,7 @@ const HomeScreen = () => {
               style={{flex: 1}}
             />
             <View style={LandManagementScreenStyles.mapCopyright}>
-              <Image source={require("../../assets/images/home/icon-td.png")} style={LandManagementScreenStyles.iconImg} />
+              <Image source={require("@/assets/images/home/icon-td.png")} style={LandManagementScreenStyles.iconImg} />
               <Text style={LandManagementScreenStyles.copyrightText}>
                 ©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471
               </Text>
@@ -380,14 +423,14 @@ const HomeScreen = () => {
           <View style={LandManagementScreenStyles.rightControl}>
             {!isShowMapFullScreen && (
               <MapControlButton
-                iconUrl={require("../../assets/images/home/icon-layer.png")}
+                iconUrl={require("@/assets/images/home/icon-layer.png")}
                 iconName="图层"
                 onPress={expandMapLayer}
               />
             )}
             {!isShowMapFullScreen && (
               <MapControlButton
-                iconUrl={require("../../assets/images/home/icon-enclosure.png")}
+                iconUrl={require("@/assets/images/home/icon-enclosure.png")}
                 iconName="圈地"
                 onPress={startEnclosure}
                 style={{marginTop: 16}}
@@ -395,7 +438,7 @@ const HomeScreen = () => {
             )}
             {!isShowMapFullScreen && (
               <MapControlButton
-                iconUrl={require("../../assets/images/home/icon-hide.png")}
+                iconUrl={require("@/assets/images/home/icon-hide.png")}
                 iconName="隐藏"
                 onPress={hideMapControl}
                 style={{marginTop: 16}}
@@ -418,14 +461,14 @@ const HomeScreen = () => {
           <View style={LandManagementScreenStyles.locationControl}>
             {isShowMapFullScreen && (
               <MapControlButton
-                iconUrl={require("../../assets/images/home/icon-show.png")}
+                iconUrl={require("@/assets/images/home/icon-show.png")}
                 iconName="显示"
                 onPress={showMapControl}
                 style={{marginTop: 16}}
               />
             )}
             <MapControlButton
-              iconUrl={require("../../assets/images/home/icon-location.png")}
+              iconUrl={require("@/assets/images/home/icon-location.png")}
               iconName="定位"
               onPress={onLocatePosition}
               style={{marginTop: 16}}
@@ -442,12 +485,24 @@ const HomeScreen = () => {
             message={"获取位置权限将用于获取当前定位与记录轨迹"}
           />
         </View>
-      ) : (
-        // 列表模式
+      </View>
+      {/* 设备连接弹窗 */}
+      <DeviceConnectionPopup
+        visible={showDeviceConnectionPopup}
+        onClose={() => setShowDeviceConnectionPopup(false)}
+        onAbortRemind={handleAbortRemind}
+        onConnectDevice={handleConnectDevice}
+      />
+      {/* 列表模式 */}
+      <View
+        style={[
+          LandManagementScreenStyles.listContainer,
+          !isMapType ? {zIndex: 1} : {zIndex: -1}, // 列表模式时置于顶层
+        ]}>
         <LandListModel />
-      )}
+      </View>
     </View>
   );
 };
 
-export default HomeScreen;
+export default LandManagementScreen;

@@ -1,8 +1,7 @@
 import React, {useEffect, useRef, useState} from "react";
 import {View, Text, Image, TouchableOpacity, Vibration} from "react-native";
 import {Camera, useCameraPermission} from "react-native-vision-camera";
-import {useNavigation, useRoute} from "@react-navigation/native";
-import {StackNavigationProp} from "@react-navigation/stack";
+import {RouteProp, useNavigation, useRoute} from "@react-navigation/native";
 import {OcrCardScannerStyles} from "../../screens/land/styles/OcrCardScanner";
 import {SafeAreaView} from "react-native-safe-area-context";
 import PermissionPopup from "@/components/common/PermissionPopup";
@@ -13,18 +12,19 @@ import {getToken} from "@/utils/tokenUtils";
 import CustomLoading from "@/components/common/CustomLoading";
 import {useOCR} from "@/utils/uploadImg";
 import Popup from "../common/Popup";
+import {launchImageLibrary} from "react-native-image-picker";
 
-// 定义路由参数类型（只关注接收的type）
 type OcrCardScannerParams = {
-  type: string;
+  type: "身份证" | "银行卡";
+  onOcrResult: (result: {type: string; data: any}) => void;
 };
+
+type OcrCardScannerRouteProp = RouteProp<Record<string, OcrCardScannerParams>, string>;
 
 const OcrCardScanner = () => {
   const navigation = useNavigation();
-  const route = useRoute<{params: OcrCardScannerParams}>();
-  const {type} = route.params; // 获取扫描类型（身份证/银行卡）
-
-  // 其他状态保持不变
+  const route = useRoute<OcrCardScannerRouteProp>();
+  const {type, onOcrResult} = route.params;
   const {hasPermission, requestPermission} = useCameraPermission();
   const camera = useRef<Camera>(null);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
@@ -32,7 +32,6 @@ const OcrCardScanner = () => {
   const {uploadImg, loading} = useOCR();
   const [showPopup, setShowPopup] = useState(false);
 
-  // 权限处理逻辑保持不变
   useEffect(() => {
     (async () => {
       if (!hasPermission) {
@@ -43,10 +42,12 @@ const OcrCardScanner = () => {
     })();
   }, [hasPermission]);
 
+  // 返回上一页（不传递参数时）
   const handleGoBack = () => {
-    navigation.goBack(); // 返回上一页（不传递参数时）
+    navigation.goBack();
   };
 
+  // 接受权限
   const handleAcceptPermission = async () => {
     setShowPermissionPopup(false);
     const granted = await requestPermission();
@@ -57,11 +58,13 @@ const OcrCardScanner = () => {
     }
   };
 
+  // 拒绝权限
   const handleRejectPermission = () => {
     setShowPermissionPopup(false);
     setPermissionGranted(false);
   };
 
+  // 渲染相机区域
   const renderCameraArea = () => {
     if (!permissionGranted) {
       return <View style={{flex: 1, backgroundColor: "#000"}} />;
@@ -69,6 +72,7 @@ const OcrCardScanner = () => {
     return <FullscreenCamera cameraRef={camera} />;
   };
 
+  // 拍照并上传图片
   const snapshot = async () => {
     if (!hasPermission) {
       setShowPermissionPopup(true);
@@ -86,43 +90,27 @@ const OcrCardScanner = () => {
     }
   };
 
-  // 关键修复：使用goBack返回，并通过路由参数传递结果
+  // 上传图片并处理结果
   const uploadOCRImg = async (filePath: string) => {
     const token = (await getToken()) as string;
     const {success, ocrInfo} = await uploadImg(filePath, token, type === "身份证" ? "1" : "2");
     if (success) {
-      console.log("识别成功，结果：", ocrInfo);
-      // 获取上一页的路由名称（动态适配，避免硬编码）
-      const state = navigation.getState();
-      const previousRouteName = state.routes[state.index - 1]?.name;
-
-      // 给上一页设置参数
-      navigation.setParams({
-        ocrResult: {
-          type: type,
-          data: ocrInfo,
-        },
-      });
-
-      // 延迟返回，确保参数已设置
-      setTimeout(() => {
-        navigation.goBack();
-      }, 100);
+      onOcrResult({type, data: ocrInfo});
+      navigation.goBack();
     } else {
       setShowPopup(true);
     }
   };
 
-  const openPhotoAlbum = () => {
-    // 打开相册逻辑
-  };
+  // 打开相册
+  const openPhotoAlbum = async () => {};
 
+  // 手动输入
   const handleManualInput = () => {
     setShowPopup(false);
     handleGoBack();
   };
 
-  // 渲染部分保持不变
   return (
     <View style={OcrCardScannerStyles.container}>
       {renderCameraArea()}

@@ -7,13 +7,10 @@ import {LandListModelStyles} from "@/components/land/styles/LandListModel";
 import {LandListData} from "@/types/land";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
-import {useFocusEffect} from "@react-navigation/native"; // 关键：使用useFocusEffect
 
 const {height: screenHeight} = Dimensions.get("window");
 
-type StackParamList = {
-  OcrCardScanner: {type: string};
-};
+type StackParamList = {};
 
 const LandListModel = () => {
   const [searchWord, setSearchWord] = useState<string>("");
@@ -22,62 +19,8 @@ const LandListModel = () => {
   const [showQueryPopup, setShowQueryPopup] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const navigation = useNavigation<StackNavigationProp<StackParamList>>();
-  const [ocrResult, setOcrResult] = useState<any>(null);
 
-  // 关键：使用useFocusEffect监听页面聚焦
-  useFocusEffect(
-    useCallback(() => {
-      // 获取当前路由状态中的OCR结果
-      const state = navigation.getState();
-      // 找到OcrCardScanner页面的参数
-      const ocrRoute = state.routes.find(route => route.name === "OcrCardScanner");
-      const result = ocrRoute?.params?.ocrResult;
-
-      if (result) {
-        console.log("LandListModel接收的OCR结果：", result); // 调试用
-        setOcrResult(result);
-        // 延迟打开弹窗，确保状态更新
-        setTimeout(() => {
-          setShowQueryPopup(true);
-        }, 100);
-        // 清除参数，避免重复处理
-        if (ocrRoute) {
-          navigation.setParams({ocrResult: null});
-        }
-      }
-    }, [navigation]),
-  );
-
-  // 打开扫描页面
-  const handleOpenCardScan = (type: string) => {
-    setShowQueryPopup(false);
-    setTimeout(() => {
-      navigation.navigate("OcrCardScanner", {type});
-    }, 300);
-  };
-
-  // 传递OCR结果到FilterPopup
-  const getFilterFormInitialData = () => {
-    if (ocrResult) {
-      const initialData = {
-        // 从日志看，身份证识别结果中的身份证号字段是idNumber，姓名是name
-        ...(ocrResult.type === "身份证"
-          ? {
-              cardid: ocrResult.data?.idNumber || "",
-              relename: ocrResult.data?.name || "",
-            }
-          : {
-              bankAccount: ocrResult.data?.bankNumber || "",
-              relename: ocrResult.data?.name || "",
-            }),
-      };
-      setOcrResult(null);
-      return initialData;
-    }
-    return {};
-  };
-
-  // 其他逻辑（获取列表、查询等）保持不变
+  // 获取地块列表
   const getLandMassList = useCallback(async (params: any = {}) => {
     try {
       setLoading(true);
@@ -159,14 +102,7 @@ const LandListModel = () => {
       </View>
 
       {/* 筛选弹窗 */}
-      {showQueryPopup && (
-        <FilterPopup
-          onClose={closeQueryPopup}
-          onQuery={queryLand}
-          initialData={getFilterFormInitialData()}
-          onOpenCardScan={handleOpenCardScan}
-        />
-      )}
+      {showQueryPopup && <FilterPopup onClose={closeQueryPopup} onQuery={queryLand} />}
     </View>
   );
 };

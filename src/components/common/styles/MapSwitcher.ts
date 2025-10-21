@@ -3,7 +3,17 @@ import {StyleSheet, Dimensions} from "react-native";
 
 const {width} = Dimensions.get("window");
 
-export const styles = StyleSheet.create({
+export const MapSwitcherstyles = StyleSheet.create({
+  // 新增遮罩层样式
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    zIndex: 1998, // 确保遮罩在内容下方
+  },
   container: {
     position: "absolute",
     bottom: 0,
@@ -13,7 +23,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
-    zIndex: 1999,
+    zIndex: 1999, // 内容在遮罩上方
     shadowColor: "#000",
     shadowOffset: {width: 0, height: -4},
     shadowOpacity: 0.1,
@@ -21,6 +31,7 @@ export const styles = StyleSheet.create({
     elevation: 5,
     paddingTop: 8,
   },
+  // 其他原有样式保持不变...
   header: {
     alignItems: "center",
     justifyContent: "center",

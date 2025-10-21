@@ -207,7 +207,6 @@ window.PolygonModule = (function () {
             data.forEach(item => {
                 drawLandPolygon(map,item)
             })
-            // initPolygonCommonPointClickEvent()
         }
     }
 
@@ -247,115 +246,7 @@ window.PolygonModule = (function () {
         }
     }
 
-    /**
-     * 初始化多边形公共点点击事件
-     * @param {ol.Map} map 地图实例
-     */
-    function initPolygonCommonPointClickEvent() {
-        const map = MapCore.getMap()
-        map.on('click', (event) => {
-            let clickedMarker = false
-            map.forEachFeatureAtPixel(event.pixel, (feature) => {
-                // 判断点击的是不是标注点
-                if (commonPointMarkerList.some((marker) => marker.feature === feature)) {
-                    const clickedCoordinate = feature.getGeometry().getCoordinates()
-                    const wgsCoordinate = ol.proj.transform(clickedCoordinate, 'EPSG:3857', 'EPSG:4326')
-                    clickedMarker = true
-                    // 处理标注点的点击事件
-                    MarkerModule.drawDotMarker(map, { lon: wgsCoordinate[0].toFixed(8), lat: wgsCoordinate[1].toFixed(8) })
-                    event.stopPropagation() // 阻止事件传播
-                    WebBridge.postMessage({ type: 'WEBVIEW_BORROW_DOT', message: '借点成功，请继续添加下一个点位' })
-                    return // 立即返回，阻止执行多边形的点击事件
-                 }
-            })
-            if (!clickedMarker) {
-                if (polygonFeature) {
-                    resetActivePolygon()
-                    polygonFeature = null
-                    MarkerModule.removeCommonPointMarker()
-                    commonPointMarkerList = []
-                    WebBridge.postMessage({ type: 'WEBVIEW_BORROW_DOT', message: '请点击打点按钮打点或点击十字光标标点' })
-                } else {
-                    map.forEachFeatureAtPixel(event.pixel, (feature, layer) => {
-                        polygonFeature = feature
-                        polygonLayer = layer
-                        feature.setStyle(
-                            new ol.style.Style({
-                                stroke: new ol.style.Stroke({
-                                    color: '#FFFF00',
-                                    width: 2,
-                                }),
-                                fill: new ol.style.Fill({
-                                    color: 'rgba(161, 255, 131, 0.1)',
-                                }),
-                                text: new ol.style.Text({
-                                    text: feature.getStyle().getText().text_,
-                                    font: '16px Arial',
-                                    fill: new ol.style.Fill({ color: '#FFFF00' }),
-                                    stroke: new ol.style.Stroke({
-                                        color: '#000',
-                                        width: 2,
-                                    }),
-                                }),
-                            })
-                        )
-                        // 获取多边形的几何对象
-                        let polygonGeometry = feature.getGeometry()
-                        // 获取多边形的坐标集合
-                        let polygonCoordinates = polygonGeometry.getCoordinates()[0]
-                        // 计算每条边的长度并显示
-                        for (let i = 0; i < polygonCoordinates.length - 1; i++){
-                            let start = polygonCoordinates[i]
-                            // 使用模运算来获取下一个点，当i为最后一个索引时，会返回第一个点
-                            let end = polygonCoordinates[(i + 1) % polygonCoordinates.length] 
-                            // 创建线段几何对象
-                            let line = new ol.geom.LineString([start, end])
-                            // 计算线段长度
-                            let length = ol.sphere.getLength(line)
-                            // 创建特性并设置样式
-                            let lineFeature = new ol.Feature({
-                                geometry: line,
-                            })
-                            // 设置样式
-                            lineFeature.setStyle(
-                                new ol.style.Style({
-                                    text:new ol.style.Text({
-                                        text: length.toFixed(2) + 'm',
-                                        font: '16px Arial',
-                                        textAlign: 'center',
-                                        textBaseline: 'middle',
-                                        placement: 'line',
-                                        offsetY: -15,
-                                        fill: new ol.style.Fill({ color: '#FFFF00' }),
-                                        stroke: new ol.style.Stroke({
-                                            color: '#000',
-                                            width: 2,
-                                        }),
-                                    }),
-                                    stroke: new ol.style.Stroke({
-                                        color: '#FFFF00',
-                                        width: 2,
-                                    }),
-                                })
-                            )
-                            // 将边长文本特性添加到图层
-                            lineFeatures.push(lineFeature)
-                            layer.getSource().addFeature(lineFeature)
-                        }
-                        // 获取多边形的边界框
-                        let polygonExtent = feature.getGeometry().getExtent()
-                        // 计算多边形中心点
-                        let polygonCenter = ol.extent.getCenter(polygonExtent)
-                        commonPointMarkerList = MarkerModule?.drawCommonPointMarker(map, polygonFeature.getGeometry().getCoordinates()[0])
-                        // 设置地图视图中心点和缩放级别
-                        map.getView().setCenter(polygonCenter)
-                        map.getView().setZoom(18)
-                        WebBridge.postMessage({ type: 'WEBVIEW_BORROW_DOT', message: '请点击白点作为要借用的点位' })
-                    })
-                }
-            }
-        });
-    }
+
 
     /**
      * 重置激活的多边形样式
@@ -411,7 +302,6 @@ window.PolygonModule = (function () {
         getCurrentPolygonArea,
         drawLandPolygon,
         drawLandPolygonList,
-        initPolygonCommonPointClickEvent,
         resetActivePolygon,
         clearCurrentPolygon,
     };

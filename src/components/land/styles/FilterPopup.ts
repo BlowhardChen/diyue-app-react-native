@@ -1,30 +1,45 @@
 import {Global} from "@/styles/global";
-import {StyleSheet} from "react-native";
+import {StyleSheet, Dimensions} from "react-native";
+
+// 获取屏幕高度（关键：用于限制侧边栏高度）
+const SCREEN_HEIGHT = Dimensions.get("window").height;
+
 export const FilterPopupStyles = StyleSheet.create({
   overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     flex: 1,
-
     backgroundColor: "rgba(0,0,0,0.5)",
     flexDirection: "row-reverse",
+    zIndex: 999,
   },
   overlayTouch: {
     flex: 1,
   },
   popupContainer: {
     width: "100%",
-    justifyContent: "flex-end",
     alignItems: "flex-end",
+    maxHeight: SCREEN_HEIGHT * 0.9,
   },
   popupBox: {
     width: 300,
-    height: "100%",
     backgroundColor: "#fff",
     borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
+    flexDirection: "column",
+    height: "100%",
   },
   condition: {
+    flex: 1,
     paddingHorizontal: 16,
     paddingTop: 24,
+    overflow: "hidden",
+  },
+  conditionContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
   item: {
     marginBottom: 24,
@@ -97,13 +112,15 @@ export const FilterPopupStyles = StyleSheet.create({
     color: "#999",
   },
   bottomBtn: {
+    height: 72,
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    height: 72,
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderColor: "#E7E7E7",
+    position: "relative",
+    zIndex: 10,
   },
   btn: {
     width: 120,
