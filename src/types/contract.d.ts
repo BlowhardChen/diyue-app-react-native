@@ -1,0 +1,36 @@
+export interface ContractDetail {
+  actualAcreNum: number;
+  administrativeVillage: string;
+  bankAccount: string;
+  cardid: string;
+  city: string;
+  contracStatus: string;
+  contractNo: string;
+  contractType: string;
+  createMobile: string;
+  createName: string;
+  createTime: string;
+  detailaddress: string;
+  dictLabel: string;
+  dictValue: string;
+  district: string;
+  endAcreageNum: number;
+  endTime: string;
+  gpsList: string[];
+  id: string;
+  landGps: string[];
+  landId: string;
+  mobile: string;
+  openBank: string;
+  paymentAmount: number;
+  paymentMethod: string;
+  perAcreAmount: number;
+  province: string;
+  relename: string;
+  startAcreageNum: number;
+  startTime: string;
+  status: string;
+  termOfLease: number;
+  totalAmount: number;
+  township: number;
+}

@@ -66,6 +66,10 @@
                   PolygonModule?.clearCurrentPolygon(map);
                   MarkerModule?.removeAllDotMarkers(map);
                 break
+              // 重置地块激活样式
+              case 'RESET_LAND_ACTIVE_STYLE':
+                  PolygonModule?.resetActivePolygon();
+                break
               default:
                   WebBridge.postMessage("未处理的消息类型:" + data.type);
                 break;

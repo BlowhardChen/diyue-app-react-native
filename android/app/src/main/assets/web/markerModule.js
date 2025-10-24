@@ -3,7 +3,7 @@ window.MarkerModule = (function () {
     let selfMarkerLayer;                 // 当前设备点位图层
     let dotMarkers = [];                 // 地图打点图层数组
     let dotMarkerCoordinates = [];       // 打点经纬度数组（[{lon,lat}, ...]）
-    let commonPointMarkers = [];        // 公共点图层数组
+    let commonPointMarkers = [];        // 公共点标准数组
 
     /**
      * 绘制地图打点（核心）
@@ -455,6 +455,13 @@ window.MarkerModule = (function () {
         commonPointMarkers = []
     }
 
+    /**
+     * 获取公共点数组
+     */
+    function getCommonPointMarkers() {
+        return commonPointMarkers
+    }
+
     return {
         toLocateSelf,
         drawCurrentLocation,
@@ -467,5 +474,7 @@ window.MarkerModule = (function () {
         savePolygonToNative,
         drawCommonPointMarker,
         removeCommonPointMarker,
+        getCommonPointMarkers
+      
     };
 })();

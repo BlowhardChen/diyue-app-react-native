@@ -3,7 +3,7 @@ import LandHomeCustomNavbar from "@/components/land/LandHomeCustomNavbar";
 import {View, Image, Text} from "react-native";
 import {LandManagementScreenStyles} from "./styles/LandManagementScreen";
 import MapControlButton from "@/components/land/MapControlButton";
-import {useFocusEffect, useNavigation, useRoute} from "@react-navigation/native";
+import {useNavigation, useRoute} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import MapSwitcher from "@/components/common/MapSwitcher";
 import {useEffect, useRef, useState} from "react";
@@ -13,17 +13,20 @@ import Geolocation from "@react-native-community/geolocation";
 import PermissionPopup from "@/components/common/PermissionPopup";
 import {mapStore} from "@/stores/mapStore";
 import {showCustomToast} from "@/components/common/CustomToast";
-import {MapWebviewMessage} from "@/types/land";
+import {LandDetailInfo, LandOrderItem, MapWebviewMessage} from "@/types/land";
 import KeepAwake from "react-native-keep-awake";
 import {StatusBar} from "react-native";
 import {useTabBar} from "@/navigation/TabBarContext";
-import {getLandListData} from "@/services/land";
+import {getLandDetailsInfo, getLandListData, getLandOrderList} from "@/services/land";
 import LandListModel from "@/components/land/LandListModel";
 import DeviceConnectionPopup from "@/components/device/DeviceConnectionPopup";
 import {saveTargetRoute} from "@/utils/navigationUtils";
 import {getRtkPopupStatus, setRtkPopupTips} from "@/services/device";
 import {deviceStore} from "@/stores/deviceStore";
 import useOptimizedHeading from "@/hooks/useOptimizedHeading";
+import LandDetailsPopup from "@/components/land/LandDetailsPopup";
+import {getContractMessageDetail} from "@/services/contract";
+import {ContractDetail} from "@/types/contract";
 
 type LandStackParamList = {
   Enclosure: undefined;
@@ -44,6 +47,10 @@ const LandManagementScreen = () => {
   const [isMapType, setIsMapType] = useState(true);
   const [showDeviceConnectionPopup, setShowDeviceConnectionPopup] = useState(false);
   const route = useRoute();
+  const [showLandDetailsPopup, setShowLandDetailsPopup] = useState(false);
+  const [landInfo, setLandInfo] = useState();
+  const [contractDetail, setContractDetail] = useState();
+  const [orderList, setOrderList] = useState();
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -128,6 +135,7 @@ const LandManagementScreen = () => {
     handleSelectMapLayer(type, layerUrl);
 
     setShowMapSwitcher(false);
+    1;
   };
 
   // 处理地图图层选择逻辑
@@ -338,6 +346,18 @@ const LandManagementScreen = () => {
     watchIdRef.current = watchId as any;
   };
 
+  // 关闭地块详情弹窗
+  const closeLandDetailsPopup = () => {
+    setShowLandDetailsPopup(false);
+    setOrderList(undefined);
+    setContractDetail(undefined);
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "RESET_LAND_ACTIVE_STYLE",
+      }),
+    );
+  };
+
   // 停止定位
   const stopPositionWatch = () => {
     if (watchIdRef.current != null) {
@@ -345,6 +365,12 @@ const LandManagementScreen = () => {
       watchIdRef.current = null;
     }
   };
+
+  // 点回找
+  const onFindPoint = () => {};
+
+  // 地块管理
+  const onLandManage = () => {};
 
   // 获取地块信息列表
   const getLandInfoList = async () => {
@@ -355,6 +381,29 @@ const LandManagementScreen = () => {
         data,
       }),
     );
+  };
+
+  // 获取地块详情数据
+  const getLandDetailInfoData = async (id: string): Promise<void> => {
+    const {data} = await getLandDetailsInfo(id);
+    setLandInfo(data[0]);
+    if (data[0].landType === "2") {
+      await getTrusteeshipLandOrderList(id);
+    } else {
+      await getContractDetail(id as string);
+    }
+  };
+
+  // 获取合同详细信息
+  const getContractDetail = async (id: string) => {
+    const {data} = await getContractMessageDetail({landId: id});
+    setContractDetail(data);
+  };
+
+  // 获取托管地块订单列表
+  const getTrusteeshipLandOrderList = async (id: string) => {
+    const {data} = await getLandOrderList(id);
+    setOrderList(data.list);
   };
 
   // 接收WebView消息
@@ -383,6 +432,11 @@ const LandManagementScreen = () => {
       // 控制台日志
       case "WEBVIEW_CONSOLE_LOG":
         console.log("WEBVIEW_CONSOLE_LOG", data);
+        break;
+      // 点击多边形
+      case "POLYGON_CLICK":
+        await getLandDetailInfoData(data.id as string);
+        setShowLandDetailsPopup(true);
         break;
       default:
         break;
@@ -486,13 +540,7 @@ const LandManagementScreen = () => {
           />
         </View>
       </View>
-      {/* 设备连接弹窗 */}
-      <DeviceConnectionPopup
-        visible={showDeviceConnectionPopup}
-        onClose={() => setShowDeviceConnectionPopup(false)}
-        onAbortRemind={handleAbortRemind}
-        onConnectDevice={handleConnectDevice}
-      />
+
       {/* 列表模式 */}
       <View
         style={[
@@ -501,6 +549,25 @@ const LandManagementScreen = () => {
         ]}>
         <LandListModel />
       </View>
+      {/* 设备连接弹窗 */}
+      <DeviceConnectionPopup
+        visible={showDeviceConnectionPopup}
+        onClose={() => setShowDeviceConnectionPopup(false)}
+        onAbortRemind={handleAbortRemind}
+        onConnectDevice={handleConnectDevice}
+      />
+      {/* 地块详情弹窗 */}
+      {showLandDetailsPopup && (
+        <LandDetailsPopup
+          onClose={() => closeLandDetailsPopup()}
+          onBack={() => closeLandDetailsPopup()}
+          onFindPoint={onFindPoint}
+          onLandManage={onLandManage}
+          landInfo={landInfo as unknown as LandDetailInfo}
+          contractDetail={contractDetail as unknown as ContractDetail}
+          landOrderList={orderList as unknown as LandOrderItem[]}
+        />
+      )}
     </View>
   );
 };

@@ -1,5 +1,6 @@
 // 地图webview消息类型
 export interface MapWebviewMessage {
+  id?: string;
   type: string;
   message?: string;
   total?: number;
@@ -79,4 +80,36 @@ export interface LandListData {
   updateUserId: string;
   url: string;
   userId: number;
+}
+
+// 地块详细信息
+
+export interface LandDetailInfo {
+  id: string;
+  landName: string;
+  landType: "1" | "2";
+  type?: string;
+  actualAcreNum?: string;
+  createTime?: string;
+  createName?: string;
+  mobile?: string;
+  cardid?: string;
+  bankAccount?: string;
+  detailaddress?: string;
+  list?: {lng: number; lat: number}[];
+}
+// 托管地块订单列表
+export interface LandOrderItem {
+  id: number;
+  createTime: string;
+  name: string;
+  orderCode: string;
+  orderType: string;
+  payTime: string;
+  payType: string;
+  status: string;
+  totalPrice: number;
+  url: string;
+  goodsList: GoodsListItem[];
+  serviceList: ServiceListItem[];
 }

@@ -1,3 +1,4 @@
+
 // 多边形模块
 window.PolygonModule = (function () {
     let polygonLayer = null;   // 当前多边形图层
@@ -5,8 +6,7 @@ window.PolygonModule = (function () {
     let polygonArea = 0;       // 当前多边形面积（亩）
     let polygonFeatureList = []; // 多边形 Feature 列表
     let currentDrawPolygons = []; // 保存当前绘制多边形
-    let commonPointMarkerList = []; // 公共点列表
-    let lineFeatures = []; // 边长文本特性列表
+    let lineFeatureList = []; // 边长文本Feature列表
 
 
     /**
@@ -204,9 +204,11 @@ window.PolygonModule = (function () {
      */
     function drawLandPolygonList(map,data) {
         if (data.length) {
+            removeLandPolygon()
             data.forEach(item => {
                 drawLandPolygon(map,item)
             })
+            polygonAndPointClickEvent(map)
         }
     }
 
@@ -252,9 +254,9 @@ window.PolygonModule = (function () {
      * 重置激活的多边形样式
      */
     function resetActivePolygon() {
-        if (lineFeatures.length) {
-            lineFeatures.forEach(f => polygonLayer.getSource().removeFeature(f))
-            lineFeatures = []
+        if (lineFeatureList.length) {
+            lineFeatureList.forEach(f => polygonLayer.getSource().removeFeature(f))
+            lineFeatureList = []
         }
         if (polygonFeature) {
             polygonFeature.setStyle(
@@ -270,10 +272,7 @@ window.PolygonModule = (function () {
                         text: polygonFeature.getStyle().getText().text_,
                         font: '16px Arial',
                         fill: new ol.style.Fill({ color: '#fff' }),
-                        stroke: new ol.style.Stroke({
-                            color: '#000',
-                            width: 2,
-                        }),
+                        stroke: new ol.style.Stroke({color: '#000',width: 2}),
                     }),
                })
             )
@@ -289,9 +288,98 @@ window.PolygonModule = (function () {
         polygonLayer = null;
         polygonFeature = null;
         polygonArea = 0;
-        currentDrawPolygons.forEach(polygon => {
-            map.addLayer(polygon);
-        });
+        currentDrawPolygons.forEach(polygon => {map.addLayer(polygon)});
+    }
+
+    // 多边形和回找点点击事件
+    function polygonAndPointClickEvent(map) {
+        map.on('click', (event) => {
+            let clickedMarker = false
+            const commonPointMarkers = MarkerModule.getCommonPointMarkers()
+            map.forEachFeatureAtPixel(event.pixel, (feature) => {
+                // 判断点击的是不是标注点
+                if (commonPointMarkers.some((marker) => marker.feature === feature)) {
+                    const clickedCoordinate = feature.getGeometry().getCoordinates()
+                    const wgsCoordinate = ol.proj.transform(clickedCoordinate, 'EPSG:3857', 'EPSG:4326')
+                    clickedMarker = true
+                    // 处理标注点的点击事件
+                    WebBridge.postMessage({
+                        type: 'JUMP_FIND_POINT',
+                        point: {
+                            lng: wgsCoordinate[0].toFixed(8),
+                            lat: wgsCoordinate[1].toFixed(8),
+                        }
+                    })
+                    MarkerModule.removeCommonPointMarker()
+                    event.stopPropagation() // 阻止事件传播
+                    return  // 立即返回，阻止执行多边形的点击事件
+                }
+            })
+            if (!clickedMarker) {
+                map.forEachFeatureAtPixel(event.pixel, (feature, layer) => {
+                    resetActivePolygon()
+                    polygonFeature = feature
+                    polygonLayer = layer
+                    feature.setStyle(
+                        new ol.style.Style({
+                            stroke: new ol.style.Stroke({color: '#FFFF00',width: 2}),
+                            fill: new ol.style.Fill({color: 'rgba(161, 255, 131, 0.1)'}),
+                            text: new ol.style.Text({
+                                text: feature.getStyle().getText().text_, // 这里是你想要显示的文本
+                                font: '16px Arial',
+                                fill: new ol.style.Fill({ color: '#FFFF00' }),
+                                stroke: new ol.style.Stroke({color: '#000',width: 2}),
+                            })
+                        })
+                    )
+                    // 获取多边形的几何对象
+                    let polygonGeometry = feature.getGeometry()
+                    // 获取多边形的坐标集合
+                    let coordinates = polygonGeometry.getCoordinates()[0]
+                    // 计算每条边的长度并显示
+                    for (let i = 0; i < coordinates.length - 1; i++){
+                        let start = coordinates[i]
+                        // 使用模运算来获取下一个点，当i为最后一个索引时，会返回第一个点
+                        let end = coordinates[(i + 1) % coordinates.length] 
+                        // 创建线段几何对象
+                        let line = new ol.geom.LineString([start, end])
+                        // 计算线段长度
+                        let length = ol.sphere.getLength(line)
+                        // 创建特性并设置样式
+                        let lineFeature = new ol.Feature({ geometry: line })
+                        lineFeature.setStyle(
+                            new ol.style.Style({
+                                text: new ol.style.Text({
+                                    text: length.toFixed(2) + ' m',
+                                    font: '16px Arial',
+                                    textAlign: 'center',
+                                    textBaseline: 'middle',
+                                    placement: 'line',
+                                    offsetY: -15,
+                                    fill: new ol.style.Fill({ color: '#FFFF00' }),
+                                    stroke: new ol.style.Stroke({ color: '#000000', width: 2 }),
+                                }),
+                            })
+                        )
+                        lineFeatureList.push(lineFeature)
+                        // 将边长文本特性添加到图层
+                        layer.getSource().addFeature(lineFeature)
+                    }
+                    // 获取多边形的边界框
+                    let polygonExtent = feature.getGeometry().getExtent()
+                    // 计算多边形中心点
+                    let polygonCenter = ol.extent.getCenter(polygonExtent)
+                    // 设置地图视图中心点和缩放级别
+                    map.getView().setCenter(polygonCenter)
+                    map.getView().setZoom(18)
+                    // 处理多边型点击事件
+                    WebBridge.postMessage({
+                        type: 'POLYGON_CLICK',
+                        id:feature.values_.id
+                    })
+                })
+            }
+        })
     }
 
     return {
