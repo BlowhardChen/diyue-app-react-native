@@ -24,9 +24,10 @@ import {saveTargetRoute} from "@/utils/navigationUtils";
 import {getRtkPopupStatus, setRtkPopupTips} from "@/services/device";
 import {deviceStore} from "@/stores/deviceStore";
 import useOptimizedHeading from "@/hooks/useOptimizedHeading";
-import LandDetailsPopup from "@/components/land/LandDetailsPopup";
+import LandDetailsPopup from "@/screens/land/components/LandDetailsPopup";
 import {getContractMessageDetail} from "@/services/contract";
 import {ContractDetail} from "@/types/contract";
+import CustomLoading from "@/components/common/CustomLoading";
 
 type LandStackParamList = {
   Enclosure: undefined;
@@ -51,6 +52,7 @@ const LandManagementScreen = () => {
   const [landInfo, setLandInfo] = useState();
   const [contractDetail, setContractDetail] = useState();
   const [orderList, setOrderList] = useState();
+  const [loading, setLoading] = useState(false);
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -351,6 +353,7 @@ const LandManagementScreen = () => {
     setShowLandDetailsPopup(false);
     setOrderList(undefined);
     setContractDetail(undefined);
+    setContractDetail(undefined);
     webViewRef.current?.postMessage(
       JSON.stringify({
         type: "RESET_LAND_ACTIVE_STYLE",
@@ -392,6 +395,9 @@ const LandManagementScreen = () => {
     } else {
       await getContractDetail(id as string);
     }
+    // 隐藏加载弹窗
+    setLoading(false);
+    setShowLandDetailsPopup(true);
   };
 
   // 获取合同详细信息
@@ -435,8 +441,9 @@ const LandManagementScreen = () => {
         break;
       // 点击多边形
       case "POLYGON_CLICK":
+        // 显示加载弹窗
+        setLoading(true);
         await getLandDetailInfoData(data.id as string);
-        setShowLandDetailsPopup(true);
         break;
       default:
         break;
@@ -568,6 +575,8 @@ const LandManagementScreen = () => {
           landOrderList={orderList as unknown as LandOrderItem[]}
         />
       )}
+      {/* 自定义加载弹窗 */}
+      <CustomLoading visible={loading} text="地块详情加载中..." />
     </View>
   );
 };

@@ -12,7 +12,6 @@ import {getToken} from "@/utils/tokenUtils";
 import CustomLoading from "@/components/common/CustomLoading";
 import {useOCR} from "@/utils/uploadImg";
 import Popup from "../common/Popup";
-import {launchImageLibrary} from "react-native-image-picker";
 
 type OcrCardScannerParams = {
   type: "身份证" | "银行卡";
