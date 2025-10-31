@@ -3,7 +3,7 @@ import LandHomeCustomNavbar from "@/components/land/LandHomeCustomNavbar";
 import {View, Image, Text} from "react-native";
 import {LandManagementScreenStyles} from "./styles/LandManagementScreen";
 import MapControlButton from "@/components/land/MapControlButton";
-import {useNavigation, useRoute} from "@react-navigation/native";
+import {useIsFocused, useNavigation, useRoute} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import MapSwitcher from "@/components/common/MapSwitcher";
 import {useEffect, useRef, useState} from "react";
@@ -28,6 +28,8 @@ import LandDetailsPopup from "@/screens/land/components/LandDetailsPopup";
 import {getContractMessageDetail} from "@/services/contract";
 import {ContractDetail} from "@/types/contract";
 import CustomLoading from "@/components/common/CustomLoading";
+import LandManagePopup from "@/screens/land/components/LandManagePopup";
+import {set} from "lodash";
 
 type LandStackParamList = {
   Enclosure: undefined;
@@ -53,6 +55,9 @@ const LandManagementScreen = () => {
   const [contractDetail, setContractDetail] = useState();
   const [orderList, setOrderList] = useState();
   const [loading, setLoading] = useState(false);
+  const [isShowLandManagePopup, setIsShowLandManagePopup] = useState(false);
+  const [landId, setLandId] = useState("");
+  const isFocused = useIsFocused();
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -76,6 +81,13 @@ const LandManagementScreen = () => {
   useEffect(() => {
     getLandInfoList();
   }, []);
+
+  // 当页面聚焦且弹窗显示时，重新请求接口
+  useEffect(() => {
+    if (isFocused && showLandDetailsPopup) {
+      getLandDetailInfoData(landId);
+    }
+  }, [isFocused]);
 
   // 当WebView准备好时，应用保存的地图类型
   useEffect(() => {
@@ -373,7 +385,18 @@ const LandManagementScreen = () => {
   const onFindPoint = () => {};
 
   // 地块管理
-  const onLandManage = () => {};
+  const onLandManage = (landInfo: any) => {
+    setLandInfo(landInfo);
+    setIsShowLandManagePopup(true);
+  };
+
+  // 关闭地块管理弹窗
+  const closeLandManagePopup = (action?: string) => {
+    setIsShowLandManagePopup(false);
+  };
+
+  // 编辑地块名称(合并地块)
+  const onEditLandName = () => {};
 
   // 获取地块信息列表
   const getLandInfoList = async () => {
@@ -443,6 +466,7 @@ const LandManagementScreen = () => {
       case "POLYGON_CLICK":
         // 显示加载弹窗
         setLoading(true);
+        setLandId(data.id as string);
         await getLandDetailInfoData(data.id as string);
         break;
       default:
@@ -573,6 +597,14 @@ const LandManagementScreen = () => {
           landInfo={landInfo as unknown as LandDetailInfo}
           contractDetail={contractDetail as unknown as ContractDetail}
           landOrderList={orderList as unknown as LandOrderItem[]}
+        />
+      )}
+      {/* 地块管理弹窗 */}
+      {isShowLandManagePopup && (
+        <LandManagePopup
+          onClosePopup={closeLandManagePopup}
+          onEditLandName={onEditLandName}
+          landInfo={landInfo as unknown as LandDetailInfo}
         />
       )}
       {/* 自定义加载弹窗 */}

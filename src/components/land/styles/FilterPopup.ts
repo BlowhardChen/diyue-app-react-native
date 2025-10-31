@@ -29,7 +29,7 @@ export const FilterPopupStyles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopLeftRadius: 8,
     flexDirection: "column",
-    height: "100%",
+    height: SCREEN_HEIGHT - 112,
   },
   condition: {
     flex: 1,

@@ -42,9 +42,13 @@ const LandListModel = () => {
     }
   }, []);
 
+  // 打开筛选弹窗
   const openScreenPopup = () => setShowQueryPopup(true);
+
+  // 关闭筛选弹窗
   const closeQueryPopup = () => setShowQueryPopup(false);
 
+  // 筛选地块
   const queryLand = (query: any) => {
     const params = {...query};
     delete params.formattedAddress;

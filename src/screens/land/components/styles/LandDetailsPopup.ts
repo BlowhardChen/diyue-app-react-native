@@ -79,7 +79,7 @@ export const LandDetailsPopupStyles = StyleSheet.create({
     marginTop: 8,
   },
   landInfo: {
-    maxWidth: 230,
+    maxWidth: 240,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -104,6 +104,9 @@ export const LandDetailsPopupStyles = StyleSheet.create({
     lineHeight: 24,
     color: "#fff",
     textAlign: "center",
+  },
+  landInfoNumber: {
+    maxWidth: 140,
   },
   landNumber: {
     fontSize: 24,

@@ -2,32 +2,15 @@ import React, {useState, useEffect, useRef} from "react";
 import {View, Text, TextInput, Image, ScrollView, TouchableOpacity, Alert} from "react-native";
 import {useNavigation} from "@react-navigation/native";
 import debounce from "lodash/debounce";
-import {PermissionsAndroid, NativeModules, ImagePropsAndroid} from "react-native";
-import axios from "axios";
 import {LandInfoEditScreenStyles} from "./styles/LandInfoEditScreen";
 import {StackNavigationProp} from "@react-navigation/stack";
 import CustomStatusBar from "@/components/common/CustomStatusBar";
 import HTMLView from "react-native-htmlview";
-
-// 类型定义
-interface LandFormInfo {
-  id: string;
-  landName: string;
-  cardid: string;
-  bankAccount: string;
-  openBank: string;
-  mobile: string;
-  landType: string;
-  acreageNum: number;
-  actualAcreNum: number;
-  country: string;
-  province: string;
-  city: string;
-  district: string;
-  township: string;
-  administrativeVillage: string;
-  detailaddress: string;
-}
+import {LandFormInfo} from "@/types/land";
+import {editLandInfo, getLandDetailsInfo, locationToAddress, searchUserInfo} from "@/services/land";
+import {getContractMessageDetail} from "@/services/contract";
+import Popup from "@/components/common/Popup";
+import {set} from "lodash";
 
 interface SearchResultItem {
   relename: string;
@@ -41,11 +24,6 @@ interface ContractTypeItem {
 }
 
 type LandInfoEditStackParamList = {
-  NewContract: {
-    contractType: string;
-    landInfo: LandFormInfo;
-    landCoordinates: string;
-  };
   Enclosure: undefined;
   FarmingServiceList: {
     farmInfo: {
@@ -56,13 +34,23 @@ type LandInfoEditStackParamList = {
       actualAcreNum: number;
     };
   };
+  OcrCardScanner: {
+    type: string;
+    onOcrResult: (result: {type: string; data: any}) => void;
+  };
 };
 
 // 主组件
 const LandInfoEditScreen = ({route}: {route: any}) => {
   const navigation = useNavigation<StackNavigationProp<LandInfoEditStackParamList>>();
-  const {landInfo: queryInfo} = route.params || {};
-
+  const {params} = route || {};
+  const [landNameResults, setLandNameResults] = useState<SearchResultItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isCheckedType, setIsCheckedType] = useState(0);
+  const [isShowSavePopup, setIsShowSavePopup] = useState(false);
+  const [isShowSaveSuccessPopup, setIsShowSaveSuccessPopup] = useState(false);
+  const contractType: ContractTypeItem[] = [{value: "流转"}, {value: "托管"}];
+  const landCoordinates = useRef<any[]>([]);
   // 表单数据
   const [landFormInfo, setLandFormInfo] = useState<LandFormInfo>({
     id: "",
@@ -83,38 +71,10 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
     detailaddress: "",
   });
 
-  // 状态管理
-  const [leftBtnText, setLeftBtnText] = useState("不保存");
-  const [rightBtnText, setRightBtnText] = useState("保存");
-  const [scanType, setScanType] = useState("");
-  const [scanResultTitle, setScanResultTitle] = useState("银行卡信息");
-  const [imageUrl, setImageUrl] = useState("");
-  const [imageType, setImageType] = useState("");
-  const [landNameResults, setLandNameResults] = useState<SearchResultItem[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isShowPowerPopup, setIsShowPowerPopup] = useState(false);
-  const [showOcrPopup, setShowOcrPopup] = useState(false);
-  const [msgText, setMsgText] = useState("");
-  const [popupType, setPopupType] = useState("save");
-  const [ocrInfo, setOcrInfo] = useState<any>(null);
-  const [isCheckedType, setIsCheckedType] = useState(0);
-  const [showContractNumber, setShowContractNumber] = useState(false);
-  const [showSavePopup, setShowSavePopup] = useState(false);
-  const [showSaveSuccessPopup, setShowSaveSuccessPopup] = useState(false);
-
-  const contractType: ContractTypeItem[] = [{value: "流转"}, {value: "托管"}];
-
-  const landInfo = useRef<any>(null);
-  const landCoordinates = useRef<any[]>([]);
-  const contractDetail = useRef<any>(null);
-
   // 返回
   const backView = () => {
     navigation.goBack();
   };
-
-  // 扫描证件
-  const scanCard = async (type: string) => {};
 
   // 姓名/地块名输入处理（带防抖）
   const handleLandNameInput = debounce(async (text: string) => {
@@ -136,11 +96,9 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
     if (isSearching) return;
     setIsSearching(true);
     try {
-      // 实际项目中替换为真实API调用
-      const response = await axios.post("/api/searchUserInfo", {relename: name});
-      setLandNameResults(response.data.rows || []);
+      const {data} = await searchUserInfo({relename: name});
+      setLandNameResults(data.rows || []);
     } catch (error) {
-      console.error("搜索失败:", error);
       setLandNameResults([]);
     } finally {
       setIsSearching(false);
@@ -167,38 +125,36 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
     return text.replace(reg, match => `<span style="color:#08AE3C">${match}</span>`);
   };
 
-  // 暂不开启权限
-  const cancelOpenPower = () => {
-    setIsShowPowerPopup(false);
+  // 扫描证件
+  const scanCard = async (type: string) => {
+    navigation.navigate("OcrCardScanner", {
+      type,
+      onOcrResult: result => handleOcrResult(result, type),
+    });
   };
 
-  // 开启权限
-  const confirmOpenPower = async () => {};
-
-  // 上传图片获取ocr识别结果
-  const uploadImg = (filePath: string, imageType: string) => {};
-
-  // 识别结果弹窗取消
-  const scanPopupCance = () => {
-    setShowOcrPopup(false);
-  };
-
-  // 识别结果弹窗确定
-  const scanPopupConfirm = () => {
-    setShowOcrPopup(false);
+  // 处理OCR识别结果
+  const handleOcrResult = (result: {type: string; data: any}, scanType: string) => {
+    console.log("处理OCR识别结果", result);
+    if (!result.data) return;
+    const data = JSON.parse(result.data);
     if (scanType === "身份证") {
       setLandFormInfo(prev => ({
         ...prev,
-        landName: ocrInfo.name || prev.landName,
-        cardid: ocrInfo.idNumber || prev.cardid,
-        bankAccount: ocrInfo.bankAccount || prev.bankAccount,
+        landName: data.name || prev.landName,
+        cardid: data.cardNumber || prev.cardid,
+        bankAccount: data.cardNumber || prev.bankAccount,
       }));
-    } else {
+      return;
+    }
+    if (scanType === "银行卡") {
       setLandFormInfo(prev => ({
         ...prev,
-        bankAccount: ocrInfo.cardNumber || prev.bankAccount,
-        openBank: ocrInfo.bankName || prev.openBank,
+        landName: data.name || prev.landName,
+        cardid: data.cardNumber || prev.cardid,
+        bankAccount: data.cardNumber || prev.bankAccount,
       }));
+      return;
     }
   };
 
@@ -238,11 +194,6 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
     });
   };
 
-  // 选择城市
-  const selectCity = () => {
-    // 城市选择逻辑
-  };
-
   // 选择合同类型
   const selectContract = (index: number) => {
     setIsCheckedType(index);
@@ -252,74 +203,36 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
     }));
   };
 
-  // 新建合同
-  const addContractNumber = () => {
-    navigation.navigate("NewContract", {
-      contractType: "新建",
-      landInfo: landFormInfo,
-      landCoordinates: formatCoordinateString(landCoordinates.current),
-    });
+  // 保存弹窗取消
+  const savePopupCancel = () => {
+    setIsShowSavePopup(false);
   };
 
-  // 显示合同编号更多
-  const openMoreNumber = () => {
-    // 更多合同编号逻辑
-  };
-
-  // 保存
-  const saveLandInfo = debounce(() => {
-    setMsgText("是否保存修改信息？");
-    setShowSavePopup(true);
-    setPopupType("save");
-  }, 500);
-
-  // 弹窗取消
-  const handleCancel = () => {
-    if (msgText === "无法识别银行卡") {
-      if (imageUrl && imageType) {
-        uploadImg(imageUrl, imageType);
-      }
+  // 保存弹窗确认
+  const savePopupConfirm = debounce(async () => {
+    await editLandInfo(landFormInfo);
+    setIsShowSavePopup(false);
+    if (params.navigation === "Enclosure") {
+      setIsShowSaveSuccessPopup(true);
     } else {
-      setShowSavePopup(false);
       navigation.goBack();
     }
-  };
-
-  // 弹窗保存
-  const handleConfirm = async () => {
-    if (msgText === "无法识别银行卡") {
-      setShowSavePopup(false);
-    } else {
-      try {
-        // 实际项目中替换为真实API调用
-        await axios.post("/api/editLandMsg", landFormInfo);
-        setShowSavePopup(false);
-
-        if (landFormInfo.landType === "2") {
-          setShowSaveSuccessPopup(true);
-        } else {
-          Alert.alert("保存成功");
-          backView();
-        }
-      } catch (error: any) {
-        Alert.alert(error.response?.data?.information || "保存失败请重试");
-      }
-    }
-  };
+  }, 500);
 
   // 继续圈地
   const continueDrawLand = () => {
-    navigation.navigate("Enclosure");
+    setIsShowSaveSuccessPopup(false);
+    navigation.goBack();
   };
 
   // 创建托管订单
   const createOrder = () => {
     navigation.navigate("FarmingServiceList", {
       farmInfo: {
-        id: queryInfo.id,
+        id: params.queryInfo.id,
         landType: landFormInfo.landType,
-        list: queryInfo.list,
-        landName: queryInfo.landName,
+        list: params.queryInfo.list,
+        landName: params.queryInfo.landName,
         actualAcreNum: landFormInfo.actualAcreNum,
       },
     });
@@ -327,97 +240,57 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
 
   // 获取地块位置信息
   const getLandLocation = async (lnglat: {lng: number; lat: number}) => {
-    try {
-      // 实际项目中替换为真实API调用
-      const response = await axios.post("/api/locationToAddress", {
-        latitude: lnglat.lat.toString(),
-        longitude: lnglat.lng.toString(),
-      });
+    const res = await locationToAddress({
+      latitude: lnglat.lat.toString(),
+      longitude: lnglat.lng.toString(),
+    });
 
-      const {regeocode} = JSON.parse(response.data);
-      const {formatted_address, addressComponent} = regeocode;
+    const {regeocode} = JSON.parse(res.data);
+    const {formatted_address, addressComponent} = regeocode;
 
-      setLandFormInfo(prev => ({
-        ...prev,
-        country: addressComponent.country,
-        province: addressComponent.province,
-        city: addressComponent.city,
-        district: addressComponent.district,
-        township: addressComponent.township,
-        detailaddress: formatted_address,
-      }));
-    } catch (error: any) {
-      Alert.alert(error.response?.data?.msg || "请求失败");
-    }
+    setLandFormInfo(prev => ({
+      ...prev,
+      country: addressComponent.country ?? "",
+      province: addressComponent.province ?? "",
+      city: addressComponent.city ?? "",
+      district: addressComponent.district ?? "",
+      township: addressComponent.township ?? "",
+      detailaddress: formatted_address ?? "",
+    }));
   };
 
   // 获取详情数据
   const getLandDetailInfData = async (id: string) => {
-    try {
-      // 实际项目中替换为真实API调用
-      const response = await axios.get(`/api/getLandDetailsInfo/${id}`);
-      const data = response.data[0];
-
-      landInfo.current = data;
-      landCoordinates.current = data.list;
-
-      setLandFormInfo({
-        ...landFormInfo,
-        landName: data.landName,
-        acreageNum: data.acreageNum,
-        actualAcreNum: data.actualAcreNum,
-        id: data.id,
-        cardid: data.cardid ?? "",
-        bankAccount: data.bankAccount ?? "",
-        mobile: data.mobile ?? "",
-        landType: data.landType,
-        administrativeVillage: data.administrativeVillage,
-      });
-
-      setIsCheckedType(data.landType === "1" ? 0 : 1);
-    } catch (error: any) {
-      Alert.alert(error.response?.data?.msg || "请求失败");
-    }
-  };
-
-  // 获取地块合同信息
-  const getLandContractDetail = async (id: string) => {
-    try {
-      // 实际项目中替换为真实API调用
-      const response = await axios.get(`/api/getContractMessageDetail?landId=${id}`);
-      contractDetail.current = response.data;
-    } catch (error: any) {
-      Alert.alert(error.response?.data?.msg || "地块合同信息获取失败");
-    }
-  };
-
-  // 格式化坐标字符串
-  const formatCoordinateString = (coordinates: any[]) => {
-    const coordinateList = coordinates;
-    const coordinateStringList: number[][] = [];
-
-    coordinates.slice(0, coordinateList.length - 1).forEach((item: any) => {
-      coordinateStringList.push([item.lng, item.lat]);
+    const {data} = await getLandDetailsInfo(id);
+    landCoordinates.current = data.list;
+    setLandFormInfo({
+      ...landFormInfo,
+      landName: data[0].landName,
+      acreageNum: data[0].acreageNum,
+      actualAcreNum: data[0].actualAcreNum,
+      id: data[0].id,
+      cardid: data[0].cardid ?? "",
+      bankAccount: data[0].bankAccount ?? "",
+      mobile: data[0].mobile ?? "",
+      landType: data[0].landType,
+      administrativeVillage: data[0].administrativeVillage,
     });
-
-    return coordinateStringList.join(";");
+    setIsCheckedType(data[0].landType === "1" ? 0 : 1);
   };
 
   // 生命周期
   useEffect(() => {
-    if (queryInfo && queryInfo.list && queryInfo.list.length > 0) {
-      getLandLocation(queryInfo.list[0]);
+    if (params.queryInfo && params.queryInfo.list && params.queryInfo.list.length > 0) {
+      getLandLocation(params.queryInfo.list[0]);
     }
-
-    if (queryInfo && queryInfo.id) {
-      getLandDetailInfData(queryInfo.id);
-      getLandContractDetail(queryInfo.id);
+    if (params.queryInfo && params.queryInfo.id) {
+      getLandDetailInfData(params.queryInfo.id);
     }
-  }, [queryInfo]);
+  }, [params.queryInfo]);
 
   return (
     <View style={LandInfoEditScreenStyles.container}>
-      <CustomStatusBar navTitle="地块信息" onBack={() => navigation.goBack()} />
+      <CustomStatusBar navTitle="地块信息" onBack={backView} />
       <ScrollView style={LandInfoEditScreenStyles.informationContent}>
         {/* 农户个人信息 */}
         <View style={LandInfoEditScreenStyles.personalInfo}>
@@ -442,27 +315,6 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
               <TouchableOpacity style={LandInfoEditScreenStyles.informationImg} onPress={() => scanCard("身份证")}>
                 <Image source={require("@/assets/images/common/icon-scan.png")} style={LandInfoEditScreenStyles.scanIcon} />
               </TouchableOpacity>
-
-              {/* 姓名/地块名搜索结果列表 */}
-              {landNameResults.length > 0 && (
-                <View style={LandInfoEditScreenStyles.searchResults}>
-                  {landNameResults.map((item, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={LandInfoEditScreenStyles.searchResultItem}
-                      onPress={() => selectLandNameResult(item)}>
-                      <HTMLView
-                        value={`<div>${highlightKeyword(item.relename, landFormInfo.landName)}</div>`}
-                        stylesheet={{
-                          span: {color: "#08AE3C"},
-                          div: {fontSize: 16},
-                        }}
-                      />
-                      <Text style={LandInfoEditScreenStyles.cardidText}>{item.cardid}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
             </View>
 
             <View style={LandInfoEditScreenStyles.informationBoxItem}>
@@ -576,9 +428,9 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
                 placeholder="请输入"
                 onChangeText={text => setLandFormInfo(prev => ({...prev, district: text}))}
               />
-              <TouchableOpacity style={LandInfoEditScreenStyles.informationImg} onPress={selectCity}>
+              {/* <TouchableOpacity style={LandInfoEditScreenStyles.informationImg} onPress={selectCity}>
                 <Image source={require("@/assets/images/common/icon-right.png")} style={LandInfoEditScreenStyles.rightIcon} />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
 
             <View style={LandInfoEditScreenStyles.informationBoxItem}>
@@ -641,12 +493,53 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
           </View>
         </View>
       </ScrollView>
+
+      {/* 姓名/地块名搜索结果列表 */}
+      {landNameResults.length > 0 && (
+        <ScrollView style={LandInfoEditScreenStyles.searchResults}>
+          {landNameResults.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={LandInfoEditScreenStyles.searchResultItem}
+              onPress={() => selectLandNameResult(item)}>
+              <HTMLView
+                value={`<div>${highlightKeyword(item.relename, landFormInfo.landName)}</div>`}
+                stylesheet={{
+                  span: {color: "#08AE3C"},
+                  div: {fontSize: 16},
+                }}
+              />
+              <Text style={LandInfoEditScreenStyles.cardidText}>{item.cardid}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
       {/* 保存按钮 */}
       <View style={LandInfoEditScreenStyles.btnSave}>
-        <TouchableOpacity style={LandInfoEditScreenStyles.btn} onPress={saveLandInfo}>
+        <TouchableOpacity style={LandInfoEditScreenStyles.btn} onPress={() => setIsShowSavePopup(true)}>
           <Text style={LandInfoEditScreenStyles.btnText}>保存</Text>
         </TouchableOpacity>
       </View>
+      {/* 保存提示弹窗（首页地块详情弹窗） */}
+      <Popup
+        visible={isShowSavePopup}
+        title="提示"
+        msgText="是否保存修改信息？"
+        leftBtnText="不保存"
+        rightBtnText="保存"
+        onLeftBtn={savePopupCancel}
+        onRightBtn={savePopupConfirm}
+      />
+      {/* 保存成功弹窗（圈地） */}
+      <Popup
+        visible={isShowSaveSuccessPopup}
+        title="提示"
+        msgText="信息保存成功"
+        leftBtnText="返回上级"
+        rightBtnText="创建订单"
+        onLeftBtn={() => continueDrawLand()}
+        onRightBtn={() => createOrder()}
+      />
     </View>
   );
 };

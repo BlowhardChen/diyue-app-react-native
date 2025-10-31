@@ -25,7 +25,7 @@ import {StackNavigationProp} from "@react-navigation/stack";
 import CustomLoading from "@/components/common/CustomLoading";
 
 type EnclosureStackParamList = {
-  LandInfoEdit: {landInfo: SaveLandResponse};
+  LandInfoEdit: {navigation: string; queryInfo: SaveLandResponse};
 };
 
 const EnclosureScreen = observer(() => {
@@ -354,23 +354,33 @@ const EnclosureScreen = observer(() => {
 
   // 保存地块
   const saveLandFunc = async (landParams: SaveLandParams) => {
-    setIsSaving(true);
-    const {data} = await addLand({
-      landName: getNowDate(),
-      list: landParams.polygonPath,
-      acreageNum: landParams.area,
-      actualAcreNum: landParams.area,
-      url: landParams.landUrl ?? "",
-    });
-    console.log("保存地块", data);
-    setLandInfo(data);
-    setIsSaving(false);
-    setShowSaveSuccessPopup(true);
+    try {
+      setIsSaving(true);
+      const {data} = await addLand({
+        landName: getNowDate(),
+        list: landParams.polygonPath,
+        acreageNum: landParams.area,
+        actualAcreNum: landParams.area,
+        url: landParams.landUrl ?? "",
+      });
+      console.log("保存地块", data);
+      setLandInfo(data);
+      setIsSaving(false);
+      setShowSaveSuccessPopup(true);
+    } catch (error) {
+      setIsSaving(false);
+    }
   };
 
   // 编辑地块信息
   const editEnclosureInfo = async () => {
-    navigation.navigate("LandInfoEdit", {landInfo: landInfo as SaveLandResponse});
+    setShowSaveSuccessPopup(false);
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "CONTINUE_ENCLOSURE",
+      }),
+    );
+    navigation.navigate("LandInfoEdit", {navigation: "Enclosure", queryInfo: landInfo as SaveLandResponse});
   };
 
   // 继续圈地

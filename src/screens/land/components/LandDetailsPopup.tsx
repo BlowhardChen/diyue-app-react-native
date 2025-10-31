@@ -1,13 +1,10 @@
 import React, {useState, useEffect} from "react";
-import {View, TouchableOpacity, Image, ScrollView, Linking} from "react-native";
+import {View, Linking} from "react-native";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {LandDetailsPopupStyles} from "./styles/LandDetailsPopup";
-import {Global} from "@/styles/global";
 import {LandDetailInfo, LandOrderItem} from "@/types/land";
 import {ContractDetail} from "@/types/contract";
-
-// 子组件导入
 import ExpandButton from "./ExpandButton";
 import Header from "./Header";
 import TabContainer from "./TabContainer";
@@ -27,7 +24,7 @@ interface Props {
 }
 
 type LandStackParamList = {
-  LandInfoEdit: {landInfo: LandDetailInfo};
+  LandInfoEdit: {queryInfo: LandDetailInfo};
   AddDevice: undefined;
 };
 
@@ -57,7 +54,12 @@ const LandDetailsPopup: React.FC<Props> = ({
 
   // 地块信息编辑
   const handleLandInfoEdit = () => {
-    navigation.navigate("LandInfoEdit", {landInfo});
+    navigation.navigate("LandInfoEdit", {queryInfo: landInfo});
+  };
+
+  const openLandManagePopup = (landInfo: LandDetailInfo) => {
+    setIsExpanded(false);
+    onLandManage(landInfo);
   };
 
   // 创建订单
@@ -109,7 +111,8 @@ const LandDetailsPopup: React.FC<Props> = ({
       <FooterButtons
         activeTab={activeTab}
         landType={landInfo?.landType}
-        onLandManage={() => onLandManage(landInfo)}
+        contractNo={contractDetail?.contractNo}
+        onLandManage={() => openLandManagePopup(landInfo)}
         onLandInfoEdit={handleLandInfoEdit}
         onFindPoint={() => onFindPoint(landInfo.id)}
         onHandleCreateOrder={handleCreateOrder}

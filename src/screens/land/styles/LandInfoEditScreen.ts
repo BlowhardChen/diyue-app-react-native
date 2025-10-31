@@ -1,45 +1,23 @@
 import {Dimensions, StyleSheet} from "react-native";
 
+// 底部按钮高度
+const BOTTOM_BTN_HEIGHT = 84;
+
 export const LandInfoEditScreenStyles = StyleSheet.create({
   container: {
     flex: 1,
     width: Dimensions.get("window").width,
     backgroundColor: "#f5f6f8",
   },
-  navBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    height: 64,
-    backgroundColor: "#fff",
-    paddingTop: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e7e7e7",
-  },
-  backButton: {
-    position: "absolute",
-    left: 16,
-    width: 44,
-    height: 44,
-    justifyContent: "center",
-  },
-  backIcon: {
-    width: 24,
-    height: 24,
-  },
-  navTitle: {
-    fontSize: 18,
-    fontWeight: "500",
-    color: "#000",
-  },
+  // 关键修改：增加底部内边距，值等于底部按钮高度
   informationContent: {
     flex: 1,
     width: "100%",
-    paddingBottom: 16,
+    marginBottom: BOTTOM_BTN_HEIGHT,
     backgroundColor: "#f5f6f8",
   },
   personalInfo: {
-    padding: 16,
+    padding: 8,
     marginTop: 8,
     backgroundColor: "#fff",
     shadowColor: "#000",
@@ -48,7 +26,7 @@ export const LandInfoEditScreenStyles = StyleSheet.create({
     shadowRadius: 0,
   },
   landArea: {
-    padding: 16,
+    padding: 8,
     marginTop: 8,
     backgroundColor: "#fff",
     shadowColor: "#000",
@@ -57,7 +35,7 @@ export const LandInfoEditScreenStyles = StyleSheet.create({
     shadowRadius: 0,
   },
   landPosition: {
-    padding: 16,
+    padding: 8,
     marginTop: 8,
     backgroundColor: "#fff",
     shadowColor: "#000",
@@ -68,7 +46,6 @@ export const LandInfoEditScreenStyles = StyleSheet.create({
   titleContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
   },
   mark: {
     width: 4,
@@ -102,9 +79,9 @@ export const LandInfoEditScreenStyles = StyleSheet.create({
   informationInput: {
     flex: 1,
     height: "100%",
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: "500",
     color: "#333",
-    padding: 0,
   },
   informationImg: {
     width: 44,
@@ -122,9 +99,10 @@ export const LandInfoEditScreenStyles = StyleSheet.create({
   },
   searchResults: {
     position: "absolute",
-    top: 56,
-    left: 100,
+    top: 187,
+    left: 110,
     right: 44,
+    width: 240,
     maxHeight: 310,
     backgroundColor: "#fff",
     borderRadius: 4,
@@ -133,6 +111,7 @@ export const LandInfoEditScreenStyles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
     zIndex: 100,
+    elevation: 4, // elevation 值越大，阴影越明显（约等于原样式的扩散+模糊效果）
   },
   searchResultItem: {
     padding: 12,
@@ -245,12 +224,10 @@ export const LandInfoEditScreenStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    height: 84,
+    height: BOTTOM_BTN_HEIGHT, // 使用常量定义高度，方便统一管理
     backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: {width: 0, height: -1},
-    shadowOpacity: 0.1,
-    shadowRadius: 0,
+    borderTopWidth: 1,
+    borderTopColor: "#e7e7e7",
   },
   btn: {
     width: 344,

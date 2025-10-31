@@ -36,7 +36,7 @@ const BasicInfoContent: React.FC<Props> = ({landInfo, isExpanded, callPhone, rep
             <Text style={LandDetailsPopupStyles.landInfoTypeText}>{landInfo?.landType === "1" ? "流转中" : "托管中"}</Text>
           </View>
         </View>
-        <View>
+        <View style={LandDetailsPopupStyles.landInfoNumber}>
           <Text
             style={[
               LandDetailsPopupStyles.landNumber,

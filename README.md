@@ -1,14 +1,4 @@
-# diyueApp 🚀
-
-### 介绍 📖
-
-🚀🚀🚀 地约app，基于React Native 0.79
-
-
-
-### 🔨🔨🔨 项目功能
-
-### 安装使用步骤 📑
+### 地约
 
 ### 文件资源目录 📚
 
@@ -23,13 +13,14 @@ diyueApp
 ├─ src
 │  ├─assets
 │  ├─components
-│  ├─constants
+│  ├─config
+│  ├─hooks
 │  ├─navigation
 │  ├─screens
 │  ├─services
-│  ├─store
+│  ├─stores
 │  ├─styles
-│  ├─theme
+│  ├─types
 │  └─utils                    
 ├─ .editorconfig                
 ├─ .eslintrc.js              

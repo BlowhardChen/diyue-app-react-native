@@ -2,7 +2,7 @@ import React, {useEffect, useRef, useState} from "react";
 import {View, Text, Image, TouchableOpacity, Vibration} from "react-native";
 import {Camera, useCameraPermission} from "react-native-vision-camera";
 import {RouteProp, useNavigation, useRoute} from "@react-navigation/native";
-import {OcrCardScannerStyles} from "../../screens/land/styles/OcrCardScanner";
+import {OcrCardScannerStyles} from "./styles/OcrCardScanner";
 import {SafeAreaView} from "react-native-safe-area-context";
 import PermissionPopup from "@/components/common/PermissionPopup";
 import OcrPlaceholder from "@/components/land/OcrPlaceholder";

@@ -113,3 +113,63 @@ export interface LandOrderItem {
   goodsList: GoodsListItem[];
   serviceList: ServiceListItem[];
 }
+
+// 编辑地块信息参数
+export interface EditLandInfoParamsType {
+  id: string;
+  landName?: string;
+  relename?: string;
+  cardid?: string;
+  bankAccount?: string;
+  openBank?: string;
+  mobile?: string;
+  landType?: string;
+  acreageNum?: number;
+  actualAcreNum?: number;
+  country?: string;
+  province?: string;
+  city?: string;
+  district?: string;
+  township?: string;
+  detailaddress?: string;
+}
+
+// 合并地块请求参数
+export interface MergeLandParams {
+  mergeLandName: string;
+  mergeAcreageNum: number;
+  country: string;
+  province: string;
+  city: string;
+  district: string;
+  township: string;
+  administrativeVillage: string;
+  detailaddress: string;
+  formattedAddress: string;
+  url: string;
+  list: {
+    lat: number;
+    lng: number;
+  }[];
+  landOrList: {landId: string}[];
+}
+
+// 地块表单信息
+interface LandFormInfo {
+  id: string;
+  landName: string;
+  cardid: string;
+  bankAccount: string;
+  openBank: string;
+  mobile: string;
+  landType: string;
+  acreageNum: number;
+  actualAcreNum: number;
+  country: string;
+  province: string;
+  city: string;
+  district: string;
+  township: string;
+  administrativeVillage: string;
+  detailaddress: string;
+}
