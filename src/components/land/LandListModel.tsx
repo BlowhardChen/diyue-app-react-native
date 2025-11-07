@@ -13,12 +13,12 @@ const {height: screenHeight} = Dimensions.get("window");
 type StackParamList = {};
 
 const LandListModel = () => {
+  const navigation = useNavigation<StackNavigationProp<StackParamList>>();
   const [searchWord, setSearchWord] = useState<string>("");
   const [landMsgListInfo, setLandMsgListInfo] = useState<LandListData[] | []>([]);
   const [areaAmount, setAreaAmount] = useState<number>(0);
   const [showQueryPopup, setShowQueryPopup] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const navigation = useNavigation<StackNavigationProp<StackParamList>>();
 
   // 获取地块列表
   const getLandMassList = useCallback(async (params: any = {}) => {

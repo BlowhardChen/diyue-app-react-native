@@ -55,7 +55,7 @@ const BasicInfoContent: React.FC<Props> = ({landInfo, isExpanded, callPhone, rep
         <View style={LandDetailsPopupStyles.infoContent}>
           {landInfo?.type !== "1" && (
             <View style={LandDetailsPopupStyles.infoContentItem}>
-              <Text style={LandDetailsPopupStyles.infoContentItemTitle}>电话：</Text>
+              <Text style={LandDetailsPopupStyles.infoContentItemTitle}>{`电\u3000话\u3000：`}</Text>
               <Text style={LandDetailsPopupStyles.infoContentItemText}>{landInfo?.mobile ?? "未知"}</Text>
               {landInfo?.mobile && (
                 <TouchableOpacity onPress={() => callPhone(landInfo.mobile)}>
@@ -85,7 +85,7 @@ const BasicInfoContent: React.FC<Props> = ({landInfo, isExpanded, callPhone, rep
 
           {landInfo?.type !== "1" && (
             <View style={LandDetailsPopupStyles.infoContentItem}>
-              <Text style={LandDetailsPopupStyles.infoContentItemTitle}>创建人：</Text>
+              <Text style={LandDetailsPopupStyles.infoContentItemTitle}>{`创\u0020建\u0020人\u0020：`}</Text>
               <Text style={LandDetailsPopupStyles.infoContentItemText}>{landInfo?.createName ?? "未知"}</Text>
             </View>
           )}
@@ -96,7 +96,7 @@ const BasicInfoContent: React.FC<Props> = ({landInfo, isExpanded, callPhone, rep
           </View>
 
           <View style={[LandDetailsPopupStyles.infoContentItem, LandDetailsPopupStyles.infoLocation]}>
-            <Text style={LandDetailsPopupStyles.infoContentItemTitle}>位置：</Text>
+            <Text style={LandDetailsPopupStyles.infoContentItemTitle}>{`位\u3000置\u3000：`}</Text>
             <Text style={LandDetailsPopupStyles.infoContentItemText}>{landInfo?.detailaddress ?? "未知"}</Text>
           </View>
         </View>

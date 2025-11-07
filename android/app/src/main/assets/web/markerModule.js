@@ -400,6 +400,10 @@ window.MarkerModule = (function () {
      * 绘制公共点
      */
     function drawCommonPointMarker(map, polygonPath) {
+        if (!polygonPath || !Array.isArray(polygonPath) || polygonPath.length === 0) {
+            WebBridge.postError(`无效的公共点数据: ${JSON.stringify(polygonPath)}`);
+            return
+        }
         removeCommonPointMarker(map)
         
         let path = [];
@@ -409,35 +413,35 @@ window.MarkerModule = (function () {
             path = polygonPath
         }
 
+        let markerList = []
         path.forEach((position) => {
-            // 创建一个新的Style
-            const markerIcon = new ol.style.Icon({
+            const markerIcon = new ol.style.Style({
                 image: new ol.style.Icon({
-                    anchor: [0.5, 0.5],
-                    anchorXUnits: 'fraction',
-                    anchorYUnits: 'fraction',
-                    src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAAAXNSR0IArs4c6QAAApJJREFUWEfNmDtoFEEYx3+DoDYWgoI2gopEwUpQfMTYSCxMqaCmNxEUbNTG0kYrQcFH7QtiqYVi4ztEkipgJIJgo2DAwsYIMu5/mX3Nrs7enRdm4OBuduab333P+dbQ4bCWjcAhYBDYBmwAVjkxP4DPwHvgFfDEGD51coRps9halgFHgdPAXqDVPsACb4DrwIQx/A6dFxRsLQeBa8DWkLDA8zngjDE8+9e6vwJZy0rgKnCyA42EmKWx28BZY/jZtLgRyFrWAo+Tz876Jm3ZDxxOXGQPsAVY7ZZ9B+YTF3vrtr90VqtJeScBxvDNf1IDcjAvmk10BLgEDIQ04Z5/AC4CD5vWy4RDPlQFyJlJMJ5mFFj3gN0tQfxlk8AJqAecNCWo3Hw+0E1grCrugPuHa7qEybYtANLwc1/OLWMYzyZzIBdNT6sOLBhNLe8RJtv+K8kCwz6UHH04i74UyOWZ2arfyExTSQrpVTP+f5Gmdvnmkz9tV57KgI4lnnq/ulWR0q3PhBQqn1KEVsZxY3iQASnN7ysey9YTIak9Plfir0Tf68Rsg8ZaNgEfC98Ro0pR29DulkspQaVQLpQOfdksIHn4jULsUFMkdHtqYJ+CRlkmH6cEdCdJr6PF3BXgXJ8AfLE660J58q6ApoEdxayIVRqWYqi0yCL5mBGQ6kkptr8A65aCBvgKrC+ftSAgpe0Vxaz3s69oi5BeKvKxGCVQdCaLzqm9sL8MnO+r51RTTD3so0uMcZWOtIjYtIeKo7g6oOiuH2oE47mgOS2pIYzjCpuFobXEc8l3WlJhiacNclDqWuNoFEuma9FKj7gmoKmV1iX+EfAfWukSVDwvG8qFLJrXMR5UPC+s/LLv2ib1w315pfcHfpD3xwJR4DUAAAAASUVORK5CYII=',
-                    scale: 0.8, // 缩放比例
-                    crossOrigin: 'anonymous',
-                }),
-            });
+                        anchor: [0.5, 0.5],
+                        anchorXUnits: 'fraction',
+                        anchorYUnits: 'fraction',
+                        src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAAAXNSR0IArs4c6QAAApJJREFUWEfNmDtoFEEYx3+DoDYWgoI2gopEwUpQfMTYSCxMqaCmNxEUbNTG0kYrQcFH7QtiqYVi4ztEkipgJIJgo2DAwsYIMu5/mX3Nrs7enRdm4OBuduab333P+dbQ4bCWjcAhYBDYBmwAVjkxP4DPwHvgFfDEGD51coRps9halgFHgdPAXqDVPsACb4DrwIQx/A6dFxRsLQeBa8DWkLDA8zngjDE8+9e6vwJZy0rgKnCyA42EmKWx28BZY/jZtLgRyFrWAo+Tz876Jm3ZDxxOXGQPsAVY7ZZ9B+YTF3vrtr90VqtJeScBxvDNf1IDcjAvmk10BLgEDIQ04Z5/AC4CD5vWy4RDPlQFyJlJMJ5mFFj3gN0tQfxlk8AJqAecNCWo3Hw+0E1grCrugPuHa7qEybYtANLwc1/OLWMYzyZzIBdNT6sOLBhNLe8RJtv+K8kCwz6UHH04i74UyOWZ2arfyExTSQrpVTP+f5Gmdvnmkz9tV57KgI4lnnq/ulWR0q3PhBQqn1KEVsZxY3iQASnN7ysey9YTIak9Plfir0Tf68Rsg8ZaNgEfC98Ro0pR29DulkspQaVQLpQOfdksIHn4jULsUFMkdHtqYJ+CRlkmH6cEdCdJr6PF3BXgXJ8AfLE660J58q6ApoEdxayIVRqWYqi0yCL5mBGQ6kkptr8A65aCBvgKrC+ftSAgpe0Vxaz3s69oi5BeKvKxGCVQdCaLzqm9sL8MnO+r51RTTD3so0uMcZWOtIjYtIeKo7g6oOiuH2oE47mgOS2pIYzjCpuFobXEc8l3WlJhiacNclDqWuNoFEuma9FKj7gmoKmV1iX+EfAfWukSVDwvG8qFLJrXMR5UPC+s/LLv2ib1w315pfcHfpD3xwJR4DUAAAAASUVORK5CYII=',
+                        scale: 0.8, // 缩放比例
+                        crossOrigin: 'anonymous',
+                })
+            })
             // 创建一个新的Feature，并设置其几何形状为Point
             const markerFeature = new ol.Feature({
-                geometry: new ol.geom.Point(position),
+                geometry: new ol.geom.Point(ol.proj.fromLonLat([position.lng, position.lat])),
             });
             markerFeature.setStyle(markerIcon)
             // 创建一个新的VectorLayer，并将marker添加到其中
             const markerLayer = new ol.layer.Vector({
-                source: new ol.source.Vector({
-                    features: [markerFeature],
-                }),
-                zIndex: 99,
+                source: new ol.source.Vector({features: [markerFeature]}),
+                zIndex: 100,
             });
+
             // 将VectorLayer添加到地图中
             map.addLayer(markerLayer);
             markerList.push({ layer: markerLayer, feature: markerFeature })
-            commonPointMarkers = markerList
         })
+
+        commonPointMarkers = markerList
 
         return markerList
     }

@@ -23,6 +23,8 @@ import ServiceAgreementScreen from "../screens/bootPage/ServiceAgreementScreen";
 import PrivacyPolicyDetailScreen from "../screens/bootPage/PrivacyPolicyDetailScreen";
 import LandInfoEditScreen from "@/screens/land/LandInfoEditScreen";
 import OcrCardScanner from "@/components/land/OcrCardScanner";
+import LandDetailScreen from "@/screens/land/LandDetailScreen";
+import QuitLandScreen from "@/screens/land/QuitLandScreen";
 
 type Props = {
   initialRouteName?: keyof RootStackParamList;
@@ -64,6 +66,8 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
           },
         },
       }}>
+      <Stack.Screen name="QuitLand" component={QuitLandScreen} />
+      <Stack.Screen name="LandDetail" component={LandDetailScreen} />
       <Stack.Screen name="OcrCardScanner" component={OcrCardScanner} />
       <Stack.Screen name="LandInfoEdit" component={LandInfoEditScreen} />
       <Stack.Screen name="DataUpload" component={DataUploadScreen} />

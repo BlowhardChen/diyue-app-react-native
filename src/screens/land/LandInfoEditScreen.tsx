@@ -8,9 +8,7 @@ import CustomStatusBar from "@/components/common/CustomStatusBar";
 import HTMLView from "react-native-htmlview";
 import {LandFormInfo} from "@/types/land";
 import {editLandInfo, getLandDetailsInfo, locationToAddress, searchUserInfo} from "@/services/land";
-import {getContractMessageDetail} from "@/services/contract";
 import Popup from "@/components/common/Popup";
-import {set} from "lodash";
 
 interface SearchResultItem {
   relename: string;

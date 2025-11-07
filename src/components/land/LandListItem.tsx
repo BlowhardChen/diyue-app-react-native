@@ -16,26 +16,26 @@ const LandListItem: React.FC<LandListItemProps> = ({landMsgItem}) => {
   const navigation = useNavigation<any>();
   const [isExpandLand, setIsExpandLand] = useState(false);
 
-  /** 展开/收起地块 */
+  // 展开/收起地块
   const expandLand = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setIsExpandLand(!isExpandLand);
   };
 
-  /** 打开地块详情 */
+  // 打开地块详情
   const openLandDetail = (item: any) => {
-    navigation.navigate("LandDetail", {landInfo: item});
+    navigation.navigate("LandDetail", {landId: item.id});
   };
 
-  /** 打开合并地块详情 */
-  const openMergeDetail = () => {
-    navigation.navigate("LandDetail", {landInfo: landMsgItem});
+  // 打开合并地块详情
+  const openMergeDetail = (item: any) => {
+    navigation.navigate("LandDetail", {landId: item.id});
   };
 
   return (
     <View style={LandListItemStyles.container}>
       {/* 主项信息 */}
-      <TouchableOpacity style={LandListItemStyles.msgBox} activeOpacity={0.8} onPress={openMergeDetail}>
+      <TouchableOpacity style={LandListItemStyles.msgBox} activeOpacity={0.8} onPress={() => openLandDetail(landMsgItem)}>
         <View style={LandListItemStyles.msgImg}>
           <Image source={{uri: landMsgItem.url}} style={LandListItemStyles.msgImgImage} resizeMode="cover" />
         </View>
@@ -82,7 +82,7 @@ const LandListItem: React.FC<LandListItemProps> = ({landMsgItem}) => {
               key={index}
               style={LandListItemStyles.landMoreItem}
               activeOpacity={0.8}
-              onPress={() => openLandDetail(item)}>
+              onPress={() => openMergeDetail(item)}>
               <View style={LandListItemStyles.msgImg}>
                 <Image source={{uri: item.url}} style={LandListItemStyles.msgImgImage} resizeMode="cover" />
               </View>

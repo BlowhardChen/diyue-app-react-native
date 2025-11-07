@@ -3,6 +3,7 @@ import {View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, Alert, Imag
 import {NavigationProp, useNavigation} from "@react-navigation/native";
 import {deleteLand, quitLand, removeLand} from "@/services/land";
 import Popup from "@/components/common/Popup";
+import {showCustomToast} from "@/components/common/CustomToast";
 
 const {width: screenWidth} = Dimensions.get("window");
 
@@ -14,7 +15,7 @@ interface ManageListType {
 
 interface LandManageProps {
   landInfo: any;
-  onClosePopup: (action?: string) => void;
+  onClosePopup: (action?: string, id?: string) => void;
   onEditLandName: () => void;
 }
 
@@ -120,6 +121,7 @@ const LandManage: React.FC<LandManageProps> = ({landInfo, onClosePopup, onEditLa
     switch (item.type) {
       case "showQuitLand":
         navigation.navigate("QuitLand");
+        closePopup();
         break;
       case "showMergeLand":
         navigation.navigate("MergeLand", {id: landInfo.id});
@@ -198,9 +200,10 @@ const LandManage: React.FC<LandManageProps> = ({landInfo, onClosePopup, onEditLa
     try {
       await deleteLand(landInfo.id);
       setIsShowPopup(false);
-      onClosePopup("delete");
+      console.log("删除地块成功", landInfo.id);
+      onClosePopup("delete", landInfo.id);
     } catch (error: any) {
-      Alert.alert("提示", error.data?.msg || "删除地块失败");
+      showCustomToast("error", error.data?.msg ?? "删除地块失败,请重试");
       setIsShowPopup(false);
     }
   };
@@ -210,18 +213,23 @@ const LandManage: React.FC<LandManageProps> = ({landInfo, onClosePopup, onEditLa
     try {
       await quitLand({id: landInfo.id, type: landInfo.type});
       setIsShowPopup(false);
-      onClosePopup("quit");
+      onClosePopup("quit", landInfo.id);
     } catch (error: any) {
-      Alert.alert("提示", error.data?.msg || "退地块失败");
+      showCustomToast("error", error.data?.msg ?? "退地块失败,请重试");
       setIsShowPopup(false);
     }
   };
 
   // 移出地块
   const removeLandFun = async () => {
-    await removeLand({landId: landInfo.id, mergeLandId: landInfo.mergeLandId});
-    setIsShowPopup(false);
-    onClosePopup("remove");
+    try {
+      await removeLand({landId: landInfo.id, mergeLandId: landInfo.mergeLandId});
+      setIsShowPopup(false);
+      onClosePopup("remove", landInfo.id);
+    } catch (error: any) {
+      showCustomToast("error", error.data?.msg ?? "移出地块失败,请重试");
+      setIsShowPopup(false);
+    }
   };
 
   return (

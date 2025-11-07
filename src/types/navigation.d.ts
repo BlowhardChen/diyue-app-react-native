@@ -49,4 +49,6 @@ export type LandMapStackParamList = {
   Enclosure: undefined;
   LandInfoEdit: {landInfo: SaveLandResponse};
   OcrCardScanner: {type: string};
+  LandDetail: {landId: string};
+  QuitLand: undefined;
 };

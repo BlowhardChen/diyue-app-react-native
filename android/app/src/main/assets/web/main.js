@@ -70,6 +70,18 @@
               case 'RESET_LAND_ACTIVE_STYLE':
                   PolygonModule?.resetActivePolygon();
                 break
+              // 移除指定地块
+              case 'REMOVE_SPECIFY_LAND':
+                  PolygonModule?.removeSpecifyLand(map,data.data);
+                break
+              // 显示公共点
+              case 'SHOW_COMMON_DOT':
+                  MarkerModule?.drawCommonPointMarker(map,data.data);
+                break
+              // 绘制地块详情
+              case 'DRAW_LAND_DETAIL':
+                  PolygonModule?.drawLandDetailPolygon(map,data.data);
+                break
               default:
                   WebBridge.postMessage("未处理的消息类型:" + data.type);
                 break;

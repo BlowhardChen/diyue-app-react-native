@@ -135,11 +135,11 @@ export const LandDetailsPopupStyles = StyleSheet.create({
     marginLeft: 8,
   },
   infoContentItemTitle: {
-    maxWidth: 90,
+    width: 90,
     fontSize: 18,
     fontWeight: "400",
     color: "rgba(0, 0, 0, 0.65)",
-    textAlign: "left",
+    textAlign: "justify",
   },
   infoContentItemText: {
     flex: 1,

@@ -23,20 +23,21 @@ import DeviceConnectionPopup from "@/components/device/DeviceConnectionPopup";
 import {saveTargetRoute} from "@/utils/navigationUtils";
 import {getRtkPopupStatus, setRtkPopupTips} from "@/services/device";
 import {deviceStore} from "@/stores/deviceStore";
+import {updateStore} from "@/stores/updateStore";
 import useOptimizedHeading from "@/hooks/useOptimizedHeading";
 import LandDetailsPopup from "@/screens/land/components/LandDetailsPopup";
 import {getContractMessageDetail} from "@/services/contract";
 import {ContractDetail} from "@/types/contract";
 import CustomLoading from "@/components/common/CustomLoading";
 import LandManagePopup from "@/screens/land/components/LandManagePopup";
-import {set} from "lodash";
+import {observer} from "mobx-react-lite";
 
 type LandStackParamList = {
   Enclosure: undefined;
   AddDevice: undefined;
 };
 
-const LandManagementScreen = () => {
+const LandManagementScreen = observer(() => {
   const navigation = useNavigation<StackNavigationProp<LandStackParamList>>();
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const webViewRef = useRef<WebView>(null);
@@ -51,6 +52,7 @@ const LandManagementScreen = () => {
   const [showDeviceConnectionPopup, setShowDeviceConnectionPopup] = useState(false);
   const route = useRoute();
   const [showLandDetailsPopup, setShowLandDetailsPopup] = useState(false);
+  const [landInfoList, setLandInfoList] = useState<LandDetailInfo[]>([]);
   const [landInfo, setLandInfo] = useState();
   const [contractDetail, setContractDetail] = useState();
   const [orderList, setOrderList] = useState();
@@ -80,7 +82,7 @@ const LandManagementScreen = () => {
   // 获取地块数据
   useEffect(() => {
     getLandInfoList();
-  }, []);
+  }, [updateStore.isUpdateLand]);
 
   // 当页面聚焦且弹窗显示时，重新请求接口
   useEffect(() => {
@@ -94,7 +96,7 @@ const LandManagementScreen = () => {
     if (isWebViewReady) {
       applySavedMapType();
     }
-  }, [isWebViewReady]);
+  }, [isWebViewReady, mapStore.mapType]);
 
   // 监听朝向变化，发送给WebView
   useOptimizedHeading(heading => {
@@ -391,8 +393,27 @@ const LandManagementScreen = () => {
   };
 
   // 关闭地块管理弹窗
-  const closeLandManagePopup = (action?: string) => {
+  const closeLandManagePopup = (action?: string, id?: string) => {
+    switch (action) {
+      case "remove":
+        showCustomToast("success", "移出地块成功");
+        break;
+      case "delete":
+        showCustomToast("success", "删除地块成功");
+        break;
+      case "quit":
+        showCustomToast("success", "退地块成功");
+        break;
+    }
+    const landManageInfo = landInfoList.find(item => item.id === id);
     setIsShowLandManagePopup(false);
+    closeLandDetailsPopup();
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "REMOVE_SPECIFY_LAND",
+        data: landManageInfo,
+      }),
+    );
   };
 
   // 编辑地块名称(合并地块)
@@ -400,7 +421,9 @@ const LandManagementScreen = () => {
 
   // 获取地块信息列表
   const getLandInfoList = async () => {
+    console.log("获取地块信息列表");
     const {data} = await getLandListData({quitStatus: "0"});
+    setLandInfoList(data as unknown as LandDetailInfo[]);
     webViewRef.current?.postMessage(
       JSON.stringify({
         type: "DRAW_ENCLOSURE_LAND",
@@ -458,16 +481,17 @@ const LandManagementScreen = () => {
           startPositionWatch();
         }
         break;
-      // 控制台日志
-      case "WEBVIEW_CONSOLE_LOG":
-        console.log("WEBVIEW_CONSOLE_LOG", data);
-        break;
       // 点击多边形
       case "POLYGON_CLICK":
         // 显示加载弹窗
         setLoading(true);
+        console.log("点击多边形", data.id);
         setLandId(data.id as string);
         await getLandDetailInfoData(data.id as string);
+        break;
+      // 控制台日志
+      case "WEBVIEW_CONSOLE_LOG":
+        console.log("WEBVIEW_CONSOLE_LOG", data);
         break;
       default:
         break;
@@ -611,6 +635,6 @@ const LandManagementScreen = () => {
       <CustomLoading visible={loading} text="地块详情加载中..." />
     </View>
   );
-};
+});
 
 export default LandManagementScreen;

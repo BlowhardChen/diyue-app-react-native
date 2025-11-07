@@ -8,6 +8,10 @@ export interface MapWebviewMessage {
   isPolygonIntersect?: boolean;
   saveLandParams?: SaveLandParams;
   data?: any;
+  point?: {
+    lon: number;
+    lat: number;
+  };
 }
 
 // 保存地块参数

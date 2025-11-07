@@ -17,7 +17,7 @@ import {useNavigation, useFocusEffect} from "@react-navigation/native";
 import {BackHandler} from "react-native";
 import {checkLocationPermission, requestLocationPermission} from "@/utils/checkPermissions";
 import {showCustomToast} from "@/components/common/CustomToast";
-import {MapWebviewMessage, SaveLandParams, SaveLandResponse} from "@/types/land";
+import {LandListData, MapWebviewMessage, SaveLandParams, SaveLandResponse} from "@/types/land";
 import {getToken} from "@/utils/tokenUtils";
 import {addLand, getLandListData} from "@/services/land";
 import {getNowDate} from "@/utils/public";
@@ -45,6 +45,7 @@ const EnclosureScreen = observer(() => {
   const [showSaveSuccessPopup, setShowSaveSuccessPopup] = useState(false);
   const [landInfo, setLandInfo] = useState<SaveLandResponse>();
   const [isSaving, setIsSaving] = useState(false);
+  const [enclosureLandData, setEnclosureLandData] = useState<LandListData[]>();
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -74,7 +75,7 @@ const EnclosureScreen = observer(() => {
     if (isWebViewReady) {
       applySavedMapType();
     }
-  }, [isWebViewReady]);
+  }, [isWebViewReady, mapStore.mapType]);
 
   // 初始化定位权限和地图图层
   const initLocationPermission = async () => {
@@ -397,6 +398,7 @@ const EnclosureScreen = observer(() => {
   const getEnclosureLandData = async () => {
     const {data} = await getLandListData({quitStatus: "0"});
     console.log("获取已圈地地块数据", data);
+    setEnclosureLandData(data);
     webViewRef.current?.postMessage(
       JSON.stringify({
         type: "DRAW_ENCLOSURE_LAND",
@@ -451,9 +453,32 @@ const EnclosureScreen = observer(() => {
       case "WEBVIEW_ERROR":
         showCustomToast("error", data.message ?? "操作失败");
         break;
+      // 点击地块
+      case "POLYGON_CLICK":
+        // let enclosureLand;
+        // if (enclosureLandData) {
+        //   enclosureLand = enclosureLandData.find(item => item.id === data.id);
+        // }
+        // console.log("EnclosureScreen点击地块", enclosureLand);
+        // webViewRef.current?.postMessage(
+        //   JSON.stringify({
+        //     type: "SHOW_COMMON_DOT",
+        //     data: enclosureLand?.gpsList,
+        //   }),
+        // );
+        break;
       // 借点成功
       case "WEBVIEW_BORROW_DOT":
-        setPopupTips(data.message ?? "借点成功，请继续添加下一个点位");
+        if (data.point) {
+          setPopupTips(data.message ?? "借点成功，请继续添加下一个点位");
+          webViewRef.current?.postMessage(
+            JSON.stringify({
+              type: "DOT_MARKER",
+              location: {lon: data.point.lon, lat: data.point.lat},
+            }),
+          );
+        }
+
         break;
       // 控制台日志
       case "WEBVIEW_CONSOLE_LOG":
