@@ -1,3 +1,4 @@
+import {Global} from "@/styles/global";
 import React from "react";
 import {Modal, View, Text, Image, TouchableOpacity, StyleSheet, TextStyle} from "react-native";
 
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
   rightText: {
     fontSize: 18,
     fontWeight: "500",
-    color: "#08ae3c",
+    color: Global.colors.primary,
   },
   cross: {
     width: 1,

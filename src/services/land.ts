@@ -1,4 +1,4 @@
-import {EditLandInfoParamsType, LandListData, MergeLandParams} from "@/types/land";
+import {EditLandInfoParamsType, LandListData, MergeLandParams, TransferLandParams} from "@/types/land";
 import {http} from "@/utils/http";
 
 /**
@@ -59,7 +59,7 @@ export const restoreLand = (id: string) => {
 /**
  * 首页-转移地块
  */
-export const transferLand = (data: {mobile: string; list: {type: string; landId: string}[]}) => {
+export const transferLand = (data: TransferLandParams) => {
   return http<any>({
     method: "POST",
     url: "/app/land/shiftLand",

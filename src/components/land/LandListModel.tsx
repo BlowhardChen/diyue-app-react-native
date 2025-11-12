@@ -15,18 +15,18 @@ type StackParamList = {};
 const LandListModel = () => {
   const navigation = useNavigation<StackNavigationProp<StackParamList>>();
   const [searchWord, setSearchWord] = useState<string>("");
-  const [landMsgListInfo, setLandMsgListInfo] = useState<LandListData[] | []>([]);
+  const [LandListInfo, setLandListInfo] = useState<LandListData[] | []>([]);
   const [areaAmount, setAreaAmount] = useState<number>(0);
   const [showQueryPopup, setShowQueryPopup] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
   // 获取地块列表
-  const getLandMassList = useCallback(async (params: any = {}) => {
+  const getLandInfoList = useCallback(async (params: any = {}) => {
     try {
       setLoading(true);
       setAreaAmount(0);
       const {data} = await getLandListData({quitStatus: 0, ...params});
-      setLandMsgListInfo(data || []);
+      setLandListInfo(data || []);
 
       let total = 0;
       if (data && data.length) {
@@ -53,12 +53,12 @@ const LandListModel = () => {
     const params = {...query};
     delete params.formattedAddress;
     setShowQueryPopup(false);
-    getLandMassList(params);
+    getLandInfoList(params);
   };
 
   useEffect(() => {
-    getLandMassList({});
-  }, [getLandMassList]);
+    getLandInfoList({});
+  }, [getLandInfoList]);
 
   return (
     <View style={LandListModelStyles.container}>
@@ -84,10 +84,10 @@ const LandListModel = () => {
       </View>
 
       {/* 地块统计、列表等保持不变 */}
-      {landMsgListInfo.length > 0 && (
+      {LandListInfo.length > 0 && (
         <View style={LandListModelStyles.landMsg}>
           <Text style={{fontWeight: "500"}}>
-            共<Text style={LandListModelStyles.highlight}>{landMsgListInfo.length}</Text>个地块，累计
+            共<Text style={LandListModelStyles.highlight}>{LandListInfo.length}</Text>个地块，累计
             <Text style={LandListModelStyles.highlight}>{areaAmount.toFixed(2)}</Text>亩
           </Text>
         </View>
@@ -98,7 +98,7 @@ const LandListModel = () => {
           <ActivityIndicator size="large" color="#4CAF50" style={{marginTop: 20}} />
         ) : (
           <ScrollView style={[LandListModelStyles.landListBox, {height: screenHeight - 238 / 2}]}>
-            {landMsgListInfo.map((item: any) => (
+            {LandListInfo.map((item: any) => (
               <LandListItem key={item.id} landMsgItem={item} />
             ))}
           </ScrollView>

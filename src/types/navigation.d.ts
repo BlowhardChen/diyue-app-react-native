@@ -51,4 +51,5 @@ export type LandMapStackParamList = {
   OcrCardScanner: {type: string};
   LandDetail: {landId: string};
   QuitLand: undefined;
+  SelectLand: {type: string};
 };

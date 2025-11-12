@@ -1,6 +1,5 @@
 // 地块详情
 import PermissionPopup from "@/components/common/PermissionPopup";
-import LandEnclosureCustomNavBar from "@/components/land/LandEnclosureCustomNavBar";
 import {mapStore} from "@/stores/mapStore";
 import {checkLocationPermission, requestLocationPermission} from "@/utils/checkPermissions";
 import {useIsFocused, useNavigation} from "@react-navigation/native";
@@ -38,7 +37,6 @@ const LandDetailScreen = observer(({route}: {route: {params: {landId: string}}})
   const [orderList, setOrderList] = useState();
   const isFocused = useIsFocused();
 
-  console.log("landInfo:", route.params.landId);
   // 启用屏幕常亮
   useEffect(() => {
     KeepAwake.activate();
@@ -64,10 +62,6 @@ const LandDetailScreen = observer(({route}: {route: {params: {landId: string}}})
       applySavedMapType();
     }
   }, [isWebViewReady, mapStore.mapType]);
-
-  const backView = () => {
-    navigation.goBack();
-  };
 
   // 应用保存的地图类型
   const applySavedMapType = () => {

@@ -81,7 +81,23 @@
               // 绘制地块详情
               case 'DRAW_LAND_DETAIL':
                   PolygonModule?.drawLandDetailPolygon(map,data.data);
+              break
+              // 绘制选择地块
+              case 'DRAW_LAND_SELECTION':
+                  PolygonModule?.drawLandSelectionPolygon(map,data.data);
                 break
+              // 更新地块选择状态
+              case "UPDATE_LAND_SELECTION":
+                  PolygonModule?.setSelectPolygonActive(map, data.id, data.isSelected);
+              break;
+              // 更新全部地块选择状态
+              case "UPDATE_ALL_LAND_SELECTION":
+                  PolygonModule?.setAllSelectPolygonActive(map, data.data);
+              break;
+              // 绘制合并
+              case "DRAW_MERGE_LAND":
+                  PolygonModule?.drawMergeLandPolygon(map, data.data);
+                break;
               default:
                   WebBridge.postMessage("未处理的消息类型:" + data.type);
                 break;

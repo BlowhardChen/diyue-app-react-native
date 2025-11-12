@@ -12,6 +12,7 @@ export interface MapWebviewMessage {
     lon: number;
     lat: number;
   };
+  isSelect?: boolean;
 }
 
 // 保存地块参数
@@ -59,7 +60,7 @@ export interface LandListData {
   endActualNum: number;
   endTime: string;
   formattedAddress: string;
-  gpsList: {landId: string; lat: number; lon: number; sort: number}[];
+  gpsList: {landId: string; lat: number; lng: number; sort: number}[];
   id: string;
   landList: {landId: string; lat: number; lon: number; sort: number}[];
   landName: string;
@@ -147,9 +148,7 @@ export interface MergeLandParams {
   city: string;
   district: string;
   township: string;
-  administrativeVillage: string;
   detailaddress: string;
-  formattedAddress: string;
   url: string;
   list: {
     lat: number;
@@ -176,4 +175,10 @@ interface LandFormInfo {
   township: string;
   administrativeVillage: string;
   detailaddress: string;
+}
+
+// 转移地块请求参数
+export interface TransferLandParams {
+  mobile: string;
+  list: {type: string; landId: string}[];
 }

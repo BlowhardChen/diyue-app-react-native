@@ -2,17 +2,23 @@ import React, {useState} from "react";
 import {View, Text, Image, TouchableOpacity, LayoutAnimation, Platform, UIManager} from "react-native";
 import {useNavigation} from "@react-navigation/native";
 import {LandListItemStyles} from "@/components/land/styles/LandListItem";
+import {LandListData} from "@/types/land";
 
 // 安卓启用动画
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-interface LandListItemProps {
-  landMsgItem: any;
+interface landListInfo extends LandListData {
+  isSelect: boolean;
 }
 
-const LandListItem: React.FC<LandListItemProps> = ({landMsgItem}) => {
+interface LandListItemProps {
+  landListInfoItem: landListInfo;
+  onSeletLand: (item: landListInfo) => void;
+}
+
+const LandListItem: React.FC<LandListItemProps> = ({landListInfoItem, onSeletLand}) => {
   const navigation = useNavigation<any>();
   const [isExpandLand, setIsExpandLand] = useState(false);
 
@@ -23,49 +29,61 @@ const LandListItem: React.FC<LandListItemProps> = ({landMsgItem}) => {
   };
 
   // 打开地块详情
-  const openLandDetail = (item: any) => {
+  const openLandDetail = (item: LandListData) => {
     navigation.navigate("LandDetail", {landId: item.id});
   };
 
   // 打开合并地块详情
-  const openMergeDetail = (item: any) => {
+  const openMergeDetail = (item: LandListData) => {
     navigation.navigate("LandDetail", {landId: item.id});
   };
 
   return (
-    <View style={LandListItemStyles.container}>
+    <View style={[LandListItemStyles.container, {marginTop: 0, borderBottomWidth: 1, borderBottomColor: "#e5e5e5"}]}>
       {/* 主项信息 */}
-      <TouchableOpacity style={LandListItemStyles.msgBox} activeOpacity={0.8} onPress={() => openLandDetail(landMsgItem)}>
+      <View style={LandListItemStyles.msgBox}>
+        <TouchableOpacity style={LandListItemStyles.checkIcon} onPress={() => onSeletLand(landListInfoItem)}>
+          <Image
+            source={
+              landListInfoItem.isSelect
+                ? require("@/assets/images/home/icon-check-active.png")
+                : require("@/assets/images/home/icon-check.png")
+            }
+            style={LandListItemStyles.checkIcon}
+            resizeMode="cover"
+          />
+        </TouchableOpacity>
         <View style={LandListItemStyles.msgImg}>
-          <Image source={{uri: landMsgItem.url}} style={LandListItemStyles.msgImgImage} resizeMode="cover" />
+          <Image source={{uri: landListInfoItem.url}} style={LandListItemStyles.msgImgImage} resizeMode="cover" />
         </View>
+        <TouchableOpacity onPress={() => openLandDetail(landListInfoItem)}>
+          <View style={LandListItemStyles.msgLand}>
+            <View style={LandListItemStyles.msgLandTitle}>
+              <Text style={[LandListItemStyles.title, {width: 145}]} numberOfLines={1}>
+                {landListInfoItem.landName}
+              </Text>
+              <View style={LandListItemStyles.area}>
+                <Text style={LandListItemStyles.areaText}>{landListInfoItem.actualAcreNum}</Text>
+                <Text style={{fontSize: 18, fontWeight: "normal"}}>亩</Text>
+                <Image source={require("@/assets/images/common/icon-right.png")} style={LandListItemStyles.rightIcon} />
+              </View>
+            </View>
 
-        <View style={LandListItemStyles.msgLand}>
-          <View style={LandListItemStyles.msgLandTitle}>
-            <Text style={LandListItemStyles.title} numberOfLines={1}>
-              {landMsgItem.landName}
-            </Text>
-            <View style={LandListItemStyles.area}>
-              <Text style={LandListItemStyles.areaText}>{landMsgItem.actualAcreNum}</Text>
-              <Text>亩</Text>
-              <Image source={require("@/assets/images/common/icon-right.png")} style={LandListItemStyles.rightIcon} />
+            <View style={LandListItemStyles.msgLandPosition}>
+              <Text style={LandListItemStyles.posTitle}>位置：</Text>
+              <Text numberOfLines={1} style={LandListItemStyles.posMsg}>
+                {landListInfoItem.detailaddress}
+              </Text>
             </View>
           </View>
-
-          <View style={LandListItemStyles.msgLandPosition}>
-            <Text style={LandListItemStyles.posTitle}>位置：</Text>
-            <Text numberOfLines={1} style={LandListItemStyles.posMsg}>
-              {landMsgItem.detailaddress}
-            </Text>
-          </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
 
       {/* 展开按钮 */}
-      {landMsgItem?.landList?.length ? (
+      {landListInfoItem?.landList?.length ? (
         <TouchableOpacity style={LandListItemStyles.landBottom} onPress={expandLand} activeOpacity={0.8}>
           <Text>
-            共<Text style={LandListItemStyles.highlight}>{landMsgItem.landList.length}</Text>个地块
+            共<Text style={LandListItemStyles.highlight}>{landListInfoItem.landList.length}</Text>个地块
           </Text>
           <Image
             source={
@@ -79,7 +97,7 @@ const LandListItem: React.FC<LandListItemProps> = ({landMsgItem}) => {
       {/* 展开更多子地块 */}
       {isExpandLand && (
         <View style={LandListItemStyles.landMore}>
-          {landMsgItem.landList.map((item: any, index: number) => (
+          {landListInfoItem.landList.map((item: any, index: number) => (
             <TouchableOpacity
               key={index}
               style={LandListItemStyles.landMoreItem}
@@ -91,10 +109,12 @@ const LandListItem: React.FC<LandListItemProps> = ({landMsgItem}) => {
 
               <View style={LandListItemStyles.msgLand}>
                 <View style={LandListItemStyles.msgLandTitle}>
-                  <Text style={LandListItemStyles.title}>{item.landName}</Text>
+                  <Text style={LandListItemStyles.title} numberOfLines={1}>
+                    {item.landName}
+                  </Text>
                   <View style={LandListItemStyles.area}>
                     <Text style={LandListItemStyles.areaText}>{item.actualAcreNum}</Text>
-                    <Text>亩</Text>
+                    <Text style={{fontSize: 18, fontWeight: "normal"}}>亩</Text>
                     <Image source={require("@/assets/images/common/icon-right.png")} style={LandListItemStyles.rightIcon} />
                   </View>
                 </View>

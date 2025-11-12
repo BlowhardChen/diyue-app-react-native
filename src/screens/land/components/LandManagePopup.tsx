@@ -124,15 +124,18 @@ const LandManage: React.FC<LandManageProps> = ({landInfo, onClosePopup, onEditLa
         closePopup();
         break;
       case "showMergeLand":
+        closePopup();
         navigation.navigate("MergeLand", {id: landInfo.id});
         break;
       case "editLandName":
         onEditLandName();
         break;
       case "mergeLand":
+        closePopup();
         navigation.navigate("SelectLand", {type: "merge"});
         break;
       case "transferLand":
+        closePopup();
         navigation.navigate("SelectLand", {type: "transfer"});
         break;
       case "quitLand":

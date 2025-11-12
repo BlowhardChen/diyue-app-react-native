@@ -1,5 +1,5 @@
-// 圈地
-import {View, Text, TouchableOpacity, Image, Platform, PermissionsAndroid, ToastAndroid} from "react-native";
+// 选择地块
+import {View, Text, TouchableOpacity, Image, ScrollView, Platform, StyleSheet} from "react-native";
 import {EnclosureScreenStyles} from "./styles/EnclosureScreen";
 import {useEffect, useRef, useState} from "react";
 import {observer} from "mobx-react-lite";
@@ -9,44 +9,43 @@ import MapSwitcher from "@/components/common/MapSwitcher";
 import PermissionPopup from "@/components/common/PermissionPopup";
 import WebView from "react-native-webview";
 import Geolocation from "@react-native-community/geolocation";
-import LandEnclosureCustomNavBar from "@/components/land/LandEnclosureCustomNavBar";
 import useOptimizedHeading from "@/hooks/useOptimizedHeading";
 import KeepAwake from "react-native-keep-awake";
-import Popup from "@/components/common/Popup";
-import {useNavigation, useFocusEffect} from "@react-navigation/native";
-import {BackHandler} from "react-native";
+import {useNavigation} from "@react-navigation/native";
 import {checkLocationPermission, requestLocationPermission} from "@/utils/checkPermissions";
 import {showCustomToast} from "@/components/common/CustomToast";
-import {LandListData, MapWebviewMessage, SaveLandParams, SaveLandResponse} from "@/types/land";
-import {getToken} from "@/utils/tokenUtils";
-import {addLand, getLandListData} from "@/services/land";
-import {getNowDate} from "@/utils/public";
-import {StackNavigationProp} from "@react-navigation/stack";
-import CustomLoading from "@/components/common/CustomLoading";
+import {LandListData, MapWebviewMessage} from "@/types/land";
+import {getLandListData} from "@/services/land";
+import {SelectLandScreenStyles} from "./styles/SelectLandScreen";
+import SelectLandListItem from "@/components/land/SelectLandListItem";
+import LinearGradient from "react-native-linear-gradient";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
+import LandOperationPopup from "@/components/land/LandOperationPopup";
+import {Global} from "@/styles/global";
 import {updateStore} from "@/stores/updateStore";
 
-type EnclosureStackParamList = {
-  LandInfoEdit: {navigation: string; queryInfo: SaveLandResponse};
-};
+interface landListInfoItem extends LandListData {
+  isSelect: boolean;
+}
 
-const EnclosureScreen = observer(() => {
-  const navigation = useNavigation<StackNavigationProp<EnclosureStackParamList>>();
+const SelectLandScreen = observer(({route}: {route: {params: {type: string}}}) => {
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const [popupTips, setPopupTips] = useState("请点击打点按钮打点或点击十字光标标点");
-  const [dotTotal, setDotTotal] = useState(0);
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const webViewRef = useRef<WebView>(null);
   const [isWebViewReady, setIsWebViewReady] = useState(false);
-  const [showBackPopup, setShowBackPopup] = useState(false);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
-  const beforeRemoveRef = useRef<any>(null);
   const watchIdRef = useRef<number | null>(null);
   const isFirstLocationRef = useRef(true);
-  const [isPolygonIntersect, setIsPolygonIntersect] = useState(false);
-  const [showSaveSuccessPopup, setShowSaveSuccessPopup] = useState(false);
-  const [landInfo, setLandInfo] = useState<SaveLandResponse>();
-  const [isSaving, setIsSaving] = useState(false);
-  const [enclosureLandData, setEnclosureLandData] = useState<LandListData[]>();
+  const [isShowCheckLandList, setIsShowCheckLandList] = useState(false);
+  const [isCheckedAll, setIsCheckedAll] = useState(false);
+  const [selectedCount, setSelectedCount] = useState(0); // 已选数量
+  const [totalArea, setTotalArea] = useState(0); // 总面积
+  const [landListInfo, setLandListInfo] = useState<landListInfoItem[] | []>([]);
+  const [operationVisible, setOperationVisible] = useState(false);
+  const [selectedLandInfo, setSelectedLandInfo] = useState<landListInfoItem[] | []>([]);
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -66,11 +65,36 @@ const EnclosureScreen = observer(() => {
     initLocationPermission();
   }, []);
 
-  // 获取已圈地地块数据
+  // 获取地块数据
   useEffect(() => {
-    getEnclosureLandData();
-    updateStore.setIsUpdateLand(false);
-  }, []);
+    getLandInfoData();
+  }, [updateStore.isUpdateLand]);
+
+  // 监听landListInfo变化，更新全选状态和已选数量
+  useEffect(() => {
+    if (landListInfo.length === 0) {
+      setIsCheckedAll(false);
+      return;
+    }
+    // 检查所有项的isSelect是否都为true
+    const allSelected = landListInfo.every(item => item.isSelect);
+    setIsCheckedAll(allSelected);
+  }, [landListInfo]);
+
+  useEffect(() => {
+    if (!route.params.type) return;
+    switch (route.params.type) {
+      case "merge":
+        setPopupTips("请选择需要合并的地块");
+        break;
+      case "transfer":
+        setPopupTips("请选择需要转移的地块");
+        break;
+      default:
+        setPopupTips("请选择需要合并的地块");
+        break;
+    }
+  }, [route.params.type]);
 
   // 当WebView准备好时，应用保存的地图类型
   useEffect(() => {
@@ -290,122 +314,124 @@ const EnclosureScreen = observer(() => {
     }
   };
 
-  // 地图十字光标点击
-  const onMapCursorDot = () => {
-    setDotTotal(dotTotal + 1);
-    webViewRef.current?.postMessage(JSON.stringify({type: "CURSOR_DOT_MARKER"}));
-  };
+  // 全选
+  const onCheckAll = () => {
+    const newCheckedState = !isCheckedAll;
+    // 更新本地所有地块的选中状态
+    const updatedLandList = landListInfo.map(item => ({...item, isSelect: newCheckedState}));
+    setLandListInfo(updatedLandList);
 
-  // 撤销打点
-  const onRevokeDot = () => {
-    if (!dotTotal) {
-      return;
+    // 更新已选数量和总面积
+    setSelectedCount(newCheckedState ? updatedLandList.length : 0);
+    if (!newCheckedState) {
+      setTotalArea(0);
+    } else {
+      const total = updatedLandList.reduce((acc, cur) => acc + cur.actualAcreNum, 0);
+      setTotalArea(Number(total.toFixed(2)));
     }
-    setDotTotal(dotTotal - 1);
-    webViewRef.current?.postMessage(JSON.stringify({type: "REMOVE_DOT_MARKER"}));
+    // 向 WebView 发送批量更新选中状态的消息
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "UPDATE_ALL_LAND_SELECTION",
+        data: updatedLandList, // 传递所有地块的最新状态
+      }),
+    );
   };
 
-  // 打点
-  const onDot = async () => {
-    const hasPermission = await checkLocationPermission();
-    if (!hasPermission) {
-      setShowPermissionPopup(true);
-      return;
-    }
-    // GPS打点
-    await onGpsDot();
+  // 打开地块列表
+  const onOpenCheckLand = () => {
+    setIsShowCheckLandList(!isShowCheckLandList);
   };
 
-  // GPS打点
-  const onGpsDot = async () => {
-    await Geolocation.getCurrentPosition(
-      position => {
-        const {latitude, longitude} = position.coords;
-        setDotTotal(prev => prev + 1);
+  // 选中地块
+  const onSeletLand = (item: landListInfoItem) => {
+    updateLocalSelectState(item);
+  };
+
+  // 更新单个地块的本地选中状态
+  const updateLocalSelectState = (item: landListInfoItem) => {
+    // 切换该地块的选中状态
+    const newSelectState = !item.isSelect;
+    const updatedLandList = landListInfo.map(land => (land.id === item.id ? {...land, isSelect: newSelectState} : land));
+    setLandListInfo(updatedLandList);
+
+    // 更新已选数量和总面积
+    const selectedItems = updatedLandList.filter(land => land.isSelect);
+    setSelectedCount(selectedItems.length);
+    const totalArea = selectedItems.reduce((acc, cur) => acc + cur.actualAcreNum, 0);
+    setTotalArea(Number(totalArea.toFixed(2)));
+
+    // 向 WebView 发送该地块的状态更新
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "UPDATE_LAND_SELECTION",
+        id: item.id,
+        isSelected: newSelectState,
+      }),
+    );
+
+    // 同步全选框状态：判断所有地块是否都已选中
+    const allSelected = updatedLandList.every(land => land.isSelect);
+    setIsCheckedAll(allSelected);
+  };
+
+  // 地块操作
+  const onLandOperation = () => {
+    if (!selectedCount) return;
+    setSelectedLandInfo(landListInfo.filter(item => item.isSelect));
+    switch (route.params.type) {
+      case "merge":
+        // 移除选中地块
+        removeSelectedLands();
+        // 绘制合并地块
         webViewRef.current?.postMessage(
           JSON.stringify({
-            type: "DOT_MARKER",
-            location: {lon: longitude, lat: latitude},
+            type: "DRAW_MERGE_LAND",
+            data: selectedLandInfo,
           }),
         );
-      },
-      error => {
-        showCustomToast("error", "获取定位失败，请检查权限");
-      },
-      {enableHighAccuracy: true, timeout: 10000, maximumAge: 1000},
-    );
-  };
-
-  // 保存
-  const onSave = async () => {
-    if (dotTotal < 3) {
-      return;
-    }
-
-    if (isPolygonIntersect) {
-      return;
-    }
-    const token = await getToken();
-    // 向WebView发送保存请求
-    webViewRef.current?.postMessage(
-      JSON.stringify({
-        type: "SAVE_POLYGON",
-        token,
-      }),
-    );
-  };
-
-  // 保存地块
-  const saveLandFunc = async (landParams: SaveLandParams) => {
-    try {
-      setIsSaving(true);
-      const {data} = await addLand({
-        landName: getNowDate(),
-        list: landParams.polygonPath,
-        acreageNum: landParams.area,
-        actualAcreNum: landParams.area,
-        url: landParams.landUrl ?? "",
-      });
-      console.log("保存地块", data);
-      setLandInfo(data);
-      setIsSaving(false);
-      setShowSaveSuccessPopup(true);
-      updateStore.setIsUpdateLand(true);
-    } catch (error) {
-      setIsSaving(false);
+        break;
+      case "transfer":
+        setOperationVisible(true);
+        break;
     }
   };
 
-  // 编辑地块信息
-  const editEnclosureInfo = async () => {
-    setShowSaveSuccessPopup(false);
-    webViewRef.current?.postMessage(
-      JSON.stringify({
-        type: "CONTINUE_ENCLOSURE",
-      }),
-    );
-    navigation.navigate("LandInfoEdit", {navigation: "Enclosure", queryInfo: landInfo as SaveLandResponse});
+  // 移除选中地块
+  const removeSelectedLands = () => {
+    console.log("移除选中地块:", selectedLandInfo);
+    selectedLandInfo.forEach(item => {
+      webViewRef.current?.postMessage(
+        JSON.stringify({
+          type: "REMOVE_SPECIFY_LAND",
+          data: item,
+        }),
+      );
+    });
   };
 
-  // 继续圈地
-  const continueEnclosure = async () => {
-    setShowSaveSuccessPopup(false);
-    webViewRef.current?.postMessage(
-      JSON.stringify({
-        type: "CONTINUE_ENCLOSURE",
-      }),
-    );
+  // 地块操作成功回调
+  const handleOperationSuccess = (type: string) => {
+    showCustomToast("success", `${type === "merge" ? "合并" : "转移"}地块成功`);
+    getLandInfoData();
   };
 
-  // 获取已圈地地块数据
-  const getEnclosureLandData = async () => {
+  // 获取地块数据
+  const getLandInfoData = async () => {
     const {data} = await getLandListData({quitStatus: "0"});
-    console.log("获取已圈地地块数据", data);
-    setEnclosureLandData(data);
+    console.log("获取地块数据:", data);
+    // 初始化所有地块为未选中状态
+    const selectLandData = data.map((item: LandListData) => ({...item, isSelect: false}));
+    setLandListInfo(selectLandData);
+    setIsCheckedAll(false); // 初始全选框为未勾选
+    setSelectedCount(0);
+    setTotalArea(0);
+
+    // 向 WebView 发送绘制地块的消息
     webViewRef.current?.postMessage(
       JSON.stringify({
-        type: "DRAW_ENCLOSURE_LAND",
-        data,
+        type: "DRAW_LAND_SELECTION",
+        data: selectLandData, // 传递包含 isSelect 状态的地块数据
       }),
     );
   };
@@ -433,82 +459,20 @@ const EnclosureScreen = observer(() => {
           startPositionWatch();
         }
         break;
-      // 重复打点
-      case "WEBVIEW_DOT_REPEAT":
-        showCustomToast("error", "当前点位已保存，请前往下一个点位");
-        break;
-      // 打点更新
-      case "WEBVIEW_UPDATE_DOT_TOTAL":
-        handleDotTotalChange(data);
-        break;
-      // 地块多边形自相交
-      case "WEBVIEW_POLYGON_INTERSECT":
-        setIsPolygonIntersect(data.isPolygonIntersect as boolean);
-        if (data.isPolygonIntersect && data.message) {
-          setPopupTips(data.message);
-        }
-        break;
-      // 保存地块
-      case "SAVE_POLYGON":
-        saveLandFunc(data.saveLandParams as SaveLandParams);
-        break;
       // 报错处理
       case "WEBVIEW_ERROR":
         showCustomToast("error", data.message ?? "操作失败");
         break;
       // 点击地块
       case "POLYGON_CLICK":
-        // let enclosureLand;
-        // if (enclosureLandData) {
-        //   enclosureLand = enclosureLandData.find(item => item.id === data.id);
-        // }
-        // console.log("EnclosureScreen点击地块", enclosureLand);
-        // webViewRef.current?.postMessage(
-        //   JSON.stringify({
-        //     type: "SHOW_COMMON_DOT",
-        //     data: enclosureLand?.gpsList,
-        //   }),
-        // );
-        break;
-      // 借点成功
-      case "WEBVIEW_BORROW_DOT":
-        if (data.point) {
-          setPopupTips(data.message ?? "借点成功，请继续添加下一个点位");
-          webViewRef.current?.postMessage(
-            JSON.stringify({
-              type: "DOT_MARKER",
-              location: {lon: data.point.lon, lat: data.point.lat},
-            }),
-          );
-        }
-
+        let selectedLand = landListInfo.find(item => item.id === data.id) as landListInfoItem;
+        updateLocalSelectState(selectedLand);
         break;
       // 控制台日志
       case "WEBVIEW_CONSOLE_LOG":
         console.log("WEBVIEW_CONSOLE_LOG", data);
         break;
       default:
-        break;
-    }
-  };
-
-  // 处理点变换消息提示
-  const handleDotTotalChange = (data: MapWebviewMessage) => {
-    switch (data.total) {
-      case 0:
-        setPopupTips("请点击打点按钮或十字光标打点");
-        break;
-      case 1:
-        setPopupTips("请继续添加下一个点位");
-        break;
-      case 2:
-        setPopupTips("已生成线段，请继续添加下一个点位");
-        break;
-      case 3:
-        setPopupTips(data.message ? data.message : "已形成闭合区域，是否保存");
-        break;
-      default:
-        setPopupTips(data.message ? data.message : "已形成闭合区域，是否保存");
         break;
     }
   };
@@ -523,29 +487,6 @@ const EnclosureScreen = observer(() => {
     );
   });
 
-  useFocusEffect(() => {
-    beforeRemoveRef.current = navigation.addListener("beforeRemove", e => {
-      e.preventDefault();
-      if (!showBackPopup) {
-        setShowBackPopup(true);
-      }
-    });
-
-    // Android 实体返回键监听
-    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (!showBackPopup) {
-        setShowBackPopup(true);
-      }
-      return true;
-    });
-
-    return () => {
-      beforeRemoveRef.current();
-      backHandler.remove();
-      stopPositionWatch();
-    };
-  });
-
   return (
     <View style={EnclosureScreenStyles.container}>
       {/* 权限弹窗 */}
@@ -557,13 +498,15 @@ const EnclosureScreen = observer(() => {
         message={"获取位置权限将用于获取当前定位与记录轨迹"}
       />
       {/* 顶部导航 */}
-      <LandEnclosureCustomNavBar
-        navTitle="圈地"
-        showRightIcon={true}
-        onBackView={() => {
-          setShowBackPopup(true);
-        }}
-      />
+      <LinearGradient style={[styles.headerContainer, {paddingTop: insets.top}]} colors={["rgba(0,0,0,0.5)", "rgba(0,0,0,0)"]}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.iconWrapper} onPress={() => navigation.goBack()}>
+            <Image source={require("@/assets/images/common/icon-back-radius.png")} style={styles.iconImage} />
+          </TouchableOpacity>
+          <Text style={styles.title}>批量选择地块</Text>
+          <View style={styles.iconWrapper} />
+        </View>
+      </LinearGradient>
       {/* 地图 */}
       <View style={EnclosureScreenStyles.mapBox}>
         <View style={EnclosureScreenStyles.popupTips}>
@@ -605,65 +548,129 @@ const EnclosureScreen = observer(() => {
             style={{marginTop: 16}}
           />
         </View>
+        {/* 选中地块列表 */}
+        {isShowCheckLandList ? (
+          <View style={SelectLandScreenStyles.landListContainer}>
+            <ScrollView style={[SelectLandScreenStyles.landListBox, {height: 460}]}>
+              {landListInfo.map((item: any) => (
+                <SelectLandListItem key={item.id} landListInfoItem={item} onSeletLand={onSeletLand} />
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
         {/* 底部按钮 */}
-        <View style={EnclosureScreenStyles.footerButtonGroup}>
-          <TouchableOpacity style={[EnclosureScreenStyles.buttonBase, EnclosureScreenStyles.buttonRevoke]} onPress={onRevokeDot}>
-            <Text style={EnclosureScreenStyles.revokeText}>撤销</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[EnclosureScreenStyles.buttonBase, EnclosureScreenStyles.buttonDot]} onPress={onDot}>
-            <Image source={require("@/assets/images/common/icon-plus.png")} style={EnclosureScreenStyles.dotIcon} />
-            <Text style={EnclosureScreenStyles.dotText}>打点</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[EnclosureScreenStyles.buttonBase, EnclosureScreenStyles.buttonSave]} onPress={onSave}>
-            <Text style={[EnclosureScreenStyles.saveText, {color: dotTotal >= 3 ? "#08ae3c" : "#999"}]}>保存</Text>
+        <View style={SelectLandScreenStyles.checkContainer}>
+          <View style={SelectLandScreenStyles.checkBottomContainer}>
+            <View style={SelectLandScreenStyles.checkButtonContainer}>
+              <TouchableOpacity onPress={onCheckAll}>
+                <Image
+                  source={
+                    isCheckedAll
+                      ? require("@/assets/images/home/icon-check-active.png")
+                      : require("@/assets/images/home/icon-check.png")
+                  }
+                  style={SelectLandScreenStyles.checkIcon}
+                />
+              </TouchableOpacity>
+              <Text>全选</Text>
+            </View>
+            <View style={SelectLandScreenStyles.checkTextContainer}>
+              <View style={SelectLandScreenStyles.checkText}>
+                <Text>已选</Text>
+                <Text style={SelectLandScreenStyles.checkTextNumber}>{selectedCount}</Text>
+                <Text>个，</Text>
+                <Text>共计</Text>
+                <Text style={SelectLandScreenStyles.checkTextNumber}>{totalArea}</Text>
+                <Text>亩</Text>
+              </View>
+              <TouchableOpacity onPress={onOpenCheckLand}>
+                <Image
+                  source={
+                    isShowCheckLandList
+                      ? require("@/assets/images/common/icon-bottom.png")
+                      : require("@/assets/images/common/icon-top.png")
+                  }
+                  style={SelectLandScreenStyles.checkTextIcon}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={[
+              SelectLandScreenStyles.manageButtonContainer,
+              selectedCount ? {backgroundColor: Global.colors.primary} : {backgroundColor: "rgba(8,174,60,.6)"},
+            ]}
+            onPress={onLandOperation}>
+            <View style={SelectLandScreenStyles.manageButtonTextContainer}>
+              <Text style={SelectLandScreenStyles.manageButtonText}>{route.params.type === "merge" ? "合并" : "转移"}</Text>
+              <Text style={SelectLandScreenStyles.manageButtonText}>{selectedCount ? `(${selectedCount})` : ""}</Text>
+            </View>
           </TouchableOpacity>
         </View>
-        {/* 十字光标 */}
-        <TouchableOpacity style={EnclosureScreenStyles.locationCursor} activeOpacity={1} onPress={onMapCursorDot}>
-          {mapStore.mapType === "标准地图" ? (
-            <Image source={require("@/assets/images/common/icon-cursor-green.png")} style={EnclosureScreenStyles.cursorIcon} />
-          ) : (
-            <Image source={require("@/assets/images/common/icon-cursor.png")} style={EnclosureScreenStyles.cursorIcon} />
-          )}
-        </TouchableOpacity>
         {/* 图层切换弹窗 */}
         {showMapSwitcher && <MapSwitcher onClose={() => setShowMapSwitcher(false)} onSelectMap={handleSelectMap} />}
-        {/* 返回上级页面确认弹窗 */}
-        <Popup
-          visible={showBackPopup}
-          title="是否退出圈地"
-          msgText="退出后不会保留已打点位"
-          leftBtnText="退出"
-          rightBtnText="继续圈地"
-          onLeftBtn={() => {
-            setShowBackPopup(false);
-            beforeRemoveRef.current();
-            navigation.goBack();
-          }}
-          onRightBtn={() => {
-            setShowBackPopup(false);
-          }}
-        />
-        {/* 保存成功弹窗 */}
-        <Popup
-          visible={showSaveSuccessPopup}
-          showIcon={true}
-          showTitle={false}
-          msgText="地块保存成功"
-          leftBtnText="信息编辑"
-          rightBtnText="继续圈地"
-          onLeftBtn={() => {
-            editEnclosureInfo();
-          }}
-          onRightBtn={() => {
-            continueEnclosure();
-          }}
-        />
+        {/* 地块操作弹窗 */}
+        {operationVisible && (
+          <LandOperationPopup
+            selectedLands={landListInfo}
+            operationType={route.params.type}
+            onOperationSuccess={handleOperationSuccess}
+            onClose={() => setOperationVisible(false)}
+          />
+        )}
       </View>
-      {/* loading弹窗 */}
-      <CustomLoading visible={isSaving} text="地块保存中..." />
     </View>
   );
 });
 
-export default EnclosureScreen;
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  mapBox: {flex: 1},
+  rightControl: {
+    position: "absolute",
+    top: 100,
+    right: 16,
+  },
+  locationControl: {
+    position: "absolute",
+    top: 240,
+    right: 16,
+  },
+  map: {flex: 1},
+  mapCopyright: {position: "absolute", bottom: 0, left: 0, flexDirection: "row", alignItems: "flex-end"},
+  iconImg: {width: 40, height: 20},
+  copyrightText: {fontSize: 8, color: "#fff"},
+  headerContainer: {
+    position: "absolute",
+    top: 0,
+    width: "100%",
+    zIndex: 999,
+    backgroundColor: "transparent",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    height: Platform.OS === "ios" ? 44 : 56,
+  },
+  title: {
+    fontSize: 20,
+    color: "#fff",
+  },
+  iconWrapper: {
+    width: 38,
+    height: 38,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  iconImage: {
+    width: 38,
+    height: 38,
+    resizeMode: "contain",
+  },
+});
+
+export default SelectLandScreen;
