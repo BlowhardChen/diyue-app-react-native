@@ -96,6 +96,10 @@
               break;
               // 绘制合并
               case "DRAW_MERGE_LAND":
+                  WebBridge.postMessage(JSON.stringify({
+                      type: "WEBVIEW_CONSOLE_LOG",
+                      data: data.data,
+                  }));
                   PolygonModule?.drawMergeLandPolygon(map, data.data);
                 break;
               default:

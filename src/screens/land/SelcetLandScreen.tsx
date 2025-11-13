@@ -79,6 +79,9 @@ const SelectLandScreen = observer(({route}: {route: {params: {type: string}}}) =
     // 检查所有项的isSelect是否都为true
     const allSelected = landListInfo.every(item => item.isSelect);
     setIsCheckedAll(allSelected);
+    // 监听 landListInfo 变化，自动更新 selectedLandInfo
+    const selectedLands = landListInfo.filter(item => item.isSelect);
+    setSelectedLandInfo(selectedLands);
   }, [landListInfo]);
 
   useEffect(() => {
@@ -378,7 +381,7 @@ const SelectLandScreen = observer(({route}: {route: {params: {type: string}}}) =
   // 地块操作
   const onLandOperation = () => {
     if (!selectedCount) return;
-    setSelectedLandInfo(landListInfo.filter(item => item.isSelect));
+    console.log("选中地块:", selectedLandInfo);
     switch (route.params.type) {
       case "merge":
         // 移除选中地块
@@ -467,6 +470,10 @@ const SelectLandScreen = observer(({route}: {route: {params: {type: string}}}) =
       case "POLYGON_CLICK":
         let selectedLand = landListInfo.find(item => item.id === data.id) as landListInfoItem;
         updateLocalSelectState(selectedLand);
+        break;
+      case "DRAW_MERGED_LAND_COORDINATES":
+        console.log("WEBVIEW_CONSOLE_LOG", data);
+        setOperationVisible(true);
         break;
       // 控制台日志
       case "WEBVIEW_CONSOLE_LOG":

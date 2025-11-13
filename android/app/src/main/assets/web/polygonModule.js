@@ -625,57 +625,94 @@ window.PolygonModule = (function () {
     }
 
     /**
-     * 绘制合并地块
-     * @param {ol.Map} map 
+     * 绘制选中地块的凸包（包裹多边形）
+     * @param {ol.Map} map
      * @param {landListInfoItem[]} selectedLandInfo 选中地块列表信息
      */
     function drawMergeLandPolygon(map, selectedLandInfo) {
-        if (!selectedLandInfo || !Array.isArray(selectedLandInfo)) {
-            WebBridge.postError('无效的地块数据');
+        if (!selectedLandInfo || !Array.isArray(selectedLandInfo) || selectedLandInfo.length === 0) {
+            WebBridge.postError('无效的地块数据或未选择任何地块');
             return null;
         }
 
-        let combinedArea = 0
-        let ids = []
-        let turfPolygonCoordinates=[]
-        // 将坐标转换为OpenLayers可以接受的格式
+        let combinedArea = 0;
+        let ids = [];
+        const turfPoints = []; // 变量名更清晰
+
         selectedLandInfo.forEach((item) => {
-            combinedArea += item.actualAcreNum
-            ids.push(item.id)
+            combinedArea += item.actualAcreNum;
+            ids.push(item.id);
+            // 注意：这里的逻辑是收集所有点来计算凸包，而不是合并多边形
             item.gpsList.forEach((gpsItem) => {
-                turfPolygonCoordinates.push(turf.point([gpsItem.lng, gpsItem.lat]))
-            })
+                turfPoints.push(turf.point([gpsItem.lng, gpsItem.lat]));
+            });
         });
 
-        // 合并成凹边型
-        let concavePolygon = turf.convex(turf.featureCollection(turfPolygonCoordinates))
-        let mergedPath = concavePolygon?.geometry.coordinates[0].map((item) => {
-            return transform([item[0], item[1]], 'EPSG:4326', 'EPSG:3857')
-        })
+        // 如果没有收集到任何点，直接返回
+        if (turfPoints.length === 0) {
+            WebBridge.postError('选中的地块没有有效的坐标点');
+            return null;
+        }
+
+        // 计算凸包
+        let convexHull = turf.convex(turf.featureCollection(turfPoints));
+
+        // 检查计算结果是否有效
+        if (!convexHull || !convexHull.geometry || convexHull.geometry.type !== 'Polygon') {
+            WebBridge.postError('无法计算凸包或结果不是一个多边形');
+            return null;
+        }
+
+        const mergedCoordinatesLonLat = convexHull.geometry.coordinates[0];
+
+        let mergedPath = convexHull.geometry.coordinates[0].map((item) => {
+            return ol.proj.transform([item[0], item[1]], 'EPSG:4326', 'EPSG:3857');
+        });
 
         // 创建多边形几何对象
-        let mergedPolygon = new ol.geom.Polygon([mergedPath])
-        mergedPolygonFeature = new ol.Feature({ geometry: mergedPolygon })
-        const textMsg = `合并地块 ${combinedArea.toFixed(2)}亩`
-        
+        let mergedPolygon = new ol.geom.Polygon([mergedPath]);
+        mergedPolygonFeature = new ol.Feature({ geometry: mergedPolygon });
+        const textMsg = `合并地块${combinedArea.toFixed(2)}亩`;
+
         mergedPolygonFeature.setStyle(
             new ol.style.Style({
-                stroke: new ol.style.Stroke({ color: '#ffffff', width: 2 }),
-                fill: new ol.style.Fill({ color: 'rgba(0, 0, 0, 0.3)' }),
+                stroke: new ol.style.Stroke({ color: '#FF5733', width: 3 }), // 使用醒目的颜色
+                fill: new ol.style.Fill({ color: 'rgba(255, 87, 51, 0.3)' }),
                 text: new ol.style.Text({
                     text: textMsg,
                     font: '16px Arial',
-                    fill: new ol.style.Fill({ color: '#fff' }),
+                    fill: new ol.style.Fill({ color: '#FF5733' }),
                     stroke: new ol.style.Stroke({ color: '#000', width: 2 }),
                 }),
             })
         );
 
+        // 如果之前有合并图层，先移除
+        if (mergePolygonLayer) {
+            map.removeLayer(mergePolygonLayer);
+        }
+
         mergePolygonLayer = new ol.layer.Vector({
             source: new ol.source.Vector({ features: [mergedPolygonFeature] }),
-            zIndex: 99,
+            zIndex: 100,
         });
         map.addLayer(mergePolygonLayer);
+        WebBridge.postMessage({
+            type: 'DRAW_MERGED_LAND_COORDINATES',
+            mergeCoordinates: mergedCoordinatesLonLat, 
+            mergeArea: combinedArea.toFixed(2),
+        });
+    }
+
+    /**
+     * 清除合并地块的凸包多边形
+     * @param {ol.Map} map 
+     */
+    function clearMergeLandPolygon(map) {
+        if (mergePolygonLayer) {
+            map.removeLayer(mergePolygonLayer);
+            mergePolygonLayer = null;
+        }
     }
 
     return {
@@ -694,6 +731,7 @@ window.PolygonModule = (function () {
         selectPolygonClickEvent,
         setSelectPolygonActive,
         setAllSelectPolygonActive,
-        drawMergeLandPolygon
+        drawMergeLandPolygon,
+        clearMergeLandPolygon
     };
 })();
