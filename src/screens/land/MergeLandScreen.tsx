@@ -16,14 +16,15 @@ import KeepAwake from "react-native-keep-awake";
 import LandDetailsPopup from "./components/LandDetailsPopup";
 import {ContractDetail} from "@/types/contract";
 import LandManagePopup from "./components/LandManagePopup";
-import {getLandDetailsInfo, getLandOrderList} from "@/services/land";
+import {getLandDetailsInfo, getLandOrderList, getMergeLandList} from "@/services/land";
 import {getContractMessageDetail} from "@/services/contract";
 import LinearGradient from "react-native-linear-gradient";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import EditLandNamePopup from "@/components/land/EditLandNamePopup";
 import {updateStore} from "@/stores/updateStore";
+import CustomLoading from "@/components/common/CustomLoading";
 
-const LandDetailScreen = observer(({route}: {route: {params: {landId: string}}}) => {
+const MergeLandScreen = observer(({route}: {route: {params: {landId: string}}}) => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const watchIdRef = useRef<number | null>(null);
@@ -41,6 +42,10 @@ const LandDetailScreen = observer(({route}: {route: {params: {landId: string}}})
   const [isShowEditLandNamePopup, setIsShowEditLandNamePopup] = useState(false);
   const [landId, setLandId] = useState("");
   const [landName, setLandName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [landInfoList, setLandInfoList] = useState<LandDetailInfo[]>([]);
+
+  console.log("合并地块列表", route.params);
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -53,7 +58,7 @@ const LandDetailScreen = observer(({route}: {route: {params: {landId: string}}})
   // 当页面聚焦且弹窗显示时，重新请求接口
   useEffect(() => {
     if (isFocused) {
-      getLandDetailInfoData(route.params.landId);
+      getMergeLandListData(route.params.landId);
     }
   }, [isFocused, updateStore.isUpdateLandDetail, route.params.landId]);
 
@@ -263,6 +268,9 @@ const LandDetailScreen = observer(({route}: {route: {params: {landId: string}}})
     );
   };
 
+  // 点回找
+  const onFindPoint = () => {};
+
   // 地块管理
   const onLandManage = (landInfo: any) => {
     setLandInfo(landInfo);
@@ -284,12 +292,13 @@ const LandDetailScreen = observer(({route}: {route: {params: {landId: string}}})
       default:
         break;
     }
+    const landManageInfo = landInfoList.find(item => item.id === id);
     setIsShowLandManagePopup(false);
     closeLandDetailsPopup();
     webViewRef.current?.postMessage(
       JSON.stringify({
         type: "REMOVE_SPECIFY_LAND",
-        data: landInfo,
+        data: landManageInfo,
       }),
     );
   };
@@ -311,6 +320,23 @@ const LandDetailScreen = observer(({route}: {route: {params: {landId: string}}})
     setIsShowLandManagePopup(false);
   };
 
+  // 获取合并地块列表
+  const getMergeLandListData = async (id: string): Promise<void> => {
+    const {data} = await getMergeLandList(id);
+    console.log("获取合并地块列表", data);
+    if (!data || !data[0]) {
+      showCustomToast("error", "合并地块列表为空");
+      return;
+    }
+    setLandInfoList(data as unknown as LandDetailInfo[]);
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "DRAW_ENCLOSURE_LAND",
+        data,
+      }),
+    );
+  };
+
   // 获取地块详情数据
   const getLandDetailInfoData = async (id: string): Promise<void> => {
     const {data} = await getLandDetailsInfo(id);
@@ -327,13 +353,9 @@ const LandDetailScreen = observer(({route}: {route: {params: {landId: string}}})
     } else {
       await getContractDetail(id as string);
     }
+    // 隐藏加载弹窗
+    setLoading(false);
     setShowLandDetailsPopup(true);
-    webViewRef.current?.postMessage(
-      JSON.stringify({
-        type: "DRAW_LAND_DETAIL",
-        data: data[0],
-      }),
-    );
   };
 
   // 获取合同详细信息
@@ -368,9 +390,13 @@ const LandDetailScreen = observer(({route}: {route: {params: {landId: string}}})
       case "WEBVIEW_READY":
         setIsWebViewReady(true);
         break;
-      // 点击地块
+      // 点击多边形
       case "POLYGON_CLICK":
-        setShowLandDetailsPopup(true);
+        // 显示加载弹窗
+        setLoading(true);
+        console.log("点击多边形", data.id);
+        setLandId(data.id as string);
+        await getLandDetailInfoData(data.id as string);
         break;
       // 控制台日志
       case "WEBVIEW_CONSOLE_LOG":
@@ -398,7 +424,7 @@ const LandDetailScreen = observer(({route}: {route: {params: {landId: string}}})
             <Image source={require("@/assets/images/common/icon-back-radius.png")} style={styles.iconImage} />
           </TouchableOpacity>
 
-          <Text style={styles.title}>地块详情</Text>
+          <Text style={styles.title}>查看合并地块</Text>
 
           <View style={styles.iconWrapper} />
         </View>
@@ -446,6 +472,7 @@ const LandDetailScreen = observer(({route}: {route: {params: {landId: string}}})
           <LandDetailsPopup
             onClose={() => closeLandDetailsPopup()}
             onBack={() => closeLandDetailsPopup()}
+            onFindPoint={onFindPoint}
             onLandManage={onLandManage}
             landInfo={landInfo as unknown as LandDetailInfo}
             contractDetail={contractDetail as unknown as ContractDetail}
@@ -457,11 +484,14 @@ const LandDetailScreen = observer(({route}: {route: {params: {landId: string}}})
           <LandManagePopup
             onClosePopup={closeLandManagePopup}
             onEditLandName={onEditLandName}
+            mergeLandId={route.params.landId}
             landInfo={landInfo as unknown as LandDetailInfo}
           />
         )}
         {/* 地块名称编辑弹窗 */}
         {isShowEditLandNamePopup && <EditLandNamePopup onClose={closeEditLandNamePopup} id={landId} initialName={landName} />}
+        {/* 自定义加载弹窗 */}
+        <CustomLoading visible={loading} text="地块详情加载中..." />
       </View>
     </View>
   );
@@ -516,4 +546,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LandDetailScreen;
+export default MergeLandScreen;

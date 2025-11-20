@@ -3,10 +3,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type UpdateState = {
   isUpdateLand: boolean; // 是否需要更新地块
+  isUpdateLandDetail: boolean; // 是否需要更新地块详情
 };
 
 class UpdateStore {
   isUpdateLand: boolean = false; // 是否需要更新地块
+  isUpdateLandDetail: boolean = false; // 是否需要更新地块详情
 
   constructor() {
     makeAutoObservable(this);
@@ -16,6 +18,12 @@ class UpdateStore {
   // 设置是否需要更新地块
   setIsUpdateLand(isUpdateLand: boolean) {
     this.isUpdateLand = isUpdateLand;
+    this.persist();
+  }
+
+  // 设置是否需要更新地块
+  setIsUpdateLandDetail(isUpdateLandDetail: boolean) {
+    this.isUpdateLandDetail = isUpdateLandDetail;
     this.persist();
   }
 

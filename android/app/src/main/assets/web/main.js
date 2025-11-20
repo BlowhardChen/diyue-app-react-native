@@ -94,13 +94,21 @@
               case "UPDATE_ALL_LAND_SELECTION":
                   PolygonModule?.setAllSelectPolygonActive(map, data.data);
               break;
-              // 绘制合并
+              // 绘制合并地块
               case "DRAW_MERGE_LAND":
                   WebBridge.postMessage(JSON.stringify({
                       type: "WEBVIEW_CONSOLE_LOG",
                       data: data.data,
                   }));
                   PolygonModule?.drawMergeLandPolygon(map, data.data);
+              break;
+              // 移除合并地块
+              case "REMOVE_MERGE_LAND":
+                  PolygonModule?.removeMergeLandPolygon(map);
+              break;
+              // 移除所有地块多边形
+              case "REMOVE_ALL_LAND_POLYGON":
+                  PolygonModule?.removeLandPolygon(map);
                 break;
               default:
                   WebBridge.postMessage("未处理的消息类型:" + data.type);

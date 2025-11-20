@@ -5,15 +5,11 @@ import LandListItem from "@/components/land/LandListItem";
 import FilterPopup from "@/components/land/FilterPopup";
 import {LandListModelStyles} from "@/components/land/styles/LandListModel";
 import {LandListData} from "@/types/land";
-import {useNavigation} from "@react-navigation/native";
-import {StackNavigationProp} from "@react-navigation/stack";
+import {updateStore} from "@/stores/updateStore";
 
 const {height: screenHeight} = Dimensions.get("window");
 
-type StackParamList = {};
-
 const LandListModel = () => {
-  const navigation = useNavigation<StackNavigationProp<StackParamList>>();
   const [searchWord, setSearchWord] = useState<string>("");
   const [LandListInfo, setLandListInfo] = useState<LandListData[] | []>([]);
   const [areaAmount, setAreaAmount] = useState<number>(0);
@@ -58,7 +54,7 @@ const LandListModel = () => {
 
   useEffect(() => {
     getLandInfoList({});
-  }, [getLandInfoList]);
+  }, [getLandInfoList, updateStore.isUpdateLand, updateStore.isUpdateLandDetail]);
 
   return (
     <View style={LandListModelStyles.container}>

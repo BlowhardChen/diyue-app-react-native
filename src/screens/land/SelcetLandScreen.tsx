@@ -46,6 +46,8 @@ const SelectLandScreen = observer(({route}: {route: {params: {type: string}}}) =
   const [landListInfo, setLandListInfo] = useState<landListInfoItem[] | []>([]);
   const [operationVisible, setOperationVisible] = useState(false);
   const [selectedLandInfo, setSelectedLandInfo] = useState<landListInfoItem[] | []>([]);
+  const [mergeCoordinates, setMergeCoordinates] = useState<{lat: number; lng: number}[]>([]);
+  const [mergeArea, setMergeArea] = useState(0);
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -385,7 +387,7 @@ const SelectLandScreen = observer(({route}: {route: {params: {type: string}}}) =
     switch (route.params.type) {
       case "merge":
         // 移除选中地块
-        removeSelectedLands();
+        removeSelectedLands(selectedLandInfo);
         // 绘制合并地块
         webViewRef.current?.postMessage(
           JSON.stringify({
@@ -401,9 +403,10 @@ const SelectLandScreen = observer(({route}: {route: {params: {type: string}}}) =
   };
 
   // 移除选中地块
-  const removeSelectedLands = () => {
-    console.log("移除选中地块:", selectedLandInfo);
-    selectedLandInfo.forEach(item => {
+  const removeSelectedLands = (selectedLands?: landListInfoItem[]) => {
+    console.log("移除选中地块:", selectedLands);
+    if (!selectedLands) return;
+    selectedLands.forEach(item => {
       webViewRef.current?.postMessage(
         JSON.stringify({
           type: "REMOVE_SPECIFY_LAND",
@@ -414,9 +417,23 @@ const SelectLandScreen = observer(({route}: {route: {params: {type: string}}}) =
   };
 
   // 地块操作成功回调
-  const handleOperationSuccess = (type: string) => {
+  const handleOperationSuccess = (type: string, selectedLands?: landListInfoItem[]) => {
+    setOperationVisible(false);
     showCustomToast("success", `${type === "merge" ? "合并" : "转移"}地块成功`);
-    getLandInfoData();
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "REMOVE_MERGE_LAND",
+      }),
+    );
+    if (type === "transfer") {
+      removeSelectedLands(selectedLands);
+    }
+  };
+
+  // 地块操作失败回调
+  const handleOperationError = (type: string) => {
+    setOperationVisible(false);
+    showCustomToast("error", `${type === "merge" ? "合并" : "转移"}地块失败，请稍后重试`);
   };
 
   // 获取地块数据
@@ -472,8 +489,14 @@ const SelectLandScreen = observer(({route}: {route: {params: {type: string}}}) =
         updateLocalSelectState(selectedLand);
         break;
       case "DRAW_MERGED_LAND_COORDINATES":
-        console.log("WEBVIEW_CONSOLE_LOG", data);
+        console.log("DRAW_MERGED_LAND_COORDINATES", data);
         setOperationVisible(true);
+        let coordinates: {lat: number; lng: number}[] = [];
+        if (data.mergeCoordinates) {
+          coordinates = data.mergeCoordinates.map(item => ({lat: item[1], lng: item[0]}));
+        }
+        setMergeCoordinates(coordinates || []);
+        setMergeArea(data.mergeArea || 0);
         break;
       // 控制台日志
       case "WEBVIEW_CONSOLE_LOG":
@@ -537,6 +560,18 @@ const SelectLandScreen = observer(({route}: {route: {params: {type: string}}}) =
             <Text style={EnclosureScreenStyles.copyrightText}>
               ©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471
             </Text>
+          </View>
+        </View>
+        {/* 地块类型图标 */}
+        <View style={EnclosureScreenStyles.landType}>
+          <View style={EnclosureScreenStyles.landTypeItem}>
+            <Image source={require("@/assets/images/home/icon-green.png")} style={EnclosureScreenStyles.icon} />
+            <Text style={EnclosureScreenStyles.text}>流转</Text>
+          </View>
+
+          <View style={EnclosureScreenStyles.landTypeItem}>
+            <Image source={require("@/assets/images/home/icon-blue.png")} style={EnclosureScreenStyles.icon} />
+            <Text style={EnclosureScreenStyles.text}>托管</Text>
           </View>
         </View>
         {/* 右侧控制按钮 */}
@@ -619,9 +654,12 @@ const SelectLandScreen = observer(({route}: {route: {params: {type: string}}}) =
         {/* 地块操作弹窗 */}
         {operationVisible && (
           <LandOperationPopup
-            selectedLands={landListInfo}
+            selectedLands={selectedLandInfo}
             operationType={route.params.type}
+            coordinates={mergeCoordinates}
+            acreageNum={mergeArea}
             onOperationSuccess={handleOperationSuccess}
+            onOperationError={handleOperationError}
             onClose={() => setOperationVisible(false)}
           />
         )}

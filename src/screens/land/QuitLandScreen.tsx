@@ -412,6 +412,18 @@ const QuitLandScreen = observer(() => {
             <Text style={styles.copyrightText}>©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471</Text>
           </View>
         </View>
+        {/* 地块类型图标 */}
+        <View style={styles.landType}>
+          <View style={styles.landTypeItem}>
+            <Image source={require("@/assets/images/home/icon-green.png")} style={styles.icon} />
+            <Text style={styles.text}>流转</Text>
+          </View>
+
+          <View style={styles.landTypeItem}>
+            <Image source={require("@/assets/images/home/icon-blue.png")} style={styles.icon} />
+            <Text style={styles.text}>托管</Text>
+          </View>
+        </View>
         {/* 右侧控制按钮 */}
         <View style={styles.rightControl}>
           <MapControlButton
@@ -486,6 +498,35 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     resizeMode: "contain",
+  },
+  landType: {
+    position: "absolute",
+    bottom: 60,
+    left: 16,
+    alignItems: "center",
+    justifyContent: "space-around",
+    width: 86,
+    height: 76,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 16 / 2,
+    shadowColor: "#000",
+    shadowOffset: {width: 0, height: 0},
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  landTypeItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  icon: {
+    width: 16,
+    height: 16,
+    marginRight: 6,
+  },
+  text: {
+    fontSize: 18,
+    color: "#fff",
   },
 });
 

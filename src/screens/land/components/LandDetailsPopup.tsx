@@ -19,24 +19,16 @@ interface Props {
   landOrderList?: LandOrderItem[];
   onClose: () => void;
   onBack: () => void;
-  onFindPoint: (id: string) => void;
   onLandManage: (info: LandDetailInfo) => void;
 }
 
 type LandStackParamList = {
   LandInfoEdit: {queryInfo: LandDetailInfo};
   AddDevice: undefined;
+  FindPoint: {landId: string};
 };
 
-const LandDetailsPopup: React.FC<Props> = ({
-  landInfo,
-  contractDetail,
-  landOrderList,
-  onClose,
-  onBack,
-  onFindPoint,
-  onLandManage,
-}) => {
+const LandDetailsPopup: React.FC<Props> = ({landInfo, contractDetail, landOrderList, onClose, onBack, onLandManage}) => {
   const navigation = useNavigation<StackNavigationProp<LandStackParamList>>();
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState("基础信息");
@@ -57,6 +49,7 @@ const LandDetailsPopup: React.FC<Props> = ({
     navigation.navigate("LandInfoEdit", {queryInfo: landInfo});
   };
 
+  // 地块管理弹窗
   const openLandManagePopup = (landInfo: LandDetailInfo) => {
     setIsExpanded(false);
     onLandManage(landInfo);
@@ -72,6 +65,11 @@ const LandDetailsPopup: React.FC<Props> = ({
   const callPhone = (tel?: string) => {
     if (!tel) return;
     Linking.openURL(`tel:${tel}`);
+  };
+
+  // 点回找
+  const onFindPoint = (landId: string) => {
+    navigation.navigate("FindPoint", {landId});
   };
 
   // 替换敏感信息中间字符为*

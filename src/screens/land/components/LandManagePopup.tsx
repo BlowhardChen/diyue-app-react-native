@@ -1,9 +1,10 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, Alert, ImageSourcePropType} from "react-native";
 import {NavigationProp, useNavigation} from "@react-navigation/native";
 import {deleteLand, quitLand, removeLand} from "@/services/land";
 import Popup from "@/components/common/Popup";
 import {showCustomToast} from "@/components/common/CustomToast";
+import {updateStore} from "@/stores/updateStore";
 
 const {width: screenWidth} = Dimensions.get("window");
 
@@ -15,21 +16,26 @@ interface ManageListType {
 
 interface LandManageProps {
   landInfo: any;
+  mergeLandId?: string;
   onClosePopup: (action?: string, id?: string) => void;
   onEditLandName: () => void;
 }
 
 type LandStackParamList = {
   QuitLand: undefined;
-  MergeLand: {id: string};
+  MergeLand: {landId: string};
   SelectLand: {type: string};
 };
 
-const LandManage: React.FC<LandManageProps> = ({landInfo, onClosePopup, onEditLandName}) => {
+const LandManage: React.FC<LandManageProps> = ({landInfo, mergeLandId, onClosePopup, onEditLandName}) => {
   const navigation = useNavigation<NavigationProp<LandStackParamList>>();
   const [isShowPopup, setIsShowPopup] = useState(false);
   const [msgText, setMsgText] = useState("");
   const [rightBtnText, setRightBtnText] = useState("");
+
+  useEffect(() => {
+    updateStore.setIsUpdateLand(false);
+  }, []);
 
   // 单个地块
   const singleLandManageList: ManageListType[] = [
@@ -124,8 +130,9 @@ const LandManage: React.FC<LandManageProps> = ({landInfo, onClosePopup, onEditLa
         closePopup();
         break;
       case "showMergeLand":
+        console.log("合并地块下单个地块", landInfo);
         closePopup();
-        navigation.navigate("MergeLand", {id: landInfo.id});
+        navigation.navigate("MergeLand", {landId: landInfo.id});
         break;
       case "editLandName":
         onEditLandName();
@@ -203,7 +210,7 @@ const LandManage: React.FC<LandManageProps> = ({landInfo, onClosePopup, onEditLa
     try {
       await deleteLand(landInfo.id);
       setIsShowPopup(false);
-      console.log("删除地块成功", landInfo.id);
+      updateStore.setIsUpdateLand(true);
       onClosePopup("delete", landInfo.id);
     } catch (error: any) {
       showCustomToast("error", error.data?.msg ?? "删除地块失败,请重试");
@@ -216,6 +223,7 @@ const LandManage: React.FC<LandManageProps> = ({landInfo, onClosePopup, onEditLa
     try {
       await quitLand({id: landInfo.id, type: landInfo.type});
       setIsShowPopup(false);
+      updateStore.setIsUpdateLand(true);
       onClosePopup("quit", landInfo.id);
     } catch (error: any) {
       showCustomToast("error", error.data?.msg ?? "退地块失败,请重试");
@@ -225,9 +233,11 @@ const LandManage: React.FC<LandManageProps> = ({landInfo, onClosePopup, onEditLa
 
   // 移出地块
   const removeLandFun = async () => {
+    console.log("移出地块", landInfo);
     try {
-      await removeLand({landId: landInfo.id, mergeLandId: landInfo.mergeLandId});
+      await removeLand({landId: landInfo.id, mergeLandId: mergeLandId as string});
       setIsShowPopup(false);
+      updateStore.setIsUpdateLand(true);
       onClosePopup("remove", landInfo.id);
     } catch (error: any) {
       showCustomToast("error", error.data?.msg ?? "移出地块失败,请重试");

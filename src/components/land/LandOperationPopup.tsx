@@ -13,8 +13,10 @@ interface landListInfoItem extends LandListData {
 interface MergeLandPopupProps {
   operationType: string;
   selectedLands: landListInfoItem[];
+  acreageNum: number;
   coordinates?: {lat: number; lng: number}[];
-  onOperationSuccess: (type: string) => void;
+  onOperationSuccess: (type: string, selectedLands?: landListInfoItem[]) => void;
+  onOperationError: (type: string) => void;
   onClose: () => void;
 }
 
@@ -22,27 +24,25 @@ const LandOperationPopup: React.FC<MergeLandPopupProps> = ({
   operationType,
   selectedLands,
   coordinates,
+  acreageNum,
   onOperationSuccess,
+  onOperationError,
   onClose,
 }) => {
   const [mergeLandName, setMergeLandName] = useState("");
   const [transferPersonMobile, setTransferPersonMobile] = useState("");
-  const selectedLandInfo = selectedLands.filter(item => item.isSelect).map(item => item);
-
+  console.log("selectedLands", selectedLands);
   useEffect(() => {
     updateStore.setIsUpdateLand(false);
   }, []);
 
-  console.log("selectedLandInfo", selectedLandInfo);
-
+  // 根据坐标获取地址
   const fetchAddress = async (coords: {lat: number; lng: number}[]) => {
     try {
-      console.log("coords", coords);
       const res = await locationToAddress({
         latitude: coords[0].lat.toString(),
         longitude: coords[0].lng.toString(),
       });
-      console.log("res", res);
       const {regeocode} = JSON.parse(res.data);
       return regeocode;
     } catch (error) {
@@ -68,11 +68,11 @@ const LandOperationPopup: React.FC<MergeLandPopupProps> = ({
       showCustomToast("error", "请输入合并后的地块名称");
       return;
     }
-    const {formatted_address, addressComponent} = await fetchAddress(selectedLandInfo[0].gpsList);
+    const {formatted_address, addressComponent} = await fetchAddress(selectedLands[0].gpsList);
     try {
       const params: MergeLandParams = {
         mergeLandName: trimmedName,
-        mergeAcreageNum: 0,
+        mergeAcreageNum: acreageNum,
         country: addressComponent?.country ?? "",
         province: addressComponent?.province ?? "",
         city: addressComponent?.city ?? "",
@@ -83,11 +83,12 @@ const LandOperationPopup: React.FC<MergeLandPopupProps> = ({
         list: coordinates as {lat: number; lng: number}[],
         landOrList: selectedLands.map(item => ({landId: item.id})),
       };
+      console.log("params", params);
       await mergeLand(params);
       updateStore.setIsUpdateLand(true);
       onOperationSuccess(operationType);
     } catch (error: any) {
-      showCustomToast("error", error.data?.msg || "合并地块失败，请稍后重试");
+      onOperationError(operationType);
     }
   };
 
@@ -105,9 +106,9 @@ const LandOperationPopup: React.FC<MergeLandPopupProps> = ({
       };
       await transferLand(params);
       updateStore.setIsUpdateLand(true);
-      onOperationSuccess(operationType);
+      onOperationSuccess(operationType, selectedLands);
     } catch (error: any) {
-      showCustomToast("error", error.data?.msg || "转移地块失败，请稍后重试");
+      onOperationError(operationType);
     }
   };
 
@@ -129,7 +130,7 @@ const LandOperationPopup: React.FC<MergeLandPopupProps> = ({
                   style={styles.formItemInput}
                   value={mergeLandName}
                   onChangeText={setMergeLandName}
-                  keyboardType="number-pad"
+                  keyboardType="default"
                   placeholder="请输入合并后的地块名称"
                   placeholderTextColor="#999"
                 />
@@ -143,7 +144,7 @@ const LandOperationPopup: React.FC<MergeLandPopupProps> = ({
                   style={styles.formItemInput}
                   value={transferPersonMobile}
                   onChangeText={setTransferPersonMobile}
-                  keyboardType="number-pad"
+                  keyboardType="default"
                   placeholder="请输入转移的手机号"
                   placeholderTextColor="#999"
                 />

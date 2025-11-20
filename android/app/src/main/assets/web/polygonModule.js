@@ -4,7 +4,6 @@ window.PolygonModule = (function () {
     let polygonFeature = null; // 当前多边形 Feature
     let polygonArea = 0;       // 当前多边形面积（亩）
     let polygonFeatureList = []; // 多边形 Feature 列表
-    let currentDrawPolygons = []; // 保存当前绘制多边形
     let lineFeatureList = []; // 边长文本Feature列表
     let mergedPolygonFeature = null; // 合并后的多边形 Feature
     let mergePolygonLayer = null; // 合并后的多边形图层
@@ -108,7 +107,6 @@ window.PolygonModule = (function () {
      */
     function drawLandPolygon(map, data) {
         if (!data || !Array.isArray(data.gpsList) || data.gpsList.length < 3) {
-            WebBridge.postError('无效的地块数据');
             return null;
         }
 
@@ -228,6 +226,8 @@ window.PolygonModule = (function () {
      * @param {ol.Map} map
      */
     function removeLandPolygon(map) {
+        clearAllSideLengthFeatures()
+        polygonFeature = null;
         if (polygonFeatureList.length) {
             polygonFeatureList.forEach((item) => {
                 map.removeLayer(item.layer);
@@ -302,15 +302,12 @@ window.PolygonModule = (function () {
     }
 
     // 继续圈地时仅清除当前多边形，保留已经绘制的多边形
-    function clearCurrentPolygon(map) {
+    function clearCurrentPolygon() {
         if (polygonLayer) {
-            currentDrawPolygons.push(polygonLayer);
-            map.removeLayer(polygonLayer);
             polygonLayer = null;
             polygonFeature = null;
             polygonArea = 0;
         }
-        currentDrawPolygons.forEach(polygon => { map.addLayer(polygon); });
     }
 
     // 多边形和公共点点击事件
@@ -421,6 +418,10 @@ window.PolygonModule = (function () {
 
     // 绘制地块详情
     function drawLandDetailPolygon(map, data) {
+        // 先移除已存在的地块多边形
+        if(polygonFeature && polygonLayer){
+            removeLandPolygon(map);
+        }
         let coordsLonLat = data.list ? data.list : [];
         if (!map || !Array.isArray(coordsLonLat) || coordsLonLat.length < 3) {
             WebBridge.postError("多边形坐标无效");
@@ -475,8 +476,40 @@ window.PolygonModule = (function () {
             }),
             zIndex: 99,
         });
+        const coordinates = polygon.getCoordinates()[0];
+        // 计算每条边的长度并显示
+        for (let i = 0; i < coordinates.length - 1; i++) {
+                let start = coordinates[i];
+                let end = coordinates[i + 1]; // 不需要模运算，因为最后一个点与第一个点相同
+                let line = new ol.geom.LineString([start, end]);
+                let length = ol.sphere.getLength(line);
+                let lineFeature = new ol.Feature({ geometry: line });
+                        
+                lineFeature.setStyle(
+                    new ol.style.Style({
+                        text: new ol.style.Text({
+                                text: length.toFixed(2) + ' m',
+                                font: '16px Arial',
+                                textAlign: 'center',
+                                textBaseline: 'middle',
+                                placement: 'line',
+                                offsetY: -15,
+                                fill: new ol.style.Fill({ color: '#FFFF00' }),
+                                stroke: new ol.style.Stroke({ color: '#000000', width: 2 }),
+                        }),
+                    })
+                );
+                        
+                lineFeatureList.push(lineFeature);
+                polygonVectorLayer.getSource().addFeature(lineFeature);
+        }
+
 
         map.addLayer(polygonVectorLayer);
+        polygonFeatureList.push({
+            layer: polygonVectorLayer,
+            feature: polygonFeature,
+        });
         // 获取多边形的边界框并居中显示
         let polygonExtent = polygonFeature.getGeometry().getExtent();
         let polygonCenter = ol.extent.getCenter(polygonExtent);
@@ -708,7 +741,7 @@ window.PolygonModule = (function () {
      * 清除合并地块的凸包多边形
      * @param {ol.Map} map 
      */
-    function clearMergeLandPolygon(map) {
+    function removeMergeLandPolygon(map) {
         if (mergePolygonLayer) {
             map.removeLayer(mergePolygonLayer);
             mergePolygonLayer = null;
@@ -732,6 +765,6 @@ window.PolygonModule = (function () {
         setSelectPolygonActive,
         setAllSelectPolygonActive,
         drawMergeLandPolygon,
-        clearMergeLandPolygon
+        removeMergeLandPolygon
     };
 })();

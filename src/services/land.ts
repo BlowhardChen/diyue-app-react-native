@@ -114,7 +114,8 @@ export const quitLand = (data: {id: string; type: string}) => {
 /**
  * 首页-查询合并地块下单个地块列表
  */
-export const getMergeLandlist = (id: string) => {
+export const getMergeLandList = (id: string) => {
+  console.log("请求函数id:", id);
   return http<any>({
     method: "POST",
     url: "/app/land/queryMergeAndLandList",

@@ -13,6 +13,8 @@ export interface MapWebviewMessage {
     lat: number;
   };
   isSelect?: boolean;
+  mergeCoordinates?: number[][];
+  mergeArea?: number;
 }
 
 // 保存地块参数

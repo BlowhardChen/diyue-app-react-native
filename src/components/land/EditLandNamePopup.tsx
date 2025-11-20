@@ -1,69 +1,172 @@
 import React, {useState, useEffect} from "react";
-import {TextInput, StyleSheet, View} from "react-native";
-import Popup from "../common/Popup"; // 引入你项目中的基础 Popup
+import {TextInput, StyleSheet, View, Text, Modal, TouchableOpacity} from "react-native";
+import {Global} from "@/styles/global";
+import {showCustomToast} from "../common/CustomToast";
+import {editMergeLand} from "@/services/land";
+import {updateStore} from "@/stores/updateStore";
 
 interface EditLandNamePopupProps {
-  visible: boolean;
+  id: string;
   initialName?: string;
-  onSave: (newName: string) => Promise<void>;
-  onClose: () => void;
+  onClose: (status?: string) => void;
 }
 
-const EditLandNamePopup: React.FC<EditLandNamePopupProps> = ({visible, initialName = "", onSave, onClose}) => {
+const EditLandNamePopup: React.FC<EditLandNamePopupProps> = ({id, initialName = "", onClose}) => {
   const [landName, setLandName] = useState("");
+  console.log("initialName", initialName);
+  console.log("id", id);
 
   // 当初始值变化或弹窗打开时，更新输入框
   useEffect(() => {
-    if (visible) {
-      setLandName(initialName);
-    }
-  }, [initialName, visible]);
+    setLandName(initialName);
+  }, [initialName]);
 
+  useEffect(() => {
+    updateStore.setIsUpdateLandDetail(false);
+  }, []);
+
+  // 保存地块名称
   const handleSave = async () => {
     const trimmedName = landName.trim();
     if (!trimmedName) {
-      // 这里可以使用你项目中的 Toast 组件提示用户
-      console.warn("地块名称不能为空");
+      showCustomToast("error", "地块名称不能为空");
       return;
     }
-    await onSave(trimmedName);
-    // onSave 成功后，通常由父组件调用 onClose
+    try {
+      await editMergeLand({
+        id,
+        mergeLandName: trimmedName,
+      });
+      updateStore.setIsUpdateLandDetail(true);
+      onClose("success");
+    } catch (error) {
+      onClose("error");
+    }
   };
 
   return (
-    <Popup
-      visible={visible}
-      title="修改地块名称"
-      leftBtnText="取消"
-      rightBtnText="确定"
-      onLeftBtn={onClose}
-      onRightBtn={handleSave}>
-      <View style={styles.container}>
-        <TextInput
-          style={styles.input}
-          placeholder="请输入新的地块名称"
-          value={landName}
-          onChangeText={setLandName}
-          autoFocus={true}
-        />
+    <Modal transparent animationType="fade">
+      <View style={styles.popupBox}>
+        <View style={styles.popupContent}>
+          <View style={styles.popupContentTop}>
+            <View style={styles.title}>
+              <Text style={styles.titleText}>编辑地块名称</Text>
+            </View>
+          </View>
+
+          <View style={styles.form}>
+            <View style={styles.formItem}>
+              <TextInput
+                style={styles.formItemInput}
+                value={landName}
+                onChangeText={setLandName}
+                keyboardType="default"
+                placeholder="请输入地块名称"
+                placeholderTextColor="#999"
+              />
+            </View>
+          </View>
+
+          {/* 分割线 */}
+          <View style={styles.divider} />
+
+          <View style={styles.popupBottom}>
+            <TouchableOpacity style={styles.btnLeft} onPress={() => onClose()}>
+              <Text style={styles.leftText}>取消</Text>
+            </TouchableOpacity>
+            {/* 按钮之间的分割线 */}
+            <View style={styles.cross} />
+            <TouchableOpacity style={styles.btnRight} onPress={handleSave}>
+              <Text style={styles.rightText}>保存</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
-    </Popup>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+  popupBox: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  input: {
+  popupContent: {
+    width: 311,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    overflow: "hidden",
+    elevation: 4,
+  },
+  popupContentTop: {
+    paddingHorizontal: 24,
+    marginTop: 10,
+  },
+  title: {
+    marginTop: 12,
+  },
+  titleText: {
+    fontSize: 20,
+    fontWeight: "500",
+    color: "#000",
+  },
+  form: {
+    padding: 24,
+    paddingTop: 18,
+  },
+  formItem: {
     width: "100%",
-    height: 44,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    fontSize: 16,
+    height: 52,
+    paddingHorizontal: 14,
+    marginBottom: 22,
+    backgroundColor: "#f4f4f6",
+    borderRadius: 8,
+  },
+  formItemInput: {
+    flex: 1,
+    height: "100%",
+    paddingHorizontal: 10,
+    fontSize: 18,
+    fontWeight: "400",
+    color: Global.colors.textDark,
+  },
+  divider: {
+    width: "100%",
+    height: 1,
+    backgroundColor: "#ededed",
+  },
+  popupBottom: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 51,
+    width: "100%",
+  },
+  btnLeft: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  btnRight: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  leftText: {
+    fontSize: 20,
+    fontWeight: "500",
+    color: "#000",
+  },
+  rightText: {
+    fontSize: 20,
+    fontWeight: "500",
+    color: Global.colors.primary,
+  },
+  cross: {
+    width: 1,
+    height: 24,
+    backgroundColor: "#ededed",
   },
 });
 

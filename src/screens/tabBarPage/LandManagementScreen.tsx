@@ -82,14 +82,14 @@ const LandManagementScreen = observer(() => {
   // 获取地块数据
   useEffect(() => {
     getLandInfoList();
-  }, [updateStore.isUpdateLand]);
+  }, [updateStore.isUpdateLand, updateStore.isUpdateLandDetail]);
 
   // 当页面聚焦且弹窗显示时，重新请求接口
   useEffect(() => {
     if (isFocused && showLandDetailsPopup) {
       getLandDetailInfoData(landId);
     }
-  }, [isFocused]);
+  }, [isFocused, updateStore.isUpdateLand, updateStore.isUpdateLandDetail]);
 
   // 当WebView准备好时，应用保存的地图类型
   useEffect(() => {
@@ -114,6 +114,9 @@ const LandManagementScreen = observer(() => {
       setIsMapType(true);
     } else {
       setIsMapType(false);
+    }
+    if (showLandDetailsPopup) {
+      closeLandDetailsPopup();
     }
   };
 
@@ -383,9 +386,6 @@ const LandManagementScreen = observer(() => {
     }
   };
 
-  // 点回找
-  const onFindPoint = () => {};
-
   // 地块管理
   const onLandManage = (landInfo: any) => {
     setLandInfo(landInfo);
@@ -403,6 +403,8 @@ const LandManagementScreen = observer(() => {
         break;
       case "quit":
         showCustomToast("success", "退地块成功");
+        break;
+      default:
         break;
     }
     const landManageInfo = landInfoList.find(item => item.id === id);
@@ -435,6 +437,10 @@ const LandManagementScreen = observer(() => {
   // 获取地块详情数据
   const getLandDetailInfoData = async (id: string): Promise<void> => {
     const {data} = await getLandDetailsInfo(id);
+    if (!data || !data[0]) {
+      showCustomToast("error", "地块详情数据为空");
+      return;
+    }
     setLandInfo(data[0]);
     if (data[0].landType === "2") {
       await getTrusteeshipLandOrderList(id);
@@ -616,7 +622,6 @@ const LandManagementScreen = observer(() => {
         <LandDetailsPopup
           onClose={() => closeLandDetailsPopup()}
           onBack={() => closeLandDetailsPopup()}
-          onFindPoint={onFindPoint}
           onLandManage={onLandManage}
           landInfo={landInfo as unknown as LandDetailInfo}
           contractDetail={contractDetail as unknown as ContractDetail}
