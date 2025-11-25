@@ -1,42 +1,28 @@
 // 点回找
-import {View, Text, TouchableOpacity, Image, Platform, PermissionsAndroid, ToastAndroid} from "react-native";
-import {EnclosureScreenStyles} from "./styles/EnclosureScreen";
-import {useEffect, useRef, useState} from "react";
-import {observer} from "mobx-react-lite";
-import {mapStore} from "@/stores/mapStore";
-import MapControlButton from "@/components/land/MapControlButton";
-import MapSwitcher from "@/components/common/MapSwitcher";
 import PermissionPopup from "@/components/common/PermissionPopup";
-import WebView from "react-native-webview";
+import {mapStore} from "@/stores/mapStore";
+import {requestLocationPermission} from "@/utils/checkPermissions";
+import {useEffect, useRef, useState} from "react";
+import {View, Image, Text, TouchableOpacity, PermissionsAndroid} from "react-native";
 import Geolocation from "@react-native-community/geolocation";
-import LandEnclosureCustomNavBar from "@/components/land/LandEnclosureCustomNavBar";
-import useOptimizedHeading from "@/hooks/useOptimizedHeading";
-import KeepAwake from "react-native-keep-awake";
-import {useNavigation, useFocusEffect} from "@react-navigation/native";
-import {BackHandler} from "react-native";
-import {checkLocationPermission, requestLocationPermission} from "@/utils/checkPermissions";
 import {showCustomToast} from "@/components/common/CustomToast";
-import {MapWebviewMessage, SaveLandResponse} from "@/types/land";
-import {StackNavigationProp} from "@react-navigation/stack";
-import {getLandDetailsInfo} from "@/services/land";
+import WebView from "react-native-webview";
+import {MapWebviewMessage} from "@/types/land";
+import {observer} from "mobx-react-lite";
+import KeepAwake from "react-native-keep-awake";
+import {useNavigation} from "@react-navigation/native";
+import {deviceStore} from "@/stores/deviceStore";
+import {FindPointScreenStyles} from "./styles/FindPointScreen";
 
-type EnclosureStackParamList = {
-  LandInfoEdit: {navigation: string; queryInfo: SaveLandResponse};
-};
-
-const FindPointScreen = observer(({route}: {route: {params: {landId: string}}}) => {
-  const navigation = useNavigation<StackNavigationProp<EnclosureStackParamList>>();
-  const [dotTotal, setDotTotal] = useState(0);
-  const [showMapSwitcher, setShowMapSwitcher] = useState(false);
-  const [showPermissionPopup, setShowPermissionPopup] = useState(false);
-  const webViewRef = useRef<WebView>(null);
-  const [isWebViewReady, setIsWebViewReady] = useState(false);
-  const [showBackPopup, setShowBackPopup] = useState(false);
-  const [hasLocationPermission, setHasLocationPermission] = useState(false);
-  const beforeRemoveRef = useRef<any>(null);
+const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number; lon: number}}}}) => {
   const watchIdRef = useRef<number | null>(null);
+  const webViewRef = useRef<WebView>(null);
   const isFirstLocationRef = useRef(true);
-  const [landInfo, setLandInfo] = useState<SaveLandResponse>();
+  const navigation = useNavigation();
+  const [isWebViewReady, setIsWebViewReady] = useState(false);
+  const [showPermissionPopup, setShowPermissionPopup] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState({lon: 0, lat: 0});
+  const [isNavigationPolylineComplete, setIsNavigationPolylineComplete] = useState(false);
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -46,19 +32,17 @@ const FindPointScreen = observer(({route}: {route: {params: {landId: string}}}) 
     };
   }, []);
 
-  // 初始化定位服务
   useEffect(() => {
-    getLocationService();
-  }, []);
+    // 检查权限状态，如果已授予且 WebView 准备好，则启动定位
+    const checkPermissionAndStart = async () => {
+      const granted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
+      if (granted && isWebViewReady) {
+        startPositionWatch();
+      }
+    };
 
-  // 初始化定位权限
-  useEffect(() => {
-    initLocationPermission();
-  }, []);
-
-  useEffect(() => {
-    getFindLandInfoData();
-  }, []);
+    checkPermissionAndStart();
+  }, [isWebViewReady]);
 
   // 当WebView准备好时，应用保存的地图类型
   useEffect(() => {
@@ -67,19 +51,28 @@ const FindPointScreen = observer(({route}: {route: {params: {landId: string}}}) 
     }
   }, [isWebViewReady, mapStore.mapType]);
 
-  // 初始化定位权限和地图图层
-  const initLocationPermission = async () => {
-    const granted = await checkLocationPermission();
-    if (granted) {
-      setHasLocationPermission(true);
-      // 如果 WebView 已经准备好，直接启动
-      if (isWebViewReady) {
-        startPositionWatch();
+  useEffect(() => {
+    if (!isNavigationPolylineComplete) return;
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "UPDATE_FIND_NAVIGATION_POLYLINE",
+        data: {
+          locationPoint: currentLocation,
+          findPoint: route.params.point,
+        },
+      }),
+    );
+  }, [currentLocation]);
+
+  useEffect(() => {
+    // 当组件卸载时，清除定位监听
+    return () => {
+      if (watchIdRef.current !== null) {
+        Geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
       }
-    } else {
-      setShowPermissionPopup(true);
-    }
-  };
+    };
+  }, []);
 
   // 应用保存的地图类型
   const applySavedMapType = () => {
@@ -95,46 +88,6 @@ const FindPointScreen = observer(({route}: {route: {params: {landId: string}}}) 
         break;
       default:
         switchMapLayer("TIANDITU_SAT");
-    }
-  };
-
-  // 切换地图图层
-  const onToggleMapLayer = () => {
-    setShowMapSwitcher(true);
-  };
-
-  // 处理地图选择
-  const handleSelectMap = ({type, layerUrl}: {type: string; layerUrl: string}) => {
-    // 保存选择的地图类型到mapStore
-    mapStore.setMapType(type);
-    if (type === "自定义" && layerUrl) {
-      mapStore.setCustomMapType(layerUrl);
-    }
-
-    // 应用选择的地图
-    handleSelectMapLayer(type, layerUrl);
-
-    setShowMapSwitcher(false);
-  };
-
-  // 处理地图图层选择逻辑
-  const handleSelectMapLayer = (type: string, layerUrl: string) => {
-    switch (type) {
-      case "标准地图":
-        switchMapLayer("TIANDITU_ELEC");
-        break;
-      case "卫星地图":
-        switchMapLayer("TIANDITU_SAT");
-        break;
-      case "自定义":
-        if (layerUrl) {
-          switchMapLayer("CUSTOM", layerUrl);
-        } else {
-          showCustomToast("error", "请输入有效的自定义图层URL");
-        }
-        break;
-      default:
-        break;
     }
   };
 
@@ -155,16 +108,6 @@ const FindPointScreen = observer(({route}: {route: {params: {landId: string}}}) 
     webViewRef.current?.postMessage(JSON.stringify(message));
   };
 
-  // 获取定位服务
-  const getLocationService = async () => {
-    const hasPermission = await checkLocationPermission();
-    if (hasPermission) {
-      locateDevicePosition(true);
-    } else {
-      getLocationByIP();
-    }
-  };
-
   // 通过IP定位
   const getLocationByIP = async () => {
     try {
@@ -177,34 +120,6 @@ const FindPointScreen = observer(({route}: {route: {params: {landId: string}}}) 
     } catch (error) {
       showCustomToast("error", "IP定位失败");
     }
-  };
-
-  // 定位位置
-  const onLocatePosition = async () => {
-    const hasPermission = await checkLocationPermission();
-    if (hasPermission) {
-      locateDevicePosition(true);
-    } else {
-      setShowPermissionPopup(true);
-    }
-  };
-
-  // 同意定位权限
-  const handleAcceptPermission = async () => {
-    const granted = await requestLocationPermission();
-    if (granted) {
-      setHasLocationPermission(true);
-      setShowPermissionPopup(false);
-      if (isWebViewReady) {
-        startPositionWatch();
-      }
-    }
-  };
-
-  // 拒绝定位权限
-  const handleRejectPermission = () => {
-    getLocationByIP();
-    setShowPermissionPopup(false);
   };
 
   // 定位设备位置
@@ -231,6 +146,7 @@ const FindPointScreen = observer(({route}: {route: {params: {landId: string}}}) 
     Geolocation.getCurrentPosition(
       pos => {
         const {latitude, longitude} = pos.coords;
+        setCurrentLocation({lon: longitude, lat: latitude});
         webViewRef.current?.postMessage(
           JSON.stringify({
             type: "SET_ICON_LOCATION",
@@ -247,6 +163,7 @@ const FindPointScreen = observer(({route}: {route: {params: {landId: string}}}) 
       pos => {
         const {latitude, longitude} = pos.coords;
         console.log("位置更新:", longitude, latitude);
+        setCurrentLocation({lon: longitude, lat: latitude});
         webViewRef.current?.postMessage(
           JSON.stringify({
             type: "UPDATE_ICON_LOCATION",
@@ -278,15 +195,31 @@ const FindPointScreen = observer(({route}: {route: {params: {landId: string}}}) 
     }
   };
 
-  // 获取回找地块数据
-  const getFindLandInfoData = async () => {
-    const {data} = await getLandDetailsInfo(route.params.landId);
-    if (!data || !data[0]) {
-      showCustomToast("error", "地块数据为空");
-      return;
+  // 同意定位权限
+  const handleAcceptPermission = async () => {
+    const granted = await requestLocationPermission();
+    if (granted) {
+      setShowPermissionPopup(false);
+      if (isWebViewReady) {
+        startPositionWatch();
+      }
     }
-    setLandInfo(data[0]);
-    webViewRef.current?.postMessage(JSON.stringify({type: "DRAW_FIND_LAND", data: data[0]}));
+  };
+
+  // 拒绝定位权限
+  const handleRejectPermission = () => {
+    getLocationByIP();
+    setShowPermissionPopup(false);
+  };
+
+  // 返回上一页
+  const onBack = () => {
+    navigation.goBack();
+  };
+
+  // 连接设备
+  const handleConnectDevice = () => {
+    navigation.navigate("AddDevice" as never);
   };
 
   // 接收WebView消息
@@ -308,9 +241,20 @@ const FindPointScreen = observer(({route}: {route: {params: {landId: string}}}) 
       // 地图准备完成
       case "WEBVIEW_READY":
         setIsWebViewReady(true);
-        if (hasLocationPermission) {
-          startPositionWatch();
-        }
+        break;
+      case "WEBVIEW_LOCATE_SELF":
+        webViewRef.current?.postMessage(
+          JSON.stringify({
+            type: "DRAW_FIND_NAVIGATION_POLYLINE",
+            data: {
+              locationPoint: currentLocation,
+              findPoint: {lon: Number(route.params.point.lon), lat: Number(route.params.point.lat)},
+            },
+          }),
+        );
+        break;
+      case "WEBVIEW_NAVIGATION_POLYLINE_COMPLETE":
+        setIsNavigationPolylineComplete(true);
         break;
       // 控制台日志
       case "WEBVIEW_CONSOLE_LOG":
@@ -321,41 +265,8 @@ const FindPointScreen = observer(({route}: {route: {params: {landId: string}}}) 
     }
   };
 
-  // 监听朝向变化，发送给WebView
-  useOptimizedHeading(heading => {
-    webViewRef.current?.postMessage(
-      JSON.stringify({
-        type: "UPDATE_MARKER_ROTATION",
-        rotation: heading,
-      }),
-    );
-  });
-
-  useFocusEffect(() => {
-    beforeRemoveRef.current = navigation.addListener("beforeRemove", e => {
-      e.preventDefault();
-      if (!showBackPopup) {
-        setShowBackPopup(true);
-      }
-    });
-
-    // Android 实体返回键监听
-    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (!showBackPopup) {
-        setShowBackPopup(true);
-      }
-      return true;
-    });
-
-    return () => {
-      beforeRemoveRef.current();
-      backHandler.remove();
-      stopPositionWatch();
-    };
-  });
-
   return (
-    <View style={EnclosureScreenStyles.container}>
+    <View style={FindPointScreenStyles.container}>
       {/* 权限弹窗 */}
       <PermissionPopup
         visible={showPermissionPopup}
@@ -364,20 +275,9 @@ const FindPointScreen = observer(({route}: {route: {params: {landId: string}}}) 
         title={"开启位置权限"}
         message={"获取位置权限将用于获取当前定位与记录轨迹"}
       />
-      {/* 顶部导航 */}
-      <LandEnclosureCustomNavBar
-        navTitle="点回找"
-        showRightIcon={true}
-        onBackView={() => {
-          setShowBackPopup(true);
-        }}
-      />
       {/* 地图 */}
-      <View style={EnclosureScreenStyles.mapBox}>
-        <View style={EnclosureScreenStyles.popupTips}>
-          <Text style={EnclosureScreenStyles.popupTipsText}>点击任何一个点位即可进行回找</Text>
-        </View>
-        <View style={EnclosureScreenStyles.map} collapsable={false}>
+      <View style={FindPointScreenStyles.mapBox}>
+        <View style={FindPointScreenStyles.map} collapsable={false}>
           <WebView
             ref={webViewRef}
             source={{uri: "file:///android_asset/web/map.html"}}
@@ -390,31 +290,52 @@ const FindPointScreen = observer(({route}: {route: {params: {landId: string}}}) 
             onMessage={receiveWebviewMessage}
             style={{flex: 1}}
           />
-          <View style={EnclosureScreenStyles.mapCopyright}>
-            <Image source={require("../../assets/images/home/icon-td.png")} style={EnclosureScreenStyles.iconImg} />
-            <Text style={EnclosureScreenStyles.copyrightText}>
+          <View style={FindPointScreenStyles.mapCopyright}>
+            <Image source={require("../../assets/images/home/icon-td.png")} style={FindPointScreenStyles.iconImg} />
+            <Text style={FindPointScreenStyles.copyrightText}>
               ©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471
             </Text>
           </View>
         </View>
-        {/* 右侧控制按钮 */}
-        <View style={EnclosureScreenStyles.rightControl}>
-          <MapControlButton
-            iconUrl={require("../../assets/images/home/icon-layer.png")}
-            iconName="图层"
-            onPress={onToggleMapLayer}
-          />
+      </View>
+      {/* 设备连接状态弹窗 */}
+      <View style={FindPointScreenStyles.devicePopupContainer}>
+        <View style={FindPointScreenStyles.deviceHeader}>
+          <TouchableOpacity style={FindPointScreenStyles.headerBack} onPress={onBack}>
+            <Image source={require("@/assets/images/common/icon-back.png")} style={FindPointScreenStyles.backIcon} />
+          </TouchableOpacity>
+          <Text style={FindPointScreenStyles.deviceTitle}>设备连接状态</Text>
+          <View style={FindPointScreenStyles.headerBack}></View>
         </View>
-        <View style={EnclosureScreenStyles.locationControl}>
-          <MapControlButton
-            iconUrl={require("../../assets/images/home/icon-location.png")}
-            iconName="定位"
-            onPress={onLocatePosition}
-            style={{marginTop: 16}}
-          />
+        <View style={FindPointScreenStyles.deviceContent}>
+          <View style={FindPointScreenStyles.deviceContentContainer}>
+            <TouchableOpacity style={FindPointScreenStyles.headerBack} onPress={handleConnectDevice}>
+              <Image
+                source={
+                  deviceStore.status === "1"
+                    ? require("@/assets/images/common/device-connect.png")
+                    : require("@/assets/images/common/device-disconnect.png")
+                }
+                style={FindPointScreenStyles.backIcon}
+              />
+            </TouchableOpacity>
+            <Text style={FindPointScreenStyles.deviceStatusText}>{deviceStore.status === "1" ? "已连接设备" : "未连接设备"}</Text>
+          </View>
         </View>
-        {/* 图层切换弹窗 */}
-        {showMapSwitcher && <MapSwitcher onClose={() => setShowMapSwitcher(false)} onSelectMap={handleSelectMap} />}
+        <View style={FindPointScreenStyles.deviceCoordinates}>
+          <View style={FindPointScreenStyles.deviceCoordinatesContainer}>
+            <Text style={FindPointScreenStyles.deviceCoordinatesText}>当前坐标位置:</Text>
+            <Text style={FindPointScreenStyles.deviceCoordinatesText}>{`${currentLocation?.lon || "未知"}, ${
+              currentLocation?.lat || "未知"
+            }`}</Text>
+          </View>
+          <View style={FindPointScreenStyles.deviceCoordinatesContainer}>
+            <Text style={FindPointScreenStyles.deviceCoordinatesText}>目标坐标位置:</Text>
+            <Text style={FindPointScreenStyles.deviceCoordinatesText}>{`${route.params.point?.lon || "未知"}, ${
+              route.params.point?.lat || "未知"
+            }`}</Text>
+          </View>
+        </View>
       </View>
     </View>
   );

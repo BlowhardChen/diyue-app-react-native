@@ -44,10 +44,7 @@
               case "CURSOR_DOT_MARKER":
                   const center = map.getView().getCenter(); 
                   const cursorCoordinate = ol.proj.toLonLat(center); 
-                  MarkerModule?.drawDotMarker(map, {
-                    lon: cursorCoordinate[0], 
-                    lat: cursorCoordinate[1]
-                  });
+                  MarkerModule?.drawDotMarker(map, {lon: cursorCoordinate[0], lat: cursorCoordinate[1]});
                 break;
               // 地图撤销打点
               case "REMOVE_DOT_MARKER":
@@ -89,26 +86,44 @@
               // 更新地块选择状态
               case "UPDATE_LAND_SELECTION":
                   PolygonModule?.setSelectPolygonActive(map, data.id, data.isSelected);
-              break;
+                break;
               // 更新全部地块选择状态
               case "UPDATE_ALL_LAND_SELECTION":
                   PolygonModule?.setAllSelectPolygonActive(map, data.data);
-              break;
+                break;
               // 绘制合并地块
               case "DRAW_MERGE_LAND":
-                  WebBridge.postMessage(JSON.stringify({
-                      type: "WEBVIEW_CONSOLE_LOG",
-                      data: data.data,
-                  }));
                   PolygonModule?.drawMergeLandPolygon(map, data.data);
-              break;
+                break;
               // 移除合并地块
               case "REMOVE_MERGE_LAND":
                   PolygonModule?.removeMergeLandPolygon(map);
-              break;
+                break;
               // 移除所有地块多边形
               case "REMOVE_ALL_LAND_POLYGON":
                   PolygonModule?.removeLandPolygon(map);
+                break;
+              // 绘制查找地块
+              case "DRAW_FIND_LAND":
+                  PolygonModule?.drawFindLandPolygon(map, data.data);
+                break;
+              // 绘制查找导航线
+              case "DRAW_FIND_NAVIGATION_POLYLINE":
+                  WebBridge.postMessage(
+                    JSON.stringify({
+                      type: "WEBVIEW_CONSOLE_LOG",
+                      data
+                    }),
+                  );
+                  const findPoint = data.data.findPoint;
+                  const locationPoint = data.data.locationPoint;
+                  MarkerModule?.drawFindMarker(map, data.data.findPoint);
+                  PolylineModule?.drawFindNavigationPolyline(map,[locationPoint.lon,locationPoint.lat],[findPoint.lon,findPoint.lat]);
+                break;
+              case "UPDATE_FIND_NAVIGATION_POLYLINE":
+                  const updateFindPoint = data.data.findPoint;
+                  const updateLocationPoint = data.data.locationPoint;
+                  PolylineModule?.updateFindNavigationPolyline(map,[updateLocationPoint.lon,updateLocationPoint.lat],[updateFindPoint.lon,updateFindPoint.lat]);
                 break;
               default:
                   WebBridge.postMessage("未处理的消息类型:" + data.type);

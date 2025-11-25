@@ -41,7 +41,6 @@ const PopupBottom = ({
 export default PopupBottom;
 
 const styles = StyleSheet.create({
-  // 样式保持不变...
   popupBox: {
     position: "absolute",
     top: 0,

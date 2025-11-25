@@ -53,5 +53,6 @@ export type LandMapStackParamList = {
   QuitLand: undefined;
   SelectLand: {type: string};
   MergeLand: {landId: string};
-  FindPoint: {landId: string};
+  FindLandDetail: {landId: string};
+  FindPoint: {point: {lat: number; lon: number}};
 };

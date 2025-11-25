@@ -25,7 +25,7 @@ interface Props {
 type LandStackParamList = {
   LandInfoEdit: {queryInfo: LandDetailInfo};
   AddDevice: undefined;
-  FindPoint: {landId: string};
+  FindLandDetail: {landId: string};
 };
 
 const LandDetailsPopup: React.FC<Props> = ({landInfo, contractDetail, landOrderList, onClose, onBack, onLandManage}) => {
@@ -69,7 +69,7 @@ const LandDetailsPopup: React.FC<Props> = ({landInfo, contractDetail, landOrderL
 
   // 点回找
   const onFindPoint = (landId: string) => {
-    navigation.navigate("FindPoint", {landId});
+    navigation.navigate("FindLandDetail", {landId});
   };
 
   // 替换敏感信息中间字符为*

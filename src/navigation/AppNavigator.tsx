@@ -27,6 +27,7 @@ import LandDetailScreen from "@/screens/land/LandDetailScreen";
 import QuitLandScreen from "@/screens/land/QuitLandScreen";
 import SelectLandScreen from "@/screens/land/SelcetLandScreen";
 import MergeLandScreen from "@/screens/land/MergeLandScreen";
+import FindLandDetailScreen from "@/screens/land/FindLandDetailScreen";
 import FindPointScreen from "@/screens/land/FindPointScreen";
 
 type Props = {
@@ -70,6 +71,7 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
         },
       }}>
       <Stack.Screen name="FindPoint" component={FindPointScreen} />
+      <Stack.Screen name="FindLandDetail" component={FindLandDetailScreen} />
       <Stack.Screen name="MergeLand" component={MergeLandScreen} />
       <Stack.Screen name="SelectLand" component={SelectLandScreen} />
       <Stack.Screen name="QuitLand" component={QuitLandScreen} />

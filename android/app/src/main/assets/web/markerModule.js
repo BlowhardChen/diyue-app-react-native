@@ -4,6 +4,7 @@ window.MarkerModule = (function () {
     let dotMarkers = [];                 // 地图打点图层数组
     let dotMarkerCoordinates = [];       // 打点经纬度数组（[{lon,lat}, ...]）
     let commonPointMarkers = [];        // 公共点标准数组
+    let findPointMarkers = [];        // 查找点标准数组
 
     /**
      * 绘制地图打点（核心）
@@ -37,7 +38,7 @@ window.MarkerModule = (function () {
     /**
      * 获取当前打点样式
      */
-    function getDotMarkerStyle() {
+    function getDotMarkerStyle(scale = 0.3) {
         return new ol.style.Style({
            image: new ol.style.Icon({
                 anchor: [0.5, 0.5],
@@ -45,7 +46,7 @@ window.MarkerModule = (function () {
                 anchorYUnits: 'fraction',
                 src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAAAXNSR0IArs4c6QAAAtxJREFUWEfNmE1sTFEUx383KmyahrBpWgk2aPVDYqEaWpFaSFhJtGz7SRtiS8WwFcLo9GNbrcSKxIKIltAuhGmZYiGRaNMNIU03ROWaw3svb+5MvXmvPu5LZnPvPef+5pz//ThXEfLTWq8H9gG1wGZgHVDouJkH3gOvgcfAXaXUuzBTqHwGa62XAYeA40ANkJcdoIExIA7cVEp9D5ov0LHWei9wFdgU5Cyg/w3QqZS6/7txiwJprVcCl4GWEBEJYpaI9QMnlFJfcg3OCaS1XgvcSf+2ZxlpDZOTMD4GUymYnoF5kY4oqRBKS6CsHHbUQGUlqJxTPAX2K6U+mP6zRjswj7JSJCAPR2GgH6angyLxq7+0FJpbYHddLjBJ4S4TKgPISZPAZEZmdhZi5+DVVH4g5qgtZdB9FoqLzR6JlEB56TOBeoHWDKtkErpPw9xcNBjXqqgIYhegutr006eUanMbPSBnNd3LELDAnDoJCwtLg3GtCwrg4iUTSoTe4K6+n0DOPpPK0I2kqbV56ZEx/4pEqm/ATJ/oqVz2KRfoMDDs2YqA29uiayYonqKpRK8p9Eal1A0XSLb5nZ6f0RHoPhPkdmn9sfNQV+/38SSdtlqltd4AvPW0I9E52pT/0o6KJVvC4JA/SqKljQIkCk94fieS0NUZdZpwdlfiUFXlt2kXoEHgiNea6IHhoXCOo45ubIL2Dr/1dQF6BmzzWo91wMsXUacIZ7e1Aq71+G2eC5CcJ2u81oMH4POncI6jjl61Gm7d9lt/FCDZtld4rXvqYeFb1CnC2RUshwcjfpuvVgJZl7L/J+qKCohni9q6ZW9sjBPQJXf5f/AtsjHadXRIHNJ3IXsOVwfIuuuHFIL2XNCcKElBaMcV1l1PWmt7LvlOlKRatacMcqCkarWjUPSlLqCUnoDxcUilYMYopUtKoPwPltI+KHseG/yHhjXPMQaUPQ9W5hHrlE0Nf+tJ7weMM2/KMUGazgAAAABJRU5ErkJggg==',
                 crossOrigin: 'anonymous',
-                scale: 0.3,
+                scale: scale,
                 rotateWithView: true
             })
         });
@@ -178,6 +179,7 @@ window.MarkerModule = (function () {
             zoom: 17,
             duration: 500
         });
+        WebBridge.postMessage({ type: 'WEBVIEW_LOCATE_SELF'});
     }
 
     /**
@@ -466,6 +468,98 @@ window.MarkerModule = (function () {
         return commonPointMarkers
     }
 
+    /**
+     * 绘制查找点
+     * @param {*} map 
+     * @param {*} polygonPath 
+     * @returns 
+     */
+    function drawFindPointMarker(map, polygonPath) {
+        removeFindPointMarkers(map)
+        let path = [];
+        if (polygonPath.length > 3) {
+            path = polygonPath.slice(0, -1)
+        } else {
+            path = polygonPath
+        }
+        let markerList = []
+        path.forEach((position) => {
+            const markerIcon = getDotMarkerStyle(0.5)
+            // 创建一个新的Feature，并设置其几何形状为Point
+            const markerFeature = new ol.Feature({
+                geometry: new ol.geom.Point(ol.proj.fromLonLat([position.lng, position.lat])),
+            });
+            markerFeature.setStyle(markerIcon)
+            // 创建一个新的VectorLayer，并将marker添加到其中
+            const markerLayer = new ol.layer.Vector({
+                source: new ol.source.Vector({features: [markerFeature]}),
+                zIndex: 999,
+            });
+
+            // 将VectorLayer添加到地图中
+            map.addLayer(markerLayer);
+            markerList.push({ layer: markerLayer, feature: markerFeature })
+        })
+
+        findPointMarkers = markerList
+
+        return markerList
+    }
+
+    /**
+     * 获取查找点数组
+     * @returns 
+     */
+    function getFindPointMarkers() {
+        return findPointMarkers
+    }
+    /**
+     * 移除查找点标记
+     * @param {*} map 
+     * @returns 
+     */
+    function removeFindPointMarkers(map) {
+        if (!findPointMarkers.length) return; 
+        findPointMarkers.forEach(marker => {
+            if (marker.layer) {
+                map.removeLayer(marker.layer)
+            }  
+        })
+        findPointMarkers = []
+    }
+
+    /**
+     * 绘制回找点
+     * @param {*} map 
+     * @param {*} position 
+     * @returns 
+     */
+    function drawFindMarker(map, position) {
+        if (!position) return
+        WebBridge.postMessage(
+            JSON.stringify({
+                type: "WEBVIEW_CONSOLE_LOG",
+                position
+            }),
+        );
+        const markerIcon = getDotMarkerStyle(0.5)
+        // 创建一个新的Feature，并设置其几何形状为Point
+        const markerFeature = new ol.Feature({
+            geometry: new ol.geom.Point(ol.proj.fromLonLat([position.lon, position.lat])),
+        });
+        markerFeature.setStyle(markerIcon)
+        // 创建一个新的VectorLayer，并将marker添加到其中
+        const markerLayer = new ol.layer.Vector({
+            source: new ol.source.Vector({features: [markerFeature]}),
+            zIndex: 999,
+        });
+
+        // 将VectorLayer添加到地图中
+        map.addLayer(markerLayer);
+     
+    }
+
+
     return {
         toLocateSelf,
         drawCurrentLocation,
@@ -478,7 +572,11 @@ window.MarkerModule = (function () {
         savePolygonToNative,
         drawCommonPointMarker,
         removeCommonPointMarker,
-        getCommonPointMarkers
+        getCommonPointMarkers,
+        removeFindPointMarkers,
+        getFindPointMarkers,
+        drawFindPointMarker,
+        drawFindMarker,
       
     };
 })();

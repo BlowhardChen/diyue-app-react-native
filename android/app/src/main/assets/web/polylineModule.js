@@ -78,9 +78,45 @@ window.PolylineModule = (function () {
         polylines = [];
     }
 
+    /**
+     * 绘制导航折线
+     * @param {ol.Map} map - 地图对象
+     * @param {Array<number>} startLonLat - [lon, lat] 起点经纬度
+     * @param {Array<number>} endLonLat   - [lon, lat] 终点经纬度
+     */
+    function drawFindNavigationPolyline(map, startLonLat, endLonLat) {
+        drawPolyline(map, startLonLat, endLonLat)
+        WebBridge.postMessage(
+            JSON.stringify({
+                type: "WEBVIEW_NAVIGATION_POLYLINE_COMPLETE",
+            }),
+        );
+    }
+
+    /**
+     * 更新导航折线
+     * @param {ol.Map} map - 地图对象
+     * @param {Array<number>} startLonLat - [lon, lat] 起点经纬度
+     * @param {Array<number>} endLonLat   - [lon, lat] 终点经纬度
+     */
+    function updateFindNavigationPolyline(map, startLonLat, endLonLat) {
+        removePolyline(map)
+        drawFindNavigationPolyline(map, startLonLat, endLonLat)
+    }
+    /**
+     * 移除导航折线
+     * @param {ol.Map} map - 地图对象
+     */
+    function removeFindNavigationPolyline(map) {
+        removePolyline(map)
+    }
+    
     return {
         drawPolyline,
         removePolyline,
-        removeAllPolylines
+        removeAllPolylines,
+        drawFindNavigationPolyline,
+        updateFindNavigationPolyline,
+        removeFindNavigationPolyline
     };
 })();
