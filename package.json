@@ -82,6 +82,7 @@
     "@react-native/metro-config": "0.79.2",
     "@react-native/typescript-config": "0.79.2",
     "@types/jest": "^29.5.13",
+    "@types/node": "^24.10.1",
     "@types/react": "^19.0.0",
     "@types/react-native-htmlview": "^0.16.6",
     "@types/react-native-keep-awake": "^2.0.8",

@@ -22,15 +22,26 @@ export const useOCR = () => {
         headers: {token},
         body: formData,
       });
-      const {data} = await res.json();
-      if (!data) {
-        return {success: false};
+
+      if (!res.ok) {
+        // 如果响应状态码不是 2xx，手动抛出错误
+        const errorData = await res.json(); // 尝试解析错误信息
+        throw new Error(errorData.msg || `HTTP error! status: ${res.status}`);
       }
+
+      const data = await res.json();
+      if (!data) {
+        throw new Error("服务器返回数据为空");
+      }
+
       console.log("uploadImg", data);
+      if (data.code !== 200) {
+        throw new Error(data.msg || "图片识别失败");
+      }
       const ocrInfo = data;
       return {success: true, ocrInfo};
-    } catch (err) {
-      showCustomToast("error", "上传失败");
+    } catch (err: any) {
+      showCustomToast("error", err.message || "上传或识别失败");
       return {success: false};
     } finally {
       setLoading(false);

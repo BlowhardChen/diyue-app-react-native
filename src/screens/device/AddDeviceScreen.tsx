@@ -62,6 +62,7 @@ const AddDeviceScreen = () => {
     setPermissionGranted(false);
   };
 
+  // 渲染相机区域
   const renderCameraArea = () => {
     if (!permissionGranted) {
       return <View style={{flex: 1, backgroundColor: "#000"}} />;

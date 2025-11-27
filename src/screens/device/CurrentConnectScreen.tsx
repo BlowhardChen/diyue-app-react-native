@@ -4,16 +4,10 @@ import {View, Text, Image, TouchableOpacity, ScrollView, StyleSheet, ImageBackgr
 import {useNavigation, useRoute} from "@react-navigation/native";
 import CustomStatusBar from "@/components/common/CustomStatusBar";
 import {StackNavigationProp} from "@react-navigation/stack";
-import {getDeviceInfo} from "@/services/device";
+import {getDeviceInfo, linkDevice} from "@/services/device";
 import {observer} from "mobx-react-lite";
 import {deviceStore} from "@/stores/deviceStore";
 import {navigateToTargetRoute} from "@/utils/navigationUtils";
-
-const configList = [
-  {title: "蓝牙", type: "1"},
-  {title: "Ntrip", type: "2"},
-  {title: "MQTT", type: "3"},
-];
 
 type DeviceStackParamList = {
   DifferentialConfig: {deviceInfo: any};
@@ -65,7 +59,10 @@ const CurrentConnectScreen = observer(() => {
 
   // 配置完成
   const completeConfig = async () => {
-    console.log("route", route);
+    await linkDevice({
+      imei: deviceInfo.device.imei,
+      taskType: deviceInfo?.taskType || "1",
+    });
     deviceStore.setDeviceImei(deviceInfo.device.imei);
     await navigateToTargetRoute();
   };
@@ -88,7 +85,9 @@ const CurrentConnectScreen = observer(() => {
             <Image source={require("@/assets/images/device/rtk.png")} style={styles.deviceImgInner} />
           </View>
           <View style={styles.deviceMsg}>
-            <Text style={styles.imei}>设备IMEI: {deviceInfo?.device?.imei}</Text>
+            <Text style={styles.imei} numberOfLines={1}>
+              设备IMEI: {deviceInfo?.device?.imei}
+            </Text>
             <View style={styles.deviceStatus}>
               <Text>设备状态：</Text>
               <Image
@@ -172,7 +171,7 @@ const styles = StyleSheet.create({
   deviceImg: {width: 82, height: 140},
   deviceImgInner: {width: 80, height: 140},
   deviceMsg: {flex: 1, paddingHorizontal: 12},
-  imei: {fontSize: 20, fontWeight: "500", color: "#000"},
+  imei: {fontSize: 18, fontWeight: "500", color: "#000"},
   deviceStatus: {flexDirection: "row", alignItems: "center", marginTop: 12},
   statusIcon: {width: 14, height: 14, marginRight: 3},
   version: {marginTop: 6},

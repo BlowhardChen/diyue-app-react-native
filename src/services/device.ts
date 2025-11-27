@@ -46,6 +46,17 @@ export const updateDeviceDifferentialConfig = (data: DeviceDifferentialConfigReq
 };
 
 /**
+ * 当前连接-链接设备
+ */
+export const linkDevice = (data: {imei: string; farmingId?: string; taskType: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/device/linkDevice",
+    data,
+  });
+};
+
+/**
  * 数据上传-查询设备上传数据配置
  */
 export const getDeviceUploadConfig = (deviceId: string) => {

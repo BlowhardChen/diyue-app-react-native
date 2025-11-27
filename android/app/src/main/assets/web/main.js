@@ -35,7 +35,7 @@
                 break;  
               // 地图打点（打点按钮）
               case "DOT_MARKER":
-                  if (data.location) {
+                  if (data.location) { 
                     const {lon, lat} = data.location;
                     MarkerModule?.drawDotMarker(map, {lon, lat});
                   } 

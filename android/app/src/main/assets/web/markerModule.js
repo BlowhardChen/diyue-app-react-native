@@ -227,7 +227,6 @@ window.MarkerModule = (function () {
         }
         const geom = features[0].getGeometry();
         geom.setCoordinates(ol.proj.fromLonLat([location.lon, location.lat]));
-        map.renderSync();
     }
 
     /**
