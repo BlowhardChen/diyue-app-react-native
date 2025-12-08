@@ -29,6 +29,11 @@ import SelectLandScreen from "@/screens/land/SelcetLandScreen";
 import MergeLandScreen from "@/screens/land/MergeLandScreen";
 import FindLandDetailScreen from "@/screens/land/FindLandDetailScreen";
 import FindPointScreen from "@/screens/land/FindPointScreen";
+import AddFarmScreen from "@/screens/farming/AddFarmScreen";
+import FarmMapScreen from "@/screens/farming/FarmMapScreen";
+import MechanicalTaskScreen from "@/screens/farming/MechanicalTaskScreen";
+import PatrolFieldManageScreen from "@/screens/farming/PatrolFieldManageScreen";
+import FarmDataCalculatorScreen from "@/screens/farming/FarmDataCalculatorScreen";
 
 type Props = {
   initialRouteName?: keyof RootStackParamList;
@@ -70,6 +75,11 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
           },
         },
       }}>
+      <Stack.Screen name="FarmDataCalculator" component={FarmDataCalculatorScreen} />
+      <Stack.Screen name="PatrolFieldManage" component={PatrolFieldManageScreen} />
+      <Stack.Screen name="MechanicalTask" component={MechanicalTaskScreen} />
+      <Stack.Screen name="FarmMap" component={FarmMapScreen} />
+      <Stack.Screen name="AddFarm" component={AddFarmScreen} />
       <Stack.Screen name="FindPoint" component={FindPointScreen} />
       <Stack.Screen name="FindLandDetail" component={FindLandDetailScreen} />
       <Stack.Screen name="MergeLand" component={MergeLandScreen} />

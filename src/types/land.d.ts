@@ -15,6 +15,7 @@ export interface MapWebviewMessage {
   isSelect?: boolean;
   mergeCoordinates?: number[][];
   mergeArea?: number;
+  rotation?: number;
 }
 
 // 保存地块参数

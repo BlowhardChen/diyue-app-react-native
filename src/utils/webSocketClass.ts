@@ -55,8 +55,6 @@ export default class WebSocketClass {
    * 处理应用状态变化
    */
   private handleAppStateChange = (nextAppState: AppStateStatus) => {
-    console.log(`应用状态变化：${this.currentAppState} -> ${nextAppState}`);
-
     // 后台切前台：foreground -> active
     if (this.currentAppState === "background" && nextAppState === "active") {
       this.handleAppForeground();
@@ -74,8 +72,6 @@ export default class WebSocketClass {
    * 应用切回前台处理
    */
   private handleAppForeground() {
-    console.log("应用切回前台，检查WebSocket连接");
-
     // 正常关闭（主动调用close()）-> 不处理
     if (this.normalCloseFlag) return;
 
@@ -94,7 +90,6 @@ export default class WebSocketClass {
    * 应用切到后台处理
    */
   private handleAppBackground() {
-    console.log("应用切到后台，暂停WebSocket相关操作");
     // 暂停心跳（避免后台无效消耗）
     this.stopHeartbeat();
     // 清除重连定时器（后台不需要重连）
@@ -112,7 +107,6 @@ export default class WebSocketClass {
       this.socket = new WebSocket(url);
       this.setupEventListeners();
     } catch (error) {
-      console.error("WebSocket初始化失败:", error);
       this.options.onError?.(error as Error);
       this.onDisconnected();
     }
@@ -125,7 +119,6 @@ export default class WebSocketClass {
     if (!this.socket) return;
 
     this.socket.onopen = () => {
-      console.log("websocket连接成功！");
       this.options.onConnected();
       this.reconnectTime = 1;
       // 只有应用在前台时才启动心跳
@@ -139,19 +132,16 @@ export default class WebSocketClass {
         const data = JSON.parse(event.data);
         this.options.onMessage(data);
       } catch (error) {
-        console.error("消息解析失败:", error);
         this.options.onError?.(error as Error);
       }
     };
 
     this.socket.onerror = error => {
-      console.error("websocket错误:", error);
       this.options.onError?.(error as any);
       this.socket?.close();
     };
 
     this.socket.onclose = event => {
-      console.log("websocket连接关闭:", event.code, event.reason);
       this.stopHeartbeat();
 
       if (!this.normalCloseFlag) {
@@ -172,7 +162,6 @@ export default class WebSocketClass {
       if (this.socket?.readyState === WebSocket.OPEN) {
         const heartbeatData = JSON.stringify([{imei: this.options.data.imei || ""}]);
         this.socket.send(heartbeatData);
-        console.log("发送心跳:", heartbeatData);
       }
     }, HEARTBEAT_INTERVAL);
   }
@@ -200,7 +189,6 @@ export default class WebSocketClass {
    */
   private onReconnect() {
     if (this.reconnectTime < WebSocketClass.MAX_RECONNECT) {
-      console.log(`第${this.reconnectTime}次重连...`);
       this.reconnectTimer = setTimeout(() => {
         this.initWS();
         this.reconnectTime++;
@@ -232,7 +220,6 @@ export default class WebSocketClass {
    * 主动关闭连接
    */
   close = () => {
-    console.log("关闭websocket");
     this.normalCloseFlag = true;
     this.stopHeartbeat();
     this.clearReconnectTimer();

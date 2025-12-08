@@ -1,7 +1,7 @@
 // 点回找
 import PermissionPopup from "@/components/common/PermissionPopup";
 import {mapStore} from "@/stores/mapStore";
-import {requestLocationPermission} from "@/utils/checkPermissions";
+import {checkLocationPermission, requestLocationPermission} from "@/utils/checkPermissions";
 import {useEffect, useRef, useState} from "react";
 import {View, Image, Text, TouchableOpacity, PermissionsAndroid} from "react-native";
 import Geolocation from "@react-native-community/geolocation";
@@ -10,9 +10,16 @@ import WebView from "react-native-webview";
 import {MapWebviewMessage} from "@/types/land";
 import {observer} from "mobx-react-lite";
 import KeepAwake from "react-native-keep-awake";
-import {useNavigation} from "@react-navigation/native";
+import {useFocusEffect, useNavigation, useRoute} from "@react-navigation/native";
 import {deviceStore} from "@/stores/deviceStore";
 import {FindPointScreenStyles} from "./styles/FindPointScreen";
+import DeviceConnectionPopup from "@/components/device/DeviceConnectionPopup";
+import {saveTargetRoute} from "@/utils/navigationUtils";
+import {getRtkPopupStatus, setRtkPopupTips} from "@/services/device";
+import WebSocketClass from "@/utils/webSocketClass";
+import React from "react";
+import {getToken} from "@/utils/tokenUtils";
+import Compass from "./components/Compass";
 
 const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number; lon: number}}}}) => {
   const watchIdRef = useRef<number | null>(null);
@@ -23,6 +30,13 @@ const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const [currentLocation, setCurrentLocation] = useState({lon: 0, lat: 0});
   const [isNavigationPolylineComplete, setIsNavigationPolylineComplete] = useState(false);
+  const [showDeviceConnectionPopup, setShowDeviceConnectionPopup] = useState(false);
+  const router = useRoute();
+  const [hasLocationPermission, setHasLocationPermission] = useState(false);
+  const webSocketRef = useRef<WebSocketClass | null>(null);
+  const [useLocationFromSocket, setUseLocationFromSocket] = useState(false);
+  const isFirstSocketLocationRef = useRef(true);
+  const [mapRotation, setMapRotation] = useState(0);
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -33,23 +47,52 @@ const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number
   }, []);
 
   useEffect(() => {
-    // 检查权限状态，如果已授予且 WebView 准备好，则启动定位
-    const checkPermissionAndStart = async () => {
-      const granted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
-      if (granted && isWebViewReady) {
-        startPositionWatch();
-      }
-    };
+    setDeviceConnectionPopup();
+  }, []);
 
-    checkPermissionAndStart();
-  }, [isWebViewReady]);
+  // 初始化定位服务
+  useEffect(() => {
+    getLocationService();
+  }, []);
 
-  // 当WebView准备好时，应用保存的地图类型
+  // 初始化定位权限
+  useEffect(() => {
+    initLocationPermission();
+  }, []);
+
+  // 当WebView准备好时
   useEffect(() => {
     if (isWebViewReady) {
       applySavedMapType();
+      // WebView准备好后，根据当前设备状态初始化定位
+      initLocationByDeviceStatus();
     }
-  }, [isWebViewReady, mapStore.mapType]);
+  }, [isWebViewReady, mapStore.mapType, deviceStore.status]);
+
+  // 页面聚焦时：启动WebSocket连接（无论设备状态）
+  useFocusEffect(
+    React.useCallback(() => {
+      // 初始化WebSocket（不管设备是否在线）
+      initWebSocket();
+
+      // 根据当前设备状态初始化定位源
+      initLocationByDeviceStatus();
+
+      // 页面失焦时：关闭WebSocket + 停止GPS
+      return () => {
+        if (webSocketRef.current) {
+          webSocketRef.current.close();
+          webSocketRef.current = null;
+        }
+        stopPositionWatch();
+      };
+    }, [hasLocationPermission, isWebViewReady, deviceStore.deviceImei]),
+  );
+
+  // 监听设备状态变化，切换定位源
+  useEffect(() => {
+    initLocationByDeviceStatus();
+  }, [deviceStore.status, hasLocationPermission, isWebViewReady]);
 
   useEffect(() => {
     if (!isNavigationPolylineComplete) return;
@@ -64,15 +107,63 @@ const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number
     );
   }, [currentLocation]);
 
-  useEffect(() => {
-    // 当组件卸载时，清除定位监听
-    return () => {
-      if (watchIdRef.current !== null) {
-        Geolocation.clearWatch(watchIdRef.current);
-        watchIdRef.current = null;
+  // 初始化定位权限和地图图层
+  const initLocationPermission = async () => {
+    const granted = await checkLocationPermission();
+    if (granted) {
+      setHasLocationPermission(true);
+      // 设备在线时，无需初始化GPS（WebSocket会处理）
+      if (!(deviceStore.deviceImei && deviceStore.status === "1")) {
+        initLocationByDeviceStatus();
       }
-    };
-  }, []);
+    } else {
+      setShowPermissionPopup(true);
+    }
+  };
+
+  // 根据设备状态初始化定位源
+  const initLocationByDeviceStatus = () => {
+    // 如果WebView没准备好，先等WebView准备
+    if (!isWebViewReady) {
+      return;
+    }
+
+    // 若有绑定设备且设备在线：优先使用 WebSocket 定位（忽略手机定位权限）
+    if (deviceStore.deviceImei && deviceStore.status === "1") {
+      setUseLocationFromSocket(true);
+      stopPositionWatch(); // 停止GPS定位
+      isFirstLocationRef.current = true; // 重置GPS首次定位标记，避免残留
+
+      // 优先使用已有RTK坐标绘制
+      if (currentLocation.lat !== 0 && currentLocation.lon !== 0) {
+        webViewRef.current?.postMessage(
+          JSON.stringify({
+            type: "SET_ICON_LOCATION",
+            location: {lon: currentLocation.lon, lat: currentLocation.lat},
+          }),
+        );
+      }
+      return;
+    }
+
+    // 如果有绑定设备但设备离线：使用 GPS（仍需手机定位权限）
+    if (deviceStore.deviceImei && deviceStore.status === "2") {
+      console.log("设备离线，切换到GPS定位");
+      setUseLocationFromSocket(false);
+      if (hasLocationPermission) {
+        startPositionWatch();
+      } else {
+        console.log("设备离线但无定位权限，暂不启动GPS定位");
+      }
+      return;
+    }
+
+    // 未绑定设备：走手机GPS逻辑（需要定位权限）
+    setUseLocationFromSocket(false);
+    if (hasLocationPermission) {
+      startPositionWatch();
+    }
+  };
 
   // 应用保存的地图类型
   const applySavedMapType = () => {
@@ -108,6 +199,20 @@ const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number
     webViewRef.current?.postMessage(JSON.stringify(message));
   };
 
+  // 获取定位服务
+  const getLocationService = async () => {
+    // 设备在线时，直接返回，不执行任何GPS/IP定位初始化
+    if (deviceStore.deviceImei && deviceStore.status === "1") {
+      return;
+    }
+    const hasPermission = await checkLocationPermission();
+    if (hasPermission) {
+      locateDevicePosition(true);
+    } else {
+      getLocationByIP();
+    }
+  };
+
   // 通过IP定位
   const getLocationByIP = async () => {
     try {
@@ -124,9 +229,14 @@ const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number
 
   // 定位设备位置
   const locateDevicePosition = async (isShowIcon: boolean, coordinate?: {lon: number; lat: number}) => {
+    // 设备在线时，直接返回，不执行任何GPS定位绘制
+    if (deviceStore.deviceImei && deviceStore.status === "1") {
+      return;
+    }
     if (isShowIcon) {
       await Geolocation.getCurrentPosition(position => {
         const {latitude, longitude} = position.coords;
+        setCurrentLocation({lon: longitude, lat: latitude});
         webViewRef.current?.postMessage(
           JSON.stringify({
             type: "SET_ICON_LOCATION",
@@ -141,18 +251,26 @@ const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number
 
   // 开启定位
   const startPositionWatch = async () => {
+    // 设备在线时，直接返回，不启动任何GPS相关逻辑
+    if (deviceStore.deviceImei && deviceStore.status === "1") {
+      return;
+    }
     stopPositionWatch();
 
+    // 初始定位（无论定位源，先获取一次位置）
     Geolocation.getCurrentPosition(
       pos => {
         const {latitude, longitude} = pos.coords;
         setCurrentLocation({lon: longitude, lat: latitude});
-        webViewRef.current?.postMessage(
-          JSON.stringify({
-            type: "SET_ICON_LOCATION",
-            location: {lon: longitude, lat: latitude},
-          }),
-        );
+        // 仅当定位源为GPS时，才更新WebView
+        if (!useLocationFromSocket) {
+          webViewRef.current?.postMessage(
+            JSON.stringify({
+              type: "SET_ICON_LOCATION",
+              location: {lon: longitude, lat: latitude},
+            }),
+          );
+        }
         isFirstLocationRef.current = false;
       },
       () => {},
@@ -162,14 +280,16 @@ const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number
     const watchId = Geolocation.watchPosition(
       pos => {
         const {latitude, longitude} = pos.coords;
-        console.log("位置更新:", longitude, latitude);
         setCurrentLocation({lon: longitude, lat: latitude});
-        webViewRef.current?.postMessage(
-          JSON.stringify({
-            type: "UPDATE_ICON_LOCATION",
-            location: {lon: longitude, lat: latitude},
-          }),
-        );
+        // 仅当定位源为GPS（useLocationFromSocket=false）时，才更新定位图标
+        if (!useLocationFromSocket) {
+          webViewRef.current?.postMessage(
+            JSON.stringify({
+              type: "UPDATE_ICON_LOCATION",
+              location: {lon: longitude, lat: latitude},
+            }),
+          );
+        }
       },
       err => {
         console.error("watchPosition 错误:", err);
@@ -199,10 +319,10 @@ const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number
   const handleAcceptPermission = async () => {
     const granted = await requestLocationPermission();
     if (granted) {
+      setHasLocationPermission(true);
       setShowPermissionPopup(false);
-      if (isWebViewReady) {
-        startPositionWatch();
-      }
+      // 权限获取后，根据设备状态初始化定位
+      initLocationByDeviceStatus();
     }
   };
 
@@ -219,7 +339,110 @@ const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number
 
   // 连接设备
   const handleConnectDevice = () => {
+    saveTargetRoute(router.name);
     navigation.navigate("AddDevice" as never);
+  };
+
+  // 处理取消提醒
+  const handleAbortRemind = async () => {
+    await setRtkPopupTips({});
+    setShowDeviceConnectionPopup(false);
+  };
+
+  // 设置设备连接弹窗
+  const setDeviceConnectionPopup = async () => {
+    const {data} = await getRtkPopupStatus({});
+    if (data.status) {
+      setShowDeviceConnectionPopup(false);
+    } else if (deviceStore.status === "1") {
+      setShowDeviceConnectionPopup(false);
+    } else {
+      setShowDeviceConnectionPopup(true);
+    }
+  };
+
+  // 初始化WebSocket（无论设备状态，都建立连接）
+  const initWebSocket = async () => {
+    console.log("初始化WebSocket（无论设备状态）");
+    if (!deviceStore.deviceImei) {
+      return;
+    }
+
+    const token = await getToken();
+
+    // 如果已有连接，先关闭
+    if (webSocketRef.current) {
+      webSocketRef.current.close();
+      webSocketRef.current = null;
+    }
+
+    // 建立新连接
+    webSocketRef.current = new WebSocketClass({
+      data: {token, imei: deviceStore.deviceImei},
+      onConnected: () => {
+        console.log("WebSocket 连接成功");
+        if (currentLocation.lat !== 0 && currentLocation.lon !== 0) {
+          webViewRef.current?.postMessage(
+            JSON.stringify({
+              type: "SET_ICON_LOCATION",
+              location: {lon: currentLocation.lon, lat: currentLocation.lat},
+            }),
+          );
+        }
+        initLocationByDeviceStatus();
+      },
+      onMessage: (data: any) => {
+        const socketData = JSON.parse(JSON.stringify(data));
+        console.log("收到WebSocket消息:", socketData);
+        // 过滤无效坐标（避免0,0坐标）
+        if (socketData.taskType === "1" && socketData.lng && socketData.lat && socketData.lng !== 0 && socketData.lat !== 0) {
+          const newLocation = {lon: socketData.lng, lat: socketData.lat};
+          setCurrentLocation(newLocation); // 更新状态
+          console.log("WebSocket 接收定位数据:", newLocation);
+
+          // 关键修改：首次定位用 SET_ICON_LOCATION（带居中），后续用 UPDATE_ICON_LOCATION（不带居中）
+          const messageType = isFirstSocketLocationRef.current ? "SET_ICON_LOCATION" : "UPDATE_ICON_LOCATION";
+
+          webViewRef.current?.postMessage(
+            JSON.stringify({
+              type: messageType,
+              location: newLocation,
+            }),
+          );
+
+          // 首次接收RTK数据时，主动重绘导航线段（修复初始错误起点）
+          if (isFirstSocketLocationRef.current) {
+            webViewRef.current?.postMessage(
+              JSON.stringify({
+                type: "DRAW_FIND_NAVIGATION_POLYLINE",
+                data: {
+                  locationPoint: newLocation, // 用真实RTK坐标作为起点
+                  findPoint: {lon: Number(route.params.point.lon), lat: Number(route.params.point.lat)},
+                },
+              }),
+            );
+            isFirstSocketLocationRef.current = false;
+          }
+        }
+
+        // 处理设备状态变更
+        if (socketData.deviceStatus === "2") {
+          deviceStore.listenDeviceStatus("2");
+          setUseLocationFromSocket(false); // 切换到GPS定位
+          startPositionWatch(); // 启动GPS
+          return;
+        } else if (socketData.deviceStatus === "1") {
+          deviceStore.listenDeviceStatus("1");
+          setUseLocationFromSocket(true); // 切换到WebSocket定位
+          stopPositionWatch(); // 停止GPS
+        }
+      },
+      onError: error => {
+        // 错误时，默认切换到GPS定位
+        setUseLocationFromSocket(false);
+        startPositionWatch();
+      },
+    });
   };
 
   // 接收WebView消息
@@ -241,18 +464,28 @@ const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number
       // 地图准备完成
       case "WEBVIEW_READY":
         setIsWebViewReady(true);
+        initLocationByDeviceStatus();
         break;
       case "WEBVIEW_LOCATE_SELF":
-        webViewRef.current?.postMessage(
-          JSON.stringify({
-            type: "DRAW_FIND_NAVIGATION_POLYLINE",
-            data: {
-              locationPoint: currentLocation,
-              findPoint: {lon: Number(route.params.point.lon), lat: Number(route.params.point.lat)},
-            },
-          }),
-        );
+        const isValidLocation = currentLocation.lon !== 0 && currentLocation.lat !== 0;
+        // 设备在线时，即使坐标无效也不绘制（等待WebSocket数据）；设备离线/GPS模式则正常绘制（允许IP/GPS初始化）
+        if (isValidLocation || !(deviceStore.deviceImei && deviceStore.status === "1")) {
+          webViewRef.current?.postMessage(
+            JSON.stringify({
+              type: "DRAW_FIND_NAVIGATION_POLYLINE",
+              data: {
+                locationPoint: currentLocation,
+                findPoint: {lon: Number(route.params.point.lon), lat: Number(route.params.point.lat)},
+              },
+            }),
+          );
+        }
         break;
+      // 地图旋转事件
+      case "WEBVIEW_MAP_ROTATE":
+        setMapRotation(Number(data.rotation) * (180 / Math.PI));
+        break;
+      // 导航线段绘制完成事件
       case "WEBVIEW_NAVIGATION_POLYLINE_COMPLETE":
         setIsNavigationPolylineComplete(true);
         break;
@@ -267,14 +500,7 @@ const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number
 
   return (
     <View style={FindPointScreenStyles.container}>
-      {/* 权限弹窗 */}
-      <PermissionPopup
-        visible={showPermissionPopup}
-        onAccept={handleAcceptPermission}
-        onReject={handleRejectPermission}
-        title={"开启位置权限"}
-        message={"获取位置权限将用于获取当前定位与记录轨迹"}
-      />
+      <Compass mapRotate={mapRotation} />
       {/* 地图 */}
       <View style={FindPointScreenStyles.mapBox}>
         <View style={FindPointScreenStyles.map} collapsable={false}>
@@ -308,7 +534,11 @@ const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number
           <View style={FindPointScreenStyles.headerBack}></View>
         </View>
         <View style={FindPointScreenStyles.deviceContent}>
-          <View style={FindPointScreenStyles.deviceContentContainer}>
+          <View
+            style={[
+              FindPointScreenStyles.deviceContentContainer,
+              {backgroundColor: deviceStore.status === "1" ? "#ebffe4" : "#FFF0EE"},
+            ]}>
             <TouchableOpacity style={FindPointScreenStyles.headerBack} onPress={handleConnectDevice}>
               <Image
                 source={
@@ -337,6 +567,21 @@ const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number
           </View>
         </View>
       </View>
+      {/* 权限弹窗 */}
+      <PermissionPopup
+        visible={showPermissionPopup}
+        onAccept={handleAcceptPermission}
+        onReject={handleRejectPermission}
+        title={"开启位置权限"}
+        message={"获取位置权限将用于获取当前定位与记录轨迹"}
+      />
+      {/* 设备连接弹窗 */}
+      <DeviceConnectionPopup
+        visible={showDeviceConnectionPopup}
+        onClose={() => setShowDeviceConnectionPopup(false)}
+        onAbortRemind={handleAbortRemind}
+        onConnectDevice={handleConnectDevice}
+      />
     </View>
   );
 });

@@ -62,13 +62,13 @@ window.MarkerModule = (function () {
 
         if (total === 0 || total === 1) {
             PolylineModule.removeAllPolylines(map);
-            PolygonModule.removePolygon(map);
+            PolygonModule.removeEnclosurePolygon(map);
             WebBridge.postMessage({ type: 'WEBVIEW_UPDATE_DOT_TOTAL',total: dotMarkerCoordinates.length, message: total === 0 ? '请点击打点按钮打点' : '请继续添加下一个点位' });
             return;
         }
 
         if (total === 2) {
-            PolygonModule.removePolygon(map);
+            PolygonModule.removeEnclosurePolygon(map);
             PolylineModule.removeAllPolylines(map);
             PolylineModule.drawPolyline(map, coordsLonLat[0], coordsLonLat[1]);
             WebBridge.postMessage({ type: 'WEBVIEW_UPDATE_DOT_TOTAL',total: dotMarkerCoordinates.length, message: '已生成线段，请继续添加下一个点位' });
@@ -77,7 +77,7 @@ window.MarkerModule = (function () {
 
         // 3 个及以上：清除折线，绘制多边形（自动闭合）
         PolylineModule.removeAllPolylines(map);
-        PolygonModule.removePolygon(map);
+        PolygonModule.removeEnclosurePolygon(map);
 
         // 判断多边形是否相交
         const path = dotMarkerCoordinates.concat([dotMarkerCoordinates[0]])
@@ -88,7 +88,7 @@ window.MarkerModule = (function () {
             message: isPolygonIntersect ? '生成的地块区域自相交，请检查点位顺序' : '' // 自相交时才带提示文本
         });
 
-        const polygonResult = PolygonModule.drawPolygon(map, coordsLonLat);
+        const polygonResult = PolygonModule.drawEnclosurePolygon(map, coordsLonLat);
         if (polygonResult) {
             WebBridge.postMessage({ 
                 type: 'WEBVIEW_UPDATE_DOT_TOTAL', 
@@ -172,7 +172,7 @@ window.MarkerModule = (function () {
         if (!selfMarkerLayer) {
             drawCurrentLocation(map, location);
         } else {
-            updateCurrentLocation(location, map);
+            updateCurrentLocation(map, location);
         }
         map.getView().animate({
             center: ol.proj.fromLonLat([location.lon, location.lat]),
@@ -219,7 +219,7 @@ window.MarkerModule = (function () {
      * @param {*} map 地图
      * @returns 
      */
-    function updateCurrentLocation(location, map) {
+    function updateCurrentLocation(map,location) {
         const features = selfMarkerLayer?.getSource()?.getFeatures();
         if (!features || features.length === 0) {
             drawCurrentLocation(map, location);

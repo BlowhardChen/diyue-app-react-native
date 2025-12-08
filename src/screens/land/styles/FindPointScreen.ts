@@ -75,7 +75,6 @@ export const FindPointScreenStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    backgroundColor: "#FFF0EE",
   },
   deviceStatusText: {
     marginLeft: 8,

@@ -82,7 +82,7 @@ export default LandHomeCustomNavbar;
 const styles = StyleSheet.create({
   navbar: {
     width: "100%",
-    height: 90,
+    height: 88,
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight ?? 24 : 44,
     justifyContent: "center",
     position: "relative",

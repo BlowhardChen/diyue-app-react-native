@@ -85,6 +85,9 @@ window.PolylineModule = (function () {
      * @param {Array<number>} endLonLat   - [lon, lat] 终点经纬度
      */
     function drawFindNavigationPolyline(map, startLonLat, endLonLat) {
+        if(polylines.length > 0) {
+            removePolyline(map)
+        }
         drawPolyline(map, startLonLat, endLonLat)
         WebBridge.postMessage(
             JSON.stringify({

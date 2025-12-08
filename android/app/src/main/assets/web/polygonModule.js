@@ -7,6 +7,8 @@ window.PolygonModule = (function () {
     let lineFeatureList = []; // 边长文本Feature列表
     let mergedPolygonFeature = null; // 合并后的多边形 Feature
     let mergePolygonLayer = null; // 合并后的多边形图层
+    let enclosurePolygonFeature = null; // 当前圈地多边形 Feature
+    let enclosurePolygonLayer = null; // 当前圈地多边形图层
 
     /**
      * 计算面积（亩）
@@ -22,16 +24,16 @@ window.PolygonModule = (function () {
     }
 
     /**
-     * 绘制多边形（传入未闭合经纬度坐标）
+     * 绘制圈地多边形（传入未闭合经纬度坐标）
      * @param {ol.Map} map
      * @param {Array<Array<number>>} coordsLonLat - [ [lon,lat], ... ] 未闭合
      * @returns {{ layer: ol.layer.Vector, feature: ol.Feature, area: number }|null}
      */
-    function drawPolygon(map, coordsLonLat) {
+    function drawEnclosurePolygon(map, coordsLonLat) {
         if (!map || !Array.isArray(coordsLonLat) || coordsLonLat.length < 3) {
-            WebBridge.postError("多边形坐标无效");
+            WebBridge.postError("圈地多边形坐标无效");
             return null;
-        }
+        }   
 
         // 投影到 3857（不闭合）
         const path3857 = coordsLonLat.map(ll => ol.proj.transform(ll, 'EPSG:4326', 'EPSG:3857'));
@@ -41,10 +43,10 @@ window.PolygonModule = (function () {
         const polygon = new ol.geom.Polygon([closed3857]);
         polygonArea = computeAreaMu(coordsLonLat);
 
-        polygonFeature = new ol.Feature({ geometry: polygon });
+        enclosurePolygonFeature = new ol.Feature({ geometry: polygon });
 
         // 样式（面 + 面积标注）
-        polygonFeature.setStyle(
+        enclosurePolygonFeature.setStyle(
             new ol.style.Style({
                 stroke: new ol.style.Stroke({ color: '#ffffff', width: 2 }),
                 fill: new ol.style.Fill({ color: 'rgba(0, 0, 0, 0.3)' }),
@@ -57,8 +59,8 @@ window.PolygonModule = (function () {
             })
         );
 
-        polygonLayer = new ol.layer.Vector({
-            source: new ol.source.Vector({ features: [polygonFeature] }),
+        enclosurePolygonLayer = new ol.layer.Vector({
+            source: new ol.source.Vector({ features: [enclosurePolygonFeature] }),
             zIndex: 99,
         });
 
@@ -87,11 +89,11 @@ window.PolygonModule = (function () {
                 })
             );
 
-            polygonLayer.getSource().addFeature(lineFeature);
+            enclosurePolygonLayer.getSource().addFeature(lineFeature);
         }
 
-        map.addLayer(polygonLayer);
-        return { layer: polygonLayer, feature: polygonFeature, area: polygonArea };
+        map.addLayer(enclosurePolygonLayer);
+        return { layer: enclosurePolygonLayer, feature: enclosurePolygonFeature, area: polygonArea };
     }
 
     /**
@@ -100,6 +102,17 @@ window.PolygonModule = (function () {
      */
     function getCurrentPolygonArea() {
         return polygonArea;
+    }
+
+    /**
+     * 移除圈地多边形
+     */
+    function removeEnclosurePolygon(map) {
+        if (enclosurePolygonLayer) {
+            map.removeLayer(enclosurePolygonLayer);
+            enclosurePolygonLayer = null;
+            enclosurePolygonFeature = null;
+        }
     }
 
     /**
@@ -183,16 +196,6 @@ window.PolygonModule = (function () {
         }
     }
 
-    /**
-     * 获取圈地多边形
-     */
-    function getPolygon() {
-        return {
-            layer: polygonLayer,
-            feature: polygonFeature,
-            area: polygonArea,
-        };
-    }
 
     /**
      * 移除地块多边形
@@ -297,7 +300,6 @@ window.PolygonModule = (function () {
                     }),
                 })
             );
-            MarkerModule.removeCommonPointMarker();
         }
     }
 
@@ -323,17 +325,14 @@ window.PolygonModule = (function () {
                     const wgsCoordinate = ol.proj.transform(clickedCoordinate, 'EPSG:3857', 'EPSG:4326');
                     clickedMarker = true;
                     WebBridge.postMessage({
-                        type: 'WEBVIEW_CONSOLE_LOG',
-                        data: '点击了公共点',
-                    });
-                    WebBridge.postMessage({
                         type: 'WEBVIEW_BORROW_DOT',
                         point: {
                             lon: wgsCoordinate[0].toFixed(8),
                             lat: wgsCoordinate[1].toFixed(8),
                         }
                     });
-                    MarkerModule.removeCommonPointMarker();
+                    MarkerModule.removeCommonPointMarker(map);
+                    resetActivePolygon();
                     event.stopPropagation();
                     return true; // 停止遍历
                 }
@@ -343,6 +342,7 @@ window.PolygonModule = (function () {
                 map.forEachFeatureAtPixel(event.pixel, (feature, layer) => {
                     // 重置之前激活的多边形样式
                     resetActivePolygon();
+                    MarkerModule.removeCommonPointMarker(map);
 
                     // 设置当前点击的多边形为激活状态
                     polygonFeature = feature;
@@ -400,11 +400,6 @@ window.PolygonModule = (function () {
                     let polygonExtent = feature.getGeometry().getExtent();
                     let polygonCenter = ol.extent.getCenter(polygonExtent);
                     map.getView().animate({ center: polygonCenter, zoom: 18, duration: 500 });
-
-                    WebBridge.postMessage({
-                        type: 'WEBVIEW_CONSOLE_LOG',
-                        data: '点击了地块',
-                    });
                     WebBridge.postMessage({
                         type: 'POLYGON_CLICK',
                         id: feature.values_.id
@@ -876,8 +871,8 @@ window.PolygonModule = (function () {
     }
 
     return {
-        drawPolygon,
-        getPolygon,
+        drawEnclosurePolygon,
+        removeEnclosurePolygon,
         removePolygon,
         removeSpecifyLand,
         removeLandPolygon,

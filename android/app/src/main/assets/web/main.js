@@ -22,7 +22,7 @@
               // 更新设备位置图标
               case "UPDATE_ICON_LOCATION":
                   if (data.location) {
-                      MarkerModule?.updateCurrentLocation(data.location, map);
+                      MarkerModule?.updateCurrentLocation(map,data.location);
                   } 
                 break;
               // 更新设备位置图标旋转角度
@@ -109,12 +109,6 @@
                 break;
               // 绘制查找导航线
               case "DRAW_FIND_NAVIGATION_POLYLINE":
-                  WebBridge.postMessage(
-                    JSON.stringify({
-                      type: "WEBVIEW_CONSOLE_LOG",
-                      data
-                    }),
-                  );
                   const findPoint = data.data.findPoint;
                   const locationPoint = data.data.locationPoint;
                   MarkerModule?.drawFindMarker(map, data.data.findPoint);

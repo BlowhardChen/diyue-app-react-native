@@ -1,6 +1,7 @@
 import CustomStatusBar from "@/components/common/CustomStatusBar";
 import Popup from "@/components/common/Popup";
-import {useAuth} from "@/stores/useAuth";
+import {useAuth} from "@/hooks/useAuth";
+import {userStore} from "@/stores/userStore";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {useState} from "react";
@@ -17,7 +18,7 @@ type RootStackParamList = {
 
 const AccountSetting = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const {logout, userInfo} = useAuth();
+  const {logout} = useAuth();
   const [isShowPopup, setShowPopup] = useState(false);
 
   // 个人信息
@@ -27,7 +28,7 @@ const AccountSetting = () => {
 
   // 修改密码
   const editPassword = () => {
-    navigation.navigate("EditPassword", {mobile: userInfo?.userName as unknown as string});
+    navigation.navigate("EditPassword", {mobile: userStore.userInfo?.userName as unknown as string});
   };
 
   // 退出登录

@@ -3,7 +3,8 @@ export type RootStackParamList = AuthParamList &
   AuthStackParamList &
   AccountStackParamList &
   DeviceStackParamList &
-  LandMapStackParamList;
+  LandMapStackParamList &
+  FarmStackParamList;
 
 // 启动页&隐私政策&服务协议&隐私政策详情页
 export type AuthParamList = {
@@ -55,4 +56,13 @@ export type LandMapStackParamList = {
   MergeLand: {landId: string};
   FindLandDetail: {landId: string};
   FindPoint: {point: {lat: number; lon: number}};
+};
+
+// 农事管理相关
+export type FarmStackParamList = {
+  AddFarm: {title?: string; farmerId?: string};
+  FarmMap: undefined;
+  MechanicalTask: undefined;
+  PatrolFieldManage: undefined;
+  FarmDataCalculator: undefined;
 };

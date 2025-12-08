@@ -34,6 +34,7 @@ import {observer} from "mobx-react-lite";
 import {getToken} from "@/utils/tokenUtils";
 import WebSocketClass from "@/utils/webSocketClass";
 import React from "react";
+import EditLandNamePopup from "@/components/land/EditLandNamePopup";
 
 type LandStackParamList = {
   Enclosure: undefined;
@@ -62,9 +63,13 @@ const LandManagementScreen = observer(() => {
   const [loading, setLoading] = useState(false);
   const [isShowLandManagePopup, setIsShowLandManagePopup] = useState(false);
   const [landId, setLandId] = useState("");
+  const [landName, setLandName] = useState("");
   const isFocused = useIsFocused();
   const webSocketRef = useRef<WebSocketClass | null>(null);
   const [useLocationFromSocket, setUseLocationFromSocket] = useState(false);
+  const [rtkLocation, setRtkLocation] = useState<{lat: number; lon: number}>({lat: 0, lon: 0});
+  const isFirstSocketLocationRef = useRef(true);
+  const [isShowEditLandNamePopup, setIsShowEditLandNamePopup] = useState(false);
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -96,7 +101,7 @@ const LandManagementScreen = observer(() => {
     }
   }, [isFocused, updateStore.isUpdateLand, updateStore.isUpdateLandDetail]);
 
-  // 当WebView准备好时，应用保存的地图类型
+  // 当WebView准备好时
   useEffect(() => {
     if (isWebViewReady) {
       applySavedMapType();
@@ -125,12 +130,11 @@ const LandManagementScreen = observer(() => {
         }
         stopPositionWatch();
       };
-    }, [hasLocationPermission, isWebViewReady]),
+    }, [hasLocationPermission, isWebViewReady, deviceStore.deviceImei]),
   );
 
   // 监听设备状态变化，切换定位源
   useEffect(() => {
-    console.log("设备状态变化：", deviceStore.status);
     initLocationByDeviceStatus();
   }, [deviceStore.status, hasLocationPermission, isWebViewReady]);
 
@@ -146,21 +150,45 @@ const LandManagementScreen = observer(() => {
 
   // 根据设备状态初始化定位源
   const initLocationByDeviceStatus = () => {
-    if (!hasLocationPermission || !isWebViewReady) {
-      console.log("定位权限未获取或WebView未准备好，暂不初始化定位");
+    // 如果WebView没准备好，先等WebView准备
+    if (!isWebViewReady) {
       return;
     }
 
-    if (deviceStore.status === "1") {
-      // 设备在线使用WebSocket定位
-      console.log("设备在线，切换到WebSocket定位");
+    // 若有绑定设备且设备在线：优先使用 WebSocket 定位（忽略手机定位权限）
+    if (deviceStore.deviceImei && deviceStore.status === "1") {
       setUseLocationFromSocket(true);
-      stopPositionWatch(); // 停止GPS定位，避免冲突
-    } else {
-      // 设备离线使用GPS定位
+      stopPositionWatch(); // 停止GPS定位
+      isFirstLocationRef.current = true; // 重置GPS首次定位标记，避免残留
+
+      // 优先使用已有RTK坐标绘制
+      if (rtkLocation.lat !== 0 && rtkLocation.lon !== 0) {
+        webViewRef.current?.postMessage(
+          JSON.stringify({
+            type: "SET_ICON_LOCATION",
+            location: {lon: rtkLocation.lon, lat: rtkLocation.lat},
+          }),
+        );
+      }
+      return;
+    }
+
+    // 如果有绑定设备但设备离线：使用 GPS（仍需手机定位权限）
+    if (deviceStore.deviceImei && deviceStore.status === "2") {
       console.log("设备离线，切换到GPS定位");
       setUseLocationFromSocket(false);
-      startPositionWatch(); // 启动GPS定位
+      if (hasLocationPermission) {
+        startPositionWatch();
+      } else {
+        console.log("设备离线但无定位权限，暂不启动GPS定位");
+      }
+      return;
+    }
+
+    // 未绑定设备：走手机GPS逻辑（需要定位权限）
+    setUseLocationFromSocket(false);
+    if (hasLocationPermission) {
+      startPositionWatch();
     }
   };
 
@@ -297,8 +325,10 @@ const LandManagementScreen = observer(() => {
     const granted = await checkLocationPermission();
     if (granted) {
       setHasLocationPermission(true);
-      // 权限获取后，根据设备状态初始化定位
-      initLocationByDeviceStatus();
+      // 设备在线时，无需初始化GPS（WebSocket会处理）
+      if (!(deviceStore.deviceImei && deviceStore.status === "1")) {
+        initLocationByDeviceStatus();
+      }
     } else {
       setShowPermissionPopup(true);
     }
@@ -306,6 +336,10 @@ const LandManagementScreen = observer(() => {
 
   // 获取定位服务
   const getLocationService = async () => {
+    // 设备在线时，直接返回，不执行任何GPS/IP定位初始化
+    if (deviceStore.deviceImei && deviceStore.status === "1") {
+      return;
+    }
     const hasPermission = await checkLocationPermission();
     if (hasPermission) {
       locateDevicePosition(true);
@@ -322,13 +356,27 @@ const LandManagementScreen = observer(() => {
       return;
     }
 
-    // 如果是WebSocket定位模式，提示“当前使用设备定位，无需手动刷新”
-    if (useLocationFromSocket) {
-      showCustomToast("info", "当前使用设备定位，定位信息将自动更新");
+    // 设备在线时，强制使用WebSocket定位，禁止GPS
+    if (deviceStore.deviceImei && deviceStore.status === "1") {
+      webViewRef.current?.postMessage(
+        JSON.stringify({
+          type: "SET_ICON_LOCATION",
+          location: rtkLocation.lon !== 0 && rtkLocation.lat !== 0 ? rtkLocation : {lon: 0, lat: 0}, // 无RTK数据时不绘制
+        }),
+      );
       return;
     }
 
-    // GPS定位模式手动触发一次定位
+    if (useLocationFromSocket) {
+      webViewRef.current?.postMessage(
+        JSON.stringify({
+          type: "SET_ICON_LOCATION",
+          location: rtkLocation,
+        }),
+      );
+      return;
+    }
+
     locateDevicePosition(true);
   };
 
@@ -351,6 +399,10 @@ const LandManagementScreen = observer(() => {
 
   // 定位设备位置
   const locateDevicePosition = async (isShowIcon: boolean, coordinate?: {lon: number; lat: number}) => {
+    // 设备在线时，直接返回，不执行任何GPS定位绘制
+    if (deviceStore.deviceImei && deviceStore.status === "1") {
+      return;
+    }
     if (isShowIcon) {
       await Geolocation.getCurrentPosition(position => {
         const {latitude, longitude} = position.coords;
@@ -382,6 +434,9 @@ const LandManagementScreen = observer(() => {
 
   // 开启定位
   const startPositionWatch = async () => {
+    if (deviceStore.deviceImei && deviceStore.status === "1") {
+      return;
+    }
     stopPositionWatch();
 
     // 初始定位（无论定位源，先获取一次位置）
@@ -486,7 +541,21 @@ const LandManagementScreen = observer(() => {
   };
 
   // 编辑地块名称(合并地块)
-  const onEditLandName = () => {};
+  const onEditLandName = () => {
+    setIsShowEditLandNamePopup(true);
+  };
+
+  // 关闭地块名称编辑弹窗
+  const closeEditLandNamePopup = (status?: string) => {
+    if (status === "success") {
+      showCustomToast("success", "保存地块名称成功");
+    }
+    if (status === "error") {
+      showCustomToast("error", "保存地块名称失败");
+    }
+    setIsShowEditLandNamePopup(false);
+    setIsShowLandManagePopup(false);
+  };
 
   // 获取地块信息列表
   const getLandInfoList = async () => {
@@ -509,6 +578,7 @@ const LandManagementScreen = observer(() => {
       return;
     }
     setLandInfo(data[0]);
+    setLandName(data[0].landName || "");
     if (data[0].landType === "2") {
       await getTrusteeshipLandOrderList(id);
     } else {
@@ -534,6 +604,9 @@ const LandManagementScreen = observer(() => {
   // 初始化WebSocket（无论设备状态，都建立连接）
   const initWebSocket = async () => {
     console.log("初始化WebSocket（无论设备状态）");
+    if (!deviceStore.deviceImei) {
+      return;
+    }
     const token = await getToken();
 
     // 如果已有连接，先关闭
@@ -546,15 +619,38 @@ const LandManagementScreen = observer(() => {
     webSocketRef.current = new WebSocketClass({
       data: {token, imei: deviceStore.deviceImei},
       onConnected: () => {
-        console.log("WebSocket 连接成功");
-        // 连接成功后，再次确认定位源（防止连接过程中设备状态变化）
+        if (rtkLocation.lat !== 0 && rtkLocation.lon !== 0) {
+          webViewRef.current?.postMessage(
+            JSON.stringify({
+              type: "SET_ICON_LOCATION",
+              location: {lon: rtkLocation.lon, lat: rtkLocation.lat},
+            }),
+          );
+        }
         initLocationByDeviceStatus();
       },
       onMessage: (data: any) => {
         const socketData = JSON.parse(JSON.stringify(data));
-        console.log("📬 接收 WebSocket 消息:", socketData);
-        if (!socketData) {
-          return;
+        // 过滤无效坐标（避免0,0坐标）
+        if (socketData.taskType === "1" && socketData.lng && socketData.lat && socketData.lng !== 0 && socketData.lat !== 0) {
+          const newLocation = {lon: socketData.lng, lat: socketData.lat};
+          setRtkLocation(newLocation); // 更新状态
+          console.log("WebSocket 接收定位数据:", newLocation);
+
+          // 关键修改：首次定位用 SET_ICON_LOCATION（带居中），后续用 UPDATE_ICON_LOCATION（不带居中）
+          const messageType = isFirstSocketLocationRef.current ? "SET_ICON_LOCATION" : "UPDATE_ICON_LOCATION";
+
+          webViewRef.current?.postMessage(
+            JSON.stringify({
+              type: messageType,
+              location: newLocation,
+            }),
+          );
+
+          // 首次定位后重置标记
+          if (isFirstSocketLocationRef.current) {
+            isFirstSocketLocationRef.current = false;
+          }
         }
 
         // 处理设备状态变更
@@ -568,19 +664,8 @@ const LandManagementScreen = observer(() => {
           setUseLocationFromSocket(true); // 切换到WebSocket定位
           stopPositionWatch(); // 停止GPS
         }
-
-        // 处理定位数据（仅当设备在线时）
-        if (socketData.taskType === "1" && deviceStore.status === "1") {
-          webViewRef.current?.postMessage(
-            JSON.stringify({
-              type: "UPDATE_ICON_LOCATION",
-              location: {lon: socketData.lng, lat: socketData.lat},
-            }),
-          );
-        }
       },
       onError: error => {
-        console.error("WebSocket 错误:", error);
         // 错误时，默认切换到GPS定位
         setUseLocationFromSocket(false);
         startPositionWatch();
@@ -607,6 +692,9 @@ const LandManagementScreen = observer(() => {
       // 地图准备完成
       case "WEBVIEW_READY":
         setIsWebViewReady(true);
+        if (hasLocationPermission && !(deviceStore.deviceImei && deviceStore.status === "1")) {
+          startPositionWatch();
+        }
         break;
       // 点击多边形
       case "POLYGON_CLICK":
@@ -759,6 +847,8 @@ const LandManagementScreen = observer(() => {
       )}
       {/* 自定义加载弹窗 */}
       <CustomLoading visible={loading} text="地块详情加载中..." />
+      {/* 地块名称编辑弹窗 */}
+      {isShowEditLandNamePopup && <EditLandNamePopup onClose={closeEditLandNamePopup} id={landId} initialName={landName} />}
     </View>
   );
 });
