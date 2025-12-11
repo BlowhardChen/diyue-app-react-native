@@ -4,7 +4,7 @@ import {Platform, StatusBar} from "react-native";
 
 const STATUS_BAR_HEIGHT = Platform.OS === "ios" ? 44 : StatusBar.currentHeight || 0;
 const {width: SCREEN_WIDTH} = Dimensions.get("window");
-export const styles = StyleSheet.create({
+export const MyScreenStyles = StyleSheet.create({
   container: {flex: 1, backgroundColor: "#f7f7f8"},
   topBg: {width: SCREEN_WIDTH, height: 280, paddingTop: STATUS_BAR_HEIGHT},
   topIcon: {position: "absolute", top: STATUS_BAR_HEIGHT + 9, right: 16, zIndex: 10},

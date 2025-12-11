@@ -185,3 +185,77 @@ export interface TransferLandParams {
   mobile: string;
   list: {type: string; landId: string}[];
 }
+
+// 地块信息列表
+export interface LandListItemInfo {
+  checked?: boolean;
+  id: string;
+  userId: string;
+  status: string;
+  agrimensorMemberId: string;
+  memberId: string;
+  landName: string;
+  landType: string;
+  relename: string;
+  cardid: string;
+  openBank: string;
+  bankAccount: string;
+  mobile: string;
+  acreageNum: number;
+  actualAcreNum: number;
+  memberName: string;
+  memberMobile: string;
+  country: string;
+  province: string;
+  city: string;
+  district: string;
+  township: string;
+  administrativeVillage: string;
+  detailaddress: string;
+  formattedAddress: string;
+  createTime: string;
+  url: string;
+  type: string;
+  gpsList: Array<LandListItemListItem>;
+}
+
+// 地块坐标集合
+export interface LandListItemListItem {
+  id: string;
+  landId: string;
+  lat: number;
+  lng: number;
+  oldLat: number;
+  oldLng: number;
+  createBy: string;
+  createTime: string;
+  remark: string;
+  searchValue: string;
+  sort: number;
+  status: string;
+  storeName: string;
+  updateBy: string;
+  updateTime: string;
+  params: object;
+}
+
+// 我的地块信息列表
+export interface MyLandListInfo {
+  id: string;
+  landName: string;
+  url: string;
+  landType: string;
+  formattedAddress: string;
+  country: string;
+  province: string;
+  city: string;
+  district: string;
+  township: string;
+  administrativeVillage: string;
+  detailaddress: string;
+  actualAcreNum: number;
+  residualDay: number;
+  quitStatus: string;
+  memberName: string;
+  memberMobile: string;
+}

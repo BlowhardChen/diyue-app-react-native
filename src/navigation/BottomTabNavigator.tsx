@@ -6,7 +6,7 @@ import {useTabBar} from "@/navigation/TabBarContext";
 import LandManagementScreen from "../screens/tabBarPage/LandManagementScreen";
 import MyScreen from "../screens/tabBarPage/MyScreen";
 import FarmManagementScreen from "../screens/tabBarPage/FarmManagementScreen";
-import FarmSuppliesScreen from "../screens/tabBarPage/FarmSuppliesScreen";
+import FarmSupplieMallScreen from "../screens/tabBarPage/FarmSupplieMallScreen";
 
 // 底部导航的参数类型
 type TabParamList = {
@@ -76,6 +76,8 @@ const BottomTabNavigator: React.FC = () => {
           height: 60,
           paddingTop: 5,
           backgroundColor: "#fff",
+          borderTopWidth: 0,
+          elevation: 0,
         },
         !visible && {display: "none"},
       ],
@@ -88,7 +90,7 @@ const BottomTabNavigator: React.FC = () => {
     <Tab.Navigator screenOptions={screenOptions}>
       <Tab.Screen name="LandManagement" component={LandManagementScreen} options={{title: "土地管理", headerShown: false}} />
       <Tab.Screen name="FarmManagement" component={FarmManagementScreen} options={{title: "农事管理", headerShown: false}} />
-      <Tab.Screen name="FarmSupplies" component={FarmSuppliesScreen} options={{title: "农资商城", headerShown: false}} />
+      <Tab.Screen name="FarmSupplies" component={FarmSupplieMallScreen} options={{title: "农资商城", headerShown: false}} />
       <Tab.Screen name="My" component={MyScreen} options={{title: "我的", headerShown: false}} />
     </Tab.Navigator>
   );

@@ -454,24 +454,24 @@ const AddFarmScreen = ({route}: {route: {params: {title?: string; farmingId?: st
     }
 
     // 监听选地块回调
-    const unsubscribe = navigation.addListener("SelectLand", (data: any) => {
-      setFarmParams(prev => ({
-        ...prev,
-        farmingLands: data.ids.map((item: any) => ({
-          landId: item.id,
-          landType: item.landType,
-        })),
-        totalArea: data.totalArea,
-        detailaddress: data.detailaddress,
-      }));
-      setFarmLand(prev => {
-        const newList = [...prev];
-        newList[0].value = data.totalArea;
-        return newList;
-      });
-    });
+    // const unsubscribe = navigation.addListener("SelectLand", (data: any) => {
+    //   setFarmParams(prev => ({
+    //     ...prev,
+    //     farmingLands: data.ids.map((item: any) => ({
+    //       landId: item.id,
+    //       landType: item.landType,
+    //     })),
+    //     totalArea: data.totalArea,
+    //     detailaddress: data.detailaddress,
+    //   }));
+    //   setFarmLand(prev => {
+    //     const newList = [...prev];
+    //     newList[0].value = data.totalArea;
+    //     return newList;
+    //   });
+    // });
 
-    return () => unsubscribe();
+    // return () => unsubscribe();
   }, [route.params?.title, route.params?.farmingId, getFarmCropList, getFarmingDetailInfo, navigation]);
 
   // 渲染列表项
@@ -811,7 +811,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "500",
     color: "#000",
-    numberOfLines: 1,
   },
   normActiveText: {
     color: "#08ae3c",

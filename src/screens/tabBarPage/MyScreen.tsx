@@ -13,7 +13,7 @@ import {
   Modal,
 } from "react-native";
 import {useNavigation, useFocusEffect} from "@react-navigation/native";
-import {styles} from "./styles/MyScreen";
+import {MyScreenStyles} from "./styles/MyScreen";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {getUserInfo} from "@/services/account";
 import useImagePicker from "@/hooks/useImagePicker";
@@ -219,33 +219,36 @@ const MyScreen = () => {
   const handleManage = (item: MangeItem) => {};
 
   return (
-    <View style={styles.container}>
+    <View style={MyScreenStyles.container}>
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-      <ImageBackground source={require("@/assets/images/my/my-bg.png")} style={styles.topBg}>
-        <TouchableOpacity style={styles.topIcon} onPress={handleSetting}>
-          <Image source={require("@/assets/images/my/icon-setting.png")} style={styles.iconImg} />
+      <ImageBackground source={require("@/assets/images/my/my-bg.png")} style={MyScreenStyles.topBg}>
+        <TouchableOpacity style={MyScreenStyles.topIcon} onPress={handleSetting}>
+          <Image source={require("@/assets/images/my/icon-setting.png")} style={MyScreenStyles.iconImg} />
         </TouchableOpacity>
         {/* 占位高度，避免内容上移 */}
         <View style={{height: STATUS_BAR_HEIGHT}} />
-        <View style={styles.userInfoRow}>
-          <TouchableOpacity onPress={viewPersonInfo} style={styles.avatarContainer}>
+        <View style={MyScreenStyles.userInfoRow}>
+          <TouchableOpacity onPress={viewPersonInfo} style={MyScreenStyles.avatarContainer}>
             <Image
               source={userInfo?.avatar ? {uri: userInfo.avatar} : require("@/assets/images/my/icon-avatar.png")}
-              style={styles.avatar}
+              style={MyScreenStyles.avatar}
               resizeMode="cover"
             />
           </TouchableOpacity>
-          <View style={styles.msgContainer}>
-            <Text style={styles.name}>{userInfo?.nickName ?? "张三"}</Text>
-            <View style={styles.phoneAuthRow}>
-              <View style={styles.phoneRow}>
-                <Image source={require("@/assets/images/my/icon-phone.png")} style={styles.phoneIcon} />
-                <Text style={styles.phoneText}>{userInfo?.userName ?? "未知"}</Text>
+          <View style={MyScreenStyles.msgContainer}>
+            <Text style={MyScreenStyles.name}>{userInfo?.nickName ?? "张三"}</Text>
+            <View style={MyScreenStyles.phoneAuthRow}>
+              <View style={MyScreenStyles.phoneRow}>
+                <Image source={require("@/assets/images/my/icon-phone.png")} style={MyScreenStyles.phoneIcon} />
+                <Text style={MyScreenStyles.phoneText}>{userInfo?.userName ?? "未知"}</Text>
               </View>
               <TouchableOpacity
-                style={[styles.authBtn, userInfo?.attestationStatus === "1" ? styles.authDone : styles.authPending]}
+                style={[
+                  MyScreenStyles.authBtn,
+                  userInfo?.attestationStatus === "1" ? MyScreenStyles.authDone : MyScreenStyles.authPending,
+                ]}
                 onPress={oepnAuth}>
-                <Text style={userInfo?.attestationStatus === "1" ? styles.authDoneText : styles.authPendingText}>
+                <Text style={userInfo?.attestationStatus === "1" ? MyScreenStyles.authDoneText : MyScreenStyles.authPendingText}>
                   {userInfo?.attestationStatus === "1" ? "已认证" : "未认证"}
                 </Text>
                 <Image
@@ -254,14 +257,14 @@ const MyScreen = () => {
                       ? require("@/assets/images/my/icon-right-green.png")
                       : require("@/assets/images/my/icon-right-red.png")
                   }
-                  style={styles.authIcon}
+                  style={MyScreenStyles.authIcon}
                 />
               </TouchableOpacity>
             </View>
           </View>
         </View>
         {/* 亩数信息 */}
-        <View style={styles.dataRow}>
+        <View style={MyScreenStyles.dataRow}>
           {[
             {
               num: userInfo.agrimensorAcreageNum ?? 0,
@@ -270,21 +273,21 @@ const MyScreen = () => {
             {num: userInfo.acreageNum ?? 0, label: "管理面积(亩)"},
             {num: userInfo.workAreaNum ?? 0, label: "作业面积(亩)"},
           ].map((d, i) => (
-            <View key={i} style={styles.dataItem}>
-              <Text style={styles.dataNum}>{d.num}</Text>
-              <Text style={styles.dataLabel}>{d.label}</Text>
+            <View key={i} style={MyScreenStyles.dataItem}>
+              <Text style={MyScreenStyles.dataNum}>{d.num}</Text>
+              <Text style={MyScreenStyles.dataLabel}>{d.label}</Text>
             </View>
           ))}
         </View>
       </ImageBackground>
 
       {/* 托管订单 */}
-      <View style={styles.hostedOrdersBox}>
-        <View style={styles.hostedOrdersTop}>
-          <Text style={styles.orderTitle}>托管订单</Text>
-          <TouchableOpacity style={styles.orderMore} onPress={viewMoreOrder}>
-            <Text style={styles.orderMoreText}>查看更多</Text>
-            <Image source={require("@/assets/images/my/icon-right.png")} style={styles.iconSmall} />
+      <View style={MyScreenStyles.hostedOrdersBox}>
+        <View style={MyScreenStyles.hostedOrdersTop}>
+          <Text style={MyScreenStyles.orderTitle}>托管订单</Text>
+          <TouchableOpacity style={MyScreenStyles.orderMore} onPress={viewMoreOrder}>
+            <Text style={MyScreenStyles.orderMoreText}>查看更多</Text>
+            <Image source={require("@/assets/images/my/icon-right.png")} style={MyScreenStyles.iconSmall} />
           </TouchableOpacity>
         </View>
         {/* 托管订单类型 */}
@@ -292,96 +295,96 @@ const MyScreen = () => {
           data={ordersList}
           horizontal
           keyExtractor={(_, i) => i.toString()}
-          contentContainerStyle={styles.orderList}
+          contentContainerStyle={MyScreenStyles.orderList}
           renderItem={({item}) => (
-            <TouchableOpacity onPress={() => handleOrder(item)} style={styles.orderItem}>
-              <View style={styles.ordersItemIcon}>
-                <Image source={item.iconUrl} style={styles.orderIcon} />
+            <TouchableOpacity onPress={() => handleOrder(item)} style={MyScreenStyles.orderItem}>
+              <View style={MyScreenStyles.ordersItemIcon}>
+                <Image source={item.iconUrl} style={MyScreenStyles.orderIcon} />
 
                 {item.badge > 0 && (
-                  <View style={[styles.badgeContainer, item.badge > 99 && styles.largeBadge]}>
-                    <Text style={styles.badgeText}>{item.badge > 99 ? "99+" : item.badge}</Text>
+                  <View style={[MyScreenStyles.badgeContainer, item.badge > 99 && MyScreenStyles.largeBadge]}>
+                    <Text style={MyScreenStyles.badgeText}>{item.badge > 99 ? "99+" : item.badge}</Text>
                   </View>
                 )}
               </View>
-              <Text style={styles.orderName}>{item.iconName}</Text>
+              <Text style={MyScreenStyles.orderName}>{item.iconName}</Text>
             </TouchableOpacity>
           )}
         />
       </View>
 
       {/* 管理功能列表 */}
-      <View style={styles.manageList}>
+      <View style={MyScreenStyles.manageList}>
         {mangeList.map((item, i) => (
-          <TouchableOpacity key={i} style={styles.mangeItem} onPress={() => handleManage(item)}>
-            <Image source={item.iconUrl} style={styles.mangeIcon} />
-            <Text style={styles.mangeText}>{item.iconName}</Text>
+          <TouchableOpacity key={i} style={MyScreenStyles.mangeItem} onPress={() => handleManage(item)}>
+            <Image source={item.iconUrl} style={MyScreenStyles.mangeIcon} />
+            <Text style={MyScreenStyles.mangeText}>{item.iconName}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
       {/* 认证弹窗 */}
       {isShowAuthPopup && (
-        <View style={styles.popupBox}>
-          <View style={styles.popupContent}>
+        <View style={MyScreenStyles.popupBox}>
+          <View style={MyScreenStyles.popupContent}>
             <ImageBackground
               source={require("@/assets/images/my/auth-dialog-bg.png")}
-              style={[styles.popupContentMain, styles.popupTopRadius]}>
-              <View style={styles.popupContentTop}>
-                <Text style={styles.title}>实名认证</Text>
-                <Text style={styles.msg}>为方便绑定相关地块信息，请尽快完成实名认证</Text>
+              style={[MyScreenStyles.popupContentMain, MyScreenStyles.popupTopRadius]}>
+              <View style={MyScreenStyles.popupContentTop}>
+                <Text style={MyScreenStyles.title}>实名认证</Text>
+                <Text style={MyScreenStyles.msg}>为方便绑定相关地块信息，请尽快完成实名认证</Text>
               </View>
 
-              <View style={styles.authFrom}>
+              <View style={MyScreenStyles.authFrom}>
                 <View>
-                  <Text style={styles.label}>真实姓名</Text>
-                  <View style={styles.popupInput}>
+                  <Text style={MyScreenStyles.label}>真实姓名</Text>
+                  <View style={MyScreenStyles.popupInput}>
                     <TextInput
-                      style={styles.input}
+                      style={MyScreenStyles.input}
                       placeholder="请输入或者扫描身份证"
                       value={popupForm.name}
                       onChangeText={text => handleInputChange("name", text)}
                       placeholderTextColor="#999"
                     />
-                    <TouchableOpacity style={styles.popupImg} onPress={scanCard}>
-                      <Image source={require("@/assets/images/common/icon-scan.png")} style={styles.scanIcon} />
+                    <TouchableOpacity style={MyScreenStyles.popupImg} onPress={scanCard}>
+                      <Image source={require("@/assets/images/common/icon-scan.png")} style={MyScreenStyles.scanIcon} />
                     </TouchableOpacity>
                   </View>
                 </View>
 
                 <View style={{marginTop: 24}}>
-                  <Text style={styles.label}>身份证号</Text>
-                  <View style={styles.popupInput}>
+                  <Text style={MyScreenStyles.label}>身份证号</Text>
+                  <View style={MyScreenStyles.popupInput}>
                     <TextInput
-                      style={styles.input}
+                      style={MyScreenStyles.input}
                       placeholder="请输入或者扫描身份证"
                       value={popupForm.cardid}
                       onChangeText={text => handleInputChange("cardid", text)}
                       placeholderTextColor="#999"
                       keyboardType="numeric"
                     />
-                    <TouchableOpacity style={styles.popupImg} onPress={scanCard}>
-                      <Image source={require("@/assets/images/common/icon-scan.png")} style={styles.scanIcon} />
+                    <TouchableOpacity style={MyScreenStyles.popupImg} onPress={scanCard}>
+                      <Image source={require("@/assets/images/common/icon-scan.png")} style={MyScreenStyles.scanIcon} />
                     </TouchableOpacity>
                   </View>
                 </View>
               </View>
             </ImageBackground>
 
-            <View style={styles.divider}></View>
+            <View style={MyScreenStyles.divider}></View>
 
-            <View style={styles.popupBottom}>
-              <TouchableOpacity style={styles.btnLeft} onPress={cancelAuth}>
-                <Text style={styles.btnLeftText}>以后再说</Text>
+            <View style={MyScreenStyles.popupBottom}>
+              <TouchableOpacity style={MyScreenStyles.btnLeft} onPress={cancelAuth}>
+                <Text style={MyScreenStyles.btnLeftText}>以后再说</Text>
               </TouchableOpacity>
 
-              <View style={styles.cross}></View>
+              <View style={MyScreenStyles.cross}></View>
 
-              <TouchableOpacity style={styles.btnRight} onPress={confirmAuth}>
+              <TouchableOpacity style={MyScreenStyles.btnRight} onPress={confirmAuth}>
                 <Text
                   style={[
-                    styles.btnRightText,
-                    popupForm.name && popupForm.cardid ? styles.activeBtnText : styles.inactiveBtnText,
+                    MyScreenStyles.btnRightText,
+                    popupForm.name && popupForm.cardid ? MyScreenStyles.activeBtnText : MyScreenStyles.inactiveBtnText,
                   ]}>
                   立即认证
                 </Text>

@@ -15,7 +15,7 @@ export const LandManagementScreenStyles = StyleSheet.create({
   },
   listContainer: {
     position: "absolute",
-    top: 90,
+    top: 88,
     left: 0,
     right: 0,
     bottom: 0,
