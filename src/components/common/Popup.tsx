@@ -1,3 +1,4 @@
+// 通用弹窗组件
 import {Global} from "@/styles/global";
 import React from "react";
 import {Modal, View, Text, Image, TouchableOpacity, StyleSheet, TextStyle} from "react-native";

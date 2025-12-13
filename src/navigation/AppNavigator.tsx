@@ -34,6 +34,8 @@ import FarmMapScreen from "@/screens/farming/FarmMapScreen";
 import MechanicalTaskScreen from "@/screens/farming/MechanicalTaskScreen";
 import PatrolFieldManageScreen from "@/screens/farming/PatrolFieldManageScreen";
 import FarmDataCalculatorScreen from "@/screens/farming/FarmDataCalculatorScreen";
+import ContractManageScreen from "@/screens/contract/ContractManageScreen";
+import AddContractScreen from "@/screens/contract/AddContractScreen";
 
 type Props = {
   initialRouteName?: keyof RootStackParamList;
@@ -75,6 +77,8 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
           },
         },
       }}>
+      <Stack.Screen name="AddContract" component={AddContractScreen} />
+      <Stack.Screen name="ContractManage" component={ContractManageScreen} />
       <Stack.Screen name="FarmDataCalculator" component={FarmDataCalculatorScreen} />
       <Stack.Screen name="PatrolFieldManage" component={PatrolFieldManageScreen} />
       <Stack.Screen name="MechanicalTask" component={MechanicalTaskScreen} />

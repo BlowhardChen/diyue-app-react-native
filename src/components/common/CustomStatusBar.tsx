@@ -1,3 +1,4 @@
+// 自定义状态栏组件
 import React from "react";
 import {View, Text, Image, TouchableOpacity, StyleSheet, StatusBar, Platform} from "react-native";
 

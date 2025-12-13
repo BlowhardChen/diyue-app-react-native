@@ -1,3 +1,4 @@
+// 客服电话弹窗组件
 import React from "react";
 import {View, Text, TouchableOpacity, Image, Modal, StyleSheet} from "react-native";
 import LinearGradient from "react-native-linear-gradient";

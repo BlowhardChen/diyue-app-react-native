@@ -26,6 +26,7 @@ type LandStackParamList = {
   LandInfoEdit: {queryInfo: LandDetailInfo};
   AddDevice: undefined;
   FindLandDetail: {landId: string};
+  AddContract: {contractType: string};
 };
 
 const LandDetailsPopup: React.FC<Props> = ({landInfo, contractDetail, landOrderList, onClose, onBack, onLandManage}) => {
@@ -59,7 +60,9 @@ const LandDetailsPopup: React.FC<Props> = ({landInfo, contractDetail, landOrderL
   const handleCreateOrder = () => {};
 
   // 新建合同
-  const addContract = () => {};
+  const addContract = () => {
+    navigation.navigate("AddContract", {contractType: "新建"});
+  };
 
   // 拨打电话
   const callPhone = (tel?: string) => {

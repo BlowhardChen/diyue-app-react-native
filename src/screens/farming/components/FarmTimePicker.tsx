@@ -1,6 +1,5 @@
 import React, {useState, useEffect} from "react";
 import {View, Text, TouchableOpacity, StyleSheet, Dimensions, Platform} from "react-native";
-import {Picker} from "@react-native-picker/picker";
 
 const {width: SCREEN_WIDTH} = Dimensions.get("window");
 
@@ -141,7 +140,7 @@ const FarmTimePicker: React.FC<FarmTimePickerProps> = ({time, onClosePopup}) => 
         </View>
 
         <View style={styles.androidPicker}>
-          <Picker
+          {/* <Picker
             selectedValue={years[pickerIndex[0]]}
             style={styles.pickerColumn}
             onValueChange={(value: number) => handleChange(0, years.indexOf(value))}>
@@ -164,7 +163,7 @@ const FarmTimePicker: React.FC<FarmTimePickerProps> = ({time, onClosePopup}) => 
             {days.map(day => (
               <Picker.Item key={day} label={`${day}日`} value={day} />
             ))}
-          </Picker>
+          </Picker> */}
         </View>
       </View>
     </View>

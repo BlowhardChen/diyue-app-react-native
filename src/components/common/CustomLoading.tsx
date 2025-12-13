@@ -1,3 +1,4 @@
+// 自定义加载弹窗组件
 import React from "react";
 import {View, Text, ActivityIndicator, StyleSheet, Modal} from "react-native";
 

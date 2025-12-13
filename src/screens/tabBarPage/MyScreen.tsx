@@ -78,7 +78,7 @@ const MyScreen = () => {
   const {uploadImg, loading} = useOCR();
 
   const mangeList: MangeItem[] = [
-    {iconUrl: require("@/assets/images/my/icon-contract.png"), iconName: "合同管理", url: "ContractList"},
+    {iconUrl: require("@/assets/images/my/icon-contract.png"), iconName: "合同管理", url: "ContractManage"},
     {iconUrl: require("@/assets/images/my/icon-team.png"), iconName: "团队管理", url: "TeamManage"},
     {iconUrl: require("@/assets/images/my/icon-kf.png"), iconName: "客服电话", url: ""},
     {iconUrl: require("@/assets/images/my/icon-land.png"), iconName: "我的地块", url: "MyLand"},
@@ -216,7 +216,9 @@ const MyScreen = () => {
   };
 
   // 管理类别
-  const handleManage = (item: MangeItem) => {};
+  const handleManage = (item: MangeItem) => {
+    navigation.navigate(item.url as any);
+  };
 
   return (
     <View style={MyScreenStyles.container}>

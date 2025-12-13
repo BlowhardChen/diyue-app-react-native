@@ -1,3 +1,4 @@
+// 底部弹窗组件
 import React from "react";
 import {View, Text, Image, TouchableOpacity, StyleSheet, Modal, DimensionValue} from "react-native";
 

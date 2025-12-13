@@ -1,3 +1,4 @@
+// 权限弹窗组件
 import {Global} from "@/styles/global";
 import {View, Text, Image, Modal, TouchableOpacity, StyleSheet} from "react-native";
 import LinearGradient from "react-native-linear-gradient";
@@ -56,7 +57,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 24,
     alignItems: "center",
-    justifyContent: "center", 
+    justifyContent: "center",
     shadowColor: Global.colors.textDark,
     shadowOffset: {
       width: 0,

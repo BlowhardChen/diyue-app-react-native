@@ -1,5 +1,4 @@
 // 省市区三级联动选择器
-
 import React, {useState, useEffect} from "react";
 import {View, Text, TouchableOpacity, Modal, StyleSheet, Dimensions} from "react-native";
 import {WheelPicker} from "react-native-wheel-picker-android";

@@ -1,3 +1,4 @@
+// 地图切换器组件
 import React, {useState, useEffect} from "react";
 import {View, Text, Image, TextInput, TouchableOpacity, Modal, StyleSheet, Dimensions} from "react-native";
 import {observer} from "mobx-react-lite";

@@ -1,3 +1,4 @@
+// 自定义toast组件
 import {Text, View, Image, StyleSheet, Animated} from "react-native";
 import RootSiblings from "react-native-root-siblings";
 

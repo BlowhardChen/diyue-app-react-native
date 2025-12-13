@@ -4,7 +4,8 @@ export type RootStackParamList = AuthParamList &
   AccountStackParamList &
   DeviceStackParamList &
   LandMapStackParamList &
-  FarmStackParamList;
+  FarmStackParamList &
+  ContractStackParamList;
 
 // 启动页&隐私政策&服务协议&隐私政策详情页
 export type AuthParamList = {
@@ -65,4 +66,10 @@ export type FarmStackParamList = {
   MechanicalTask: undefined;
   PatrolFieldManage: undefined;
   FarmDataCalculator: undefined;
+};
+
+// 合同管理相关
+export type ContractStackParamList = {
+  ContractManage: undefined;
+  AddContract: {contractType: string};
 };
