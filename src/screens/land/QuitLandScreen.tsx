@@ -17,7 +17,6 @@ import {getLandDetailsInfo, getLandListData} from "@/services/land";
 import LinearGradient from "react-native-linear-gradient";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import QuitLandDetailPopup from "./components/QuitLandDetailPopup";
-import Popup from "@/components/common/Popup";
 import {updateStore} from "@/stores/updateStore";
 
 const QuitLandScreen = observer(() => {

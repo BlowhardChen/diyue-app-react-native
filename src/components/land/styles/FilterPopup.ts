@@ -1,7 +1,6 @@
 import {Global} from "@/styles/global";
 import {StyleSheet, Dimensions} from "react-native";
 
-// 获取屏幕高度（关键：用于限制侧边栏高度）
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 export const FilterPopupStyles = StyleSheet.create({
@@ -25,11 +24,12 @@ export const FilterPopupStyles = StyleSheet.create({
     maxHeight: SCREEN_HEIGHT * 0.9,
   },
   popupBox: {
+    marginTop: 36.5,
     width: 300,
     backgroundColor: "#fff",
     borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
     flexDirection: "column",
-    height: SCREEN_HEIGHT - 112,
   },
   condition: {
     flex: 1,
@@ -60,6 +60,13 @@ export const FilterPopupStyles = StyleSheet.create({
     height: 44,
   },
   input: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#000",
+  },
+  timeInput: {
+    lineHeight: 44,
     flex: 1,
     fontSize: 16,
     fontWeight: "500",
@@ -119,6 +126,7 @@ export const FilterPopupStyles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderColor: "#E7E7E7",
+    borderBottomLeftRadius: 8,
     position: "relative",
     zIndex: 10,
   },

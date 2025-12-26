@@ -1,6 +1,7 @@
 // 租赁时间选择器组件
 import {Global} from "@/styles/global";
-import React, {useState, useEffect, useCallback} from "react";
+import {debounce} from "lodash";
+import React, {useState, useEffect, useRef} from "react";
 import {View, Text, TouchableOpacity, Modal, StyleSheet, Dimensions} from "react-native";
 import {WheelPicker} from "react-native-wheel-picker-android";
 
@@ -19,6 +20,14 @@ const LeaseTimePicker: React.FC<LeaseTimePickerProps> = ({visible, onClose, onCo
   const [years, setYears] = useState<number[]>([]);
   const [months, setMonths] = useState<number[]>([]);
   const [days, setDays] = useState<number[]>([]);
+  const prevVisibleRef = useRef<boolean>(false);
+
+  // 防抖更新天数和修正索引（避免快速切换年月导致内存堆积）
+  const debouncedUpdateDays = useRef(
+    debounce((year: number, month: number) => {
+      updateDays(year, month);
+    }, 50),
+  ).current;
 
   // 初始化基础数据（年份/月份数组，仅首次执行）
   useEffect(() => {
@@ -37,71 +46,79 @@ const LeaseTimePicker: React.FC<LeaseTimePickerProps> = ({visible, onClose, onCo
     setMonths(monthList);
   }, []);
 
-  // 计算当月天数（抽离为独立函数，确保引用稳定）
-  const getDaysInMonth = useCallback((year: number, month: number): number => {
+  // 计算当月天数
+  const getDaysInMonth = (year: number, month: number): number => {
     return new Date(year, month, 0).getDate();
-  }, []);
+  };
 
-  // 更新日期数组（抽离为独立函数）
-  const updateDays = useCallback(
-    (year: number, month: number, targetDayIndex?: number) => {
-      const daysInMonth = getDaysInMonth(year, month);
-      const dayList: number[] = [];
-      for (let i = 1; i <= daysInMonth; i++) {
-        dayList.push(i);
-      }
-      setDays(dayList);
+  // 更新天数列表 + 同步修正日索引
+  const updateDays = (year: number, month: number) => {
+    if (!visible) return; // 弹窗关闭时直接返回
 
-      // 确定最终的日期索引（优先用传入的目标索引，否则用当前索引）
-      const finalDayIndex = targetDayIndex ?? dayIndex;
-      // 确保索引不越界
-      const validDayIndex = Math.min(finalDayIndex, daysInMonth - 1);
-      if (validDayIndex !== dayIndex) {
-        setDayIndex(validDayIndex);
-      }
-    },
-    [dayIndex, getDaysInMonth],
-  );
+    // 1. 更新天数列表
+    const daysInMonth = getDaysInMonth(year, month);
+    const dayList: number[] = [];
+    for (let i = 1; i <= daysInMonth; i++) {
+      dayList.push(i);
+    }
+    setDays(dayList);
 
-  // 弹窗打开时强制重置为当前日期
+    setDayIndex(prevDayIndex => {
+      const validIndex = Math.min(prevDayIndex, daysInMonth - 1);
+      return validIndex !== prevDayIndex ? validIndex : prevDayIndex;
+    });
+  };
+
   useEffect(() => {
-    if (visible && years.length > 0 && months.length > 0) {
-      // 获取当前系统日期（实时获取，确保每次打开都是最新）
+    // 仅在visible从false变为true，且年月数组已初始化时执行
+    if (visible && !prevVisibleRef.current && years.length > 0 && months.length > 0) {
+      // 获取当前系统日期
       const now = new Date();
       const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1; // 月份从 0 开始，需 +1
+      const currentMonth = now.getMonth() + 1;
       const currentDay = now.getDate();
 
-      // 计算正确的索引
-      const newYearIndex = currentYear - 1990; // 年份数组从 1990 开始
-      const newMonthIndex = currentMonth - 1; // 月份数组从 1 开始
-      const newDayIndex = currentDay - 1; // 日期数组从 1 开始
+      // 计算正确索引
+      const newYearIndex = currentYear - 1990;
+      const newMonthIndex = currentMonth - 1;
+      const newDayIndex = currentDay - 1;
 
-      // 同步更新所有状态（避免异步竞态）
+      // 同步更新所有状态（无异步，避免竞态）
       setYearIndex(newYearIndex);
       setMonthIndex(newMonthIndex);
       setDayIndex(newDayIndex);
-
-      // 立即更新天数（使用目标dayIndex，确保天数数组正确后索引有效）
-      updateDays(currentYear, currentMonth, newDayIndex);
+      updateDays(currentYear, currentMonth);
     }
-  }, [visible, years, months, updateDays]);
+    // 更新ref记录当前visible状态
+    prevVisibleRef.current = visible;
+  }, [visible, years, months]); // 仅依赖基础状态，无频繁变化的函数
 
-  // 年份变化时更新天数
+  // 年份变化时：防抖更新天数和索引
   useEffect(() => {
-    if (years.length === 0 || months.length === 0 || yearIndex >= years.length) return;
+    if (years.length === 0 || months.length === 0 || !visible) return;
     const selectedYear = years[yearIndex];
     const selectedMonth = months[monthIndex];
-    updateDays(selectedYear, selectedMonth);
-  }, [yearIndex, years, months, updateDays]);
+    debouncedUpdateDays(selectedYear, selectedMonth);
+  }, [yearIndex, years, months, visible, debouncedUpdateDays]);
 
-  // 月份变化时更新天数
+  // 月份变化时：防抖更新天数和索引
   useEffect(() => {
-    if (years.length === 0 || months.length === 0 || monthIndex >= months.length) return;
+    if (years.length === 0 || months.length === 0 || !visible) return;
     const selectedYear = years[yearIndex];
     const selectedMonth = months[monthIndex];
-    updateDays(selectedYear, selectedMonth);
-  }, [monthIndex, years, months, updateDays]);
+    debouncedUpdateDays(selectedYear, selectedMonth);
+  }, [monthIndex, years, months, visible, debouncedUpdateDays]);
+
+  // 组件卸载时清理防抖定时器（关键：防止内存泄漏）
+  useEffect(() => {
+    return () => {
+      if (debouncedUpdateDays) {
+        // 清理防抖的超时任务
+        const timeoutIds = (debouncedUpdateDays as any).timeoutId;
+        if (timeoutIds) clearTimeout(timeoutIds);
+      }
+    };
+  }, [debouncedUpdateDays]);
 
   // 确认选择
   const handleConfirm = () => {

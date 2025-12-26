@@ -5,20 +5,34 @@ import {WheelPicker} from "react-native-wheel-picker-android";
 
 // 屏幕宽度
 const {width: screenWidth} = Dimensions.get("window");
-// rpx转px（750rpx = 屏幕宽度）
-const rpxToPx = (rpx: number) => (screenWidth / 750) * rpx;
 
 interface LeaseTermPickerProps {
   visible: boolean;
   onClosePopup: () => void;
   onConfirm: (year: number) => void;
+  defaultYear?: number; // 新增：默认选中的年份
 }
 
-const LeaseTermPicker: React.FC<LeaseTermPickerProps> = ({visible, onClosePopup, onConfirm}) => {
+const LeaseTermPicker: React.FC<LeaseTermPickerProps> = ({
+  visible,
+  onClosePopup,
+  onConfirm,
+  defaultYear = 1, // 默认值设为1年
+}) => {
   // 年份数组
   const years = [1, 2, 3, 4, 5];
   // 选中索引
   const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // 根据默认年份更新选中索引
+  useEffect(() => {
+    if (visible) {
+      // 仅在弹窗显示时更新
+      const index = years.findIndex(year => year === defaultYear);
+      // 如果找到对应年份则选中，否则默认选中第一个（1年）
+      setSelectedIndex(index >= 0 ? index : 0);
+    }
+  }, [visible, defaultYear]); // 监听弹窗显示状态和默认年份变化
 
   // 确认选择
   const handleConfirm = () => {

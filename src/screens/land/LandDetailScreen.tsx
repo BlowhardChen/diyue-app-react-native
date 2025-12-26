@@ -17,7 +17,7 @@ import LandDetailsPopup from "./components/LandDetailsPopup";
 import {ContractDetail} from "@/types/contract";
 import LandManagePopup from "./components/LandManagePopup";
 import {getLandDetailsInfo, getLandOrderList} from "@/services/land";
-import {getContractMessageDetail} from "@/services/contract";
+import {getContractInfoDetail} from "@/services/contract";
 import LinearGradient from "react-native-linear-gradient";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import EditLandNamePopup from "@/components/land/EditLandNamePopup";
@@ -515,7 +515,7 @@ const LandDetailScreen = observer(({route}: {route: {params: {landId: string}}})
 
   // 获取合同详细信息
   const getContractDetail = async (id: string) => {
-    const {data} = await getContractMessageDetail({landId: id});
+    const {data} = await getContractInfoDetail({landId: id});
     setContractDetail(data);
   };
 

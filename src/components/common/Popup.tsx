@@ -125,6 +125,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   popupContentTop: {
+    marginTop: 12,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -6,10 +6,11 @@ import FilterPopup from "@/components/land/FilterPopup";
 import {LandListModelStyles} from "@/components/land/styles/LandListModel";
 import {LandListData} from "@/types/land";
 import {updateStore} from "@/stores/updateStore";
+import {observer} from "mobx-react-lite";
 
 const {height: screenHeight} = Dimensions.get("window");
 
-const LandListModel = () => {
+const LandListModel = observer(() => {
   const [searchWord, setSearchWord] = useState<string>("");
   const [LandListInfo, setLandListInfo] = useState<LandListData[] | []>([]);
   const [areaAmount, setAreaAmount] = useState<number>(0);
@@ -80,12 +81,21 @@ const LandListModel = () => {
       </View>
 
       {/* 地块统计、列表等保持不变 */}
-      {LandListInfo.length > 0 && (
+      {LandListInfo.length > 0 ? (
         <View style={LandListModelStyles.landMsg}>
           <Text style={{fontWeight: "500"}}>
             共<Text style={LandListModelStyles.highlight}>{LandListInfo.length}</Text>个地块，累计
             <Text style={LandListModelStyles.highlight}>{areaAmount.toFixed(2)}</Text>亩
           </Text>
+        </View>
+      ) : (
+        <View style={LandListModelStyles.empty}>
+          <Image
+            source={require("@/assets/images/common/contract-empty.png")}
+            style={LandListModelStyles.emptyImg}
+            resizeMode="contain"
+          />
+          <Text style={LandListModelStyles.emptyTitle}>暂无地块数据</Text>
         </View>
       )}
 
@@ -105,6 +115,6 @@ const LandListModel = () => {
       {showQueryPopup && <FilterPopup onClose={closeQueryPopup} onQuery={queryLand} />}
     </View>
   );
-};
+});
 
 export default LandListModel;

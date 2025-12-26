@@ -6,6 +6,7 @@ import {FilterPopupStyles} from "@/components/land/styles/FilterPopup";
 import {useNavigation, useRoute} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {saveTargetRoute} from "@/utils/navigationUtils";
+import LeaseTimePicker from "@/components/common/LeaseTimePicker";
 
 // 类型定义保持不变
 interface LocationType {
@@ -32,11 +33,10 @@ interface Props {
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
-const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT - 111, marginTop = 0}) => {
+const ContractFilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT - 111, marginTop = 0}) => {
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const [showProvincePopup, setShowProvincePopup] = useState(false);
-  const [isCheckedType, setIsCheckedType] = useState(0);
   const navigation = useNavigation<StackNavigationProp<StackParamList>>();
   const [searchFormInfo, setSearchFormInfo] = useState<SearchFormInfo>({
     province: "",
@@ -46,13 +46,16 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
     formattedAddress: "",
     detailaddress: "",
     relename: "",
+    startTime: "",
+    endTime: "",
     mobile: "",
     cardid: "",
     bankAccount: "",
-    landType: "1",
     beginActualNum: "",
     endActualNum: "",
   });
+  const [isShowTimePicker, setIsShowTimePicker] = useState(false);
+  const [timeType, setTimeType] = useState<string>("");
 
   // 格式化银行卡号
   useEffect(() => {
@@ -65,10 +68,23 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
     }
   }, [searchFormInfo.bankAccount]);
 
-  // 选择地块类型
-  const selectContract = (index: number) => {
-    setIsCheckedType(index);
-    setSearchFormInfo(prev => ({...prev, landType: index === 1 ? "2" : "1"}));
+  // 打开日期选择器
+  const openDatePicker = (type: "start" | "end") => {
+    setTimeType(type);
+    setIsShowTimePicker(true);
+  };
+
+  // 关闭日期选择器
+  const closeDatePicker = (time: string) => {
+    setIsShowTimePicker(false);
+    if (timeType === "start") {
+      setSearchFormInfo(prev => ({
+        ...prev,
+        startTime: time,
+      }));
+    } else {
+      setSearchFormInfo(prev => ({...prev, endTime: time}));
+    }
   };
 
   // 打开省份选择器
@@ -138,14 +154,14 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
       formattedAddress: "",
       detailaddress: "",
       relename: "",
+      startTime: "",
+      endTime: "",
       mobile: "",
       cardid: "",
       bankAccount: "",
-      landType: "1",
       beginActualNum: "",
       endActualNum: "",
     });
-    setIsCheckedType(0);
   };
 
   // 点击查询
@@ -163,35 +179,6 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
             showsVerticalScrollIndicator={false}
             contentContainerStyle={FilterPopupStyles.conditionContent}
             overScrollMode="always">
-            <View style={FilterPopupStyles.item}>
-              <Text style={FilterPopupStyles.label}>省市位置</Text>
-              <TouchableOpacity style={FilterPopupStyles.inputBox} onPress={openProvincePopup}>
-                <TextInput
-                  style={FilterPopupStyles.input}
-                  editable={false}
-                  value={searchFormInfo.formattedAddress}
-                  placeholder="请选择"
-                />
-                <Image
-                  source={require("@/assets/images/common/icon-right.png")}
-                  style={FilterPopupStyles.iconRight}
-                  resizeMode="contain"
-                />
-              </TouchableOpacity>
-            </View>
-
-            <View style={FilterPopupStyles.item}>
-              <Text style={FilterPopupStyles.label}>地块位置</Text>
-              <View style={FilterPopupStyles.inputBox}>
-                <TextInput
-                  style={FilterPopupStyles.input}
-                  placeholder="请输入"
-                  value={searchFormInfo.detailaddress}
-                  onChangeText={val => setSearchFormInfo(prev => ({...prev, detailaddress: val}))}
-                />
-              </View>
-            </View>
-
             <View style={FilterPopupStyles.item}>
               <Text style={FilterPopupStyles.label}>农户姓名</Text>
               <View style={FilterPopupStyles.inputBox}>
@@ -244,42 +231,98 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
             </View>
 
             <View style={FilterPopupStyles.item}>
-              <Text style={FilterPopupStyles.label}>地块类型</Text>
-              <View style={FilterPopupStyles.radioRow}>
-                {["单个地块", "合并地块"].map((item, index) => (
-                  <TouchableOpacity key={index} style={FilterPopupStyles.radioItem} onPress={() => selectContract(index)}>
-                    <Image
-                      source={
-                        isCheckedType === index
-                          ? require("@/assets/images/common/icon-checked.png")
-                          : require("@/assets/images/common/icon-check.png")
-                      }
-                      style={FilterPopupStyles.radioIcon}
-                      resizeMode="contain"
-                    />
-                    <Text style={FilterPopupStyles.radioText}>{item}</Text>
-                  </TouchableOpacity>
-                ))}
+              <Text style={FilterPopupStyles.label}>手机号码</Text>
+              <View style={FilterPopupStyles.inputBox}>
+                <TextInput
+                  style={FilterPopupStyles.input}
+                  placeholder="请输入"
+                  value={searchFormInfo.mobile}
+                  onChangeText={val => setSearchFormInfo(prev => ({...prev, mobile: val}))}
+                />
+              </View>
+            </View>
+
+            <View style={FilterPopupStyles.item}>
+              <Text style={FilterPopupStyles.label}>合同编号</Text>
+              <View style={FilterPopupStyles.inputBox}>
+                <TextInput
+                  style={FilterPopupStyles.input}
+                  placeholder="请输入"
+                  value={searchFormInfo.contractNo}
+                  onChangeText={val => setSearchFormInfo(prev => ({...prev, contractNo: val}))}
+                />
+              </View>
+            </View>
+
+            <View style={FilterPopupStyles.item}>
+              <Text style={FilterPopupStyles.label}>创建时间</Text>
+              <View style={FilterPopupStyles.rangeBox}>
+                <TouchableOpacity
+                  style={FilterPopupStyles.rangeInput}
+                  onPress={() => openDatePicker("start")}
+                  activeOpacity={0.8}>
+                  <Text style={[FilterPopupStyles.timeInput, !searchFormInfo.startTime && {color: "#666"}]}>
+                    {searchFormInfo.startTime ? searchFormInfo.startTime : "请选择"}
+                  </Text>
+                </TouchableOpacity>
+                <Text style={FilterPopupStyles.rangeDivider}>~</Text>
+                <TouchableOpacity style={FilterPopupStyles.rangeInput} onPress={() => openDatePicker("end")} activeOpacity={0.8}>
+                  <Text style={[FilterPopupStyles.timeInput, !searchFormInfo.endTime && {color: "#666"}]}>
+                    {searchFormInfo.endTime ? searchFormInfo.endTime : "请选择"}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
 
             <View style={FilterPopupStyles.item}>
               <Text style={FilterPopupStyles.label}>亩数范围</Text>
               <View style={FilterPopupStyles.rangeBox}>
-                <TextInput
-                  style={FilterPopupStyles.rangeInput}
-                  value={searchFormInfo.beginActualNum}
-                  onChangeText={val => setSearchFormInfo(prev => ({...prev, beginActualNum: val}))}
-                  keyboardType="numeric"
-                  placeholder="最小"
-                />
+                <TouchableOpacity>
+                  <TextInput
+                    style={FilterPopupStyles.rangeInput}
+                    value={searchFormInfo.beginActualNum}
+                    onChangeText={val => setSearchFormInfo(prev => ({...prev, beginActualNum: val}))}
+                    keyboardType="numeric"
+                    placeholder="请输入"
+                  />
+                </TouchableOpacity>
+
                 <Text style={FilterPopupStyles.rangeDivider}>~</Text>
                 <TextInput
                   style={FilterPopupStyles.rangeInput}
                   value={searchFormInfo.endActualNum}
                   onChangeText={val => setSearchFormInfo(prev => ({...prev, endActualNum: val}))}
                   keyboardType="numeric"
-                  placeholder="最大"
+                  placeholder="请输入"
+                />
+              </View>
+            </View>
+
+            <View style={FilterPopupStyles.item}>
+              <Text style={FilterPopupStyles.label}>省市位置</Text>
+              <TouchableOpacity style={FilterPopupStyles.inputBox} onPress={openProvincePopup}>
+                <TextInput
+                  style={FilterPopupStyles.input}
+                  editable={false}
+                  value={searchFormInfo.formattedAddress}
+                  placeholder="请选择"
+                />
+                <Image
+                  source={require("@/assets/images/common/icon-right.png")}
+                  style={FilterPopupStyles.iconRight}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            </View>
+
+            <View style={FilterPopupStyles.item}>
+              <Text style={FilterPopupStyles.label}>地块位置</Text>
+              <View style={FilterPopupStyles.inputBox}>
+                <TextInput
+                  style={FilterPopupStyles.input}
+                  placeholder="请输入"
+                  value={searchFormInfo.detailaddress}
+                  onChangeText={val => setSearchFormInfo(prev => ({...prev, detailaddress: val}))}
                 />
               </View>
             </View>
@@ -296,6 +339,7 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
         </View>
       </View>
 
+      {/* 省市位置选择器 */}
       {showProvincePopup && (
         <ProvincePicker
           visible={showProvincePopup}
@@ -309,8 +353,15 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
           }}
         />
       )}
+
+      {/* 创建时间选择器 */}
+      <LeaseTimePicker
+        visible={isShowTimePicker}
+        onClose={() => setIsShowTimePicker(false)}
+        onConfirm={time => closeDatePicker(time)}
+      />
     </View>
   );
 };
 
-export default FilterPopup;
+export default ContractFilterPopup;

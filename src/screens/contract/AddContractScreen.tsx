@@ -1,6 +1,7 @@
-import React, {useState, useEffect, useMemo, useCallback} from "react";
-import {View, Text, ScrollView, TextInput, Image, TouchableOpacity, Modal, BackHandler, ToastAndroid} from "react-native";
-import {debounce} from "lodash";
+// 新建&编辑&作废合同
+import React, {useState, useEffect, useMemo, useCallback, useRef} from "react";
+import {View, Text, ScrollView, TextInput, Image, TouchableOpacity, Modal, BackHandler} from "react-native";
+import {debounce, flatMap, set} from "lodash";
 import moment from "moment";
 import {AddContractScreenStyles} from "./styles/AddContractScreenStyles";
 import CustomStatusBar from "@/components/common/CustomStatusBar";
@@ -12,8 +13,12 @@ import PopupCenterScan from "@/components/common/PopupCenterScan";
 import PopupInfo from "@/components/common/PopupInfo";
 import ProvinceCityDistrictPicker from "@/components/common/ProvinceCityDistrictPicker";
 import Popup from "@/components/common/Popup";
-import {AddContractParamsType, ContractCacheParams, QuarterItem} from "@/types/contract";
+import {AddContractParamsType, ContractCacheParams} from "@/types/contract";
 import {Global} from "@/styles/global";
+import {useFocusEffect} from "@react-navigation/native";
+import {addContract, cancelContractInfo, editContract, getContractInfoDetail} from "@/services/contract";
+import {showCustomToast} from "@/components/common/CustomToast";
+import {updateStore} from "@/stores/updateStore";
 
 // 类型定义
 interface PaymentMethodsDictionary {
@@ -26,11 +31,15 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
   // 状态管理
   const [contractType, setContractType] = useState<string>("新建");
   const [rightBtnStyle, setRightBtnStyle] = useState({color: Global.colors.primary});
+  const [rightBtnText, setRightBtnText] = useState<string>("保存");
+  const [leftBtnText, setLeftBtnText] = useState<string>("不保存");
   const [paymentYear, setPaymentYear] = useState<string>("");
   const [paymentOneSeason, setPaymentOneSeason] = useState<string>("");
   const [paymentTwoSeason, setPaymentTwoSeason] = useState<string>("");
   const [paymentThreeSeason, setPaymentThreeSeason] = useState<string>("");
-
+  const beforeRemoveRef = useRef<any>(null);
+  // 新增：保存返回键监听引用
+  const backHandlerRef = useRef<any>(null);
   // 表单状态
   const [contractFormInfo, setContractFormInfo] = useState<AddContractParamsType>({
     id: "",
@@ -48,7 +57,7 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
     bankAccount: "",
     openBank: "未知",
     mobile: "",
-    landGps: "",
+    gpsList: [],
     province: "",
     city: "",
     district: "",
@@ -57,7 +66,6 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
     detailaddress: "",
     times: [],
   });
-
   // Picker显示状态
   const [isShowLeaseTermPicker, setIsShowLeaseTermPicker] = useState(false);
   const [isShowLeaseTimePicker, setIsShowLeaseTimePicker] = useState(false);
@@ -68,78 +76,63 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
   const [payMethod, setPayMethod] = useState<string>("");
   const [isEditLandPosition, setIsEditLandPosition] = useState(false);
   const [showProvincePopup, setShowProvincePopup] = useState(false);
-
   // 弹窗状态
   const [showOcrPopup, setShowOcrPopup] = useState(false);
-  const [msgText, setMsgText] = useState<string>("");
+  const [msgText, setMsgText] = useState<string>("是否保存修改信息？");
   const [ocrInfo, setOcrInfo] = useState<any>(null);
   const [operateState, setOperateState] = useState<string>("");
-  const [showSavePopup, setShowSavePopup] = useState(false);
-  const [leftBtnText, setLeftBtnText] = useState<string>("不保存");
-  const [rightBtnText, setRightBtnText] = useState<string>("保存");
+  const [showOperationPopup, setShowOperationPopup] = useState(false);
   const [scanType, setScanType] = useState<string>("");
   const [scanResultTitle, setScanResultTitle] = useState<string>("银行卡信息");
-  const [imageUrl, setImageUrl] = useState<string>("");
-  const [imageType, setImageType] = useState<string>("");
   const [showSaveSuccessPopup, setShowSaveSuccessPopup] = useState(false);
-  const [isChangeContractFormInfo, setIsChangeContractFormInfo] = useState(false);
-
-  // 缓存数据
-  const [contractCancheInfo, setContractCancheInfo] = useState<ContractCacheParams>({
-    startTime: "",
-    endTime: "",
-    perAcreAmount: 0,
-    paymentMethod: "",
-    dictLabel: "",
-    times: [],
-  });
 
   // 计算属性
   const allFieldsFilled = useMemo(() => {
-    return Object.values(contractFormInfo).every(value => Boolean(value));
+    const ignoreEmptyFields = ["township", "administrativeVillage"];
+    // 允许为0的数字字段（根据业务需求配置）
+    const allowZeroFields = ["actualAcreNum", "termOfLease", "perAcreAmount", "totalAmount", "paymentAmount"];
+
+    return Object.entries(contractFormInfo).every(([fieldKey, fieldValue]) => {
+      // 跳过忽略字段
+      if (ignoreEmptyFields.includes(fieldKey)) return true;
+
+      // 允许为0的数字字段：仅校验非 undefined/null/空字符串
+      if (allowZeroFields.includes(fieldKey)) {
+        return fieldValue !== undefined && fieldValue !== null && fieldValue !== "";
+      }
+
+      // 普通字段：非空校验
+      return Boolean(fieldValue);
+    });
   }, [contractFormInfo]);
 
   // 合同总金额
   const contractAmountTotal = useMemo(() => {
-    const amountTotal = (
-      Number(contractFormInfo.perAcreAmount) *
-      contractFormInfo.actualAcreNum *
-      contractFormInfo.termOfLease
-    ).toFixed(2);
-    return Number(amountTotal);
+    return Number(
+      (Number(contractFormInfo.perAcreAmount) * contractFormInfo.actualAcreNum * contractFormInfo.termOfLease).toFixed(2),
+    );
   }, [contractFormInfo.perAcreAmount, contractFormInfo.actualAcreNum, contractFormInfo.termOfLease]);
 
-  // 付款金额
+  // 合同付款金额
   const contractPayment = useMemo(() => {
-    let payment = 0;
+    if (!contractFormInfo.termOfLease) return 0;
+
     switch (paymentMethod.dictLabel) {
       case "年付":
-        payment = contractAmountTotal / contractFormInfo.termOfLease;
-        break;
+        return contractAmountTotal / contractFormInfo.termOfLease;
       case "两季付":
-        payment = contractAmountTotal / contractFormInfo.termOfLease / 2;
-        break;
+        return contractAmountTotal / contractFormInfo.termOfLease / 2;
       case "三季付":
-        payment = Number((contractAmountTotal / contractFormInfo.termOfLease / 3).toFixed(2));
-        break;
+        return Number((contractAmountTotal / contractFormInfo.termOfLease / 3).toFixed(2));
       default:
-        break;
+        return 0;
     }
-    return payment;
   }, [contractAmountTotal, contractFormInfo.termOfLease, paymentMethod.dictLabel]);
 
-  // 监听表单变化
   useEffect(() => {
-    // 触发状态更新标记
-    setIsChangeContractFormInfo(true);
-  }, [contractFormInfo]);
-
-  // 页面初始化
-  useEffect(() => {
-    const {contractType: type, landInfo, landCoordinates} = route.params || {};
-    setContractType(type);
-
-    if (type === "新建") {
+    const {contractType, landInfo, landCoordinates} = route.params || {};
+    setContractType(contractType);
+    if (contractType === "新建") {
       const {
         id,
         actualAcreNum,
@@ -154,8 +147,7 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
         township,
         administrativeVillage,
         detailaddress,
-      } = JSON.parse(landInfo || "{}");
-
+      } = landInfo;
       setContractFormInfo(prev => ({
         ...prev,
         id,
@@ -166,7 +158,7 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
         bankAccount: bankAccount || "",
         openBank: openBank || "未知",
         mobile: mobile || "",
-        landGps: landCoordinates || "",
+        gpsList: landCoordinates || "",
         province: province || "",
         city: city || "",
         district: district || "",
@@ -175,44 +167,79 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
         detailaddress: detailaddress || "",
       }));
     } else {
-      getLandContractDetail(JSON.parse(landInfo || "{}"));
+      getLandContractDetail();
+    }
+    // 安卓返回键处理 - 修改：保存监听引用
+    backHandlerRef.current = BackHandler.addEventListener("hardwareBackPress", handleBackPress);
+    return () => {
+      if (backHandlerRef.current) {
+        backHandlerRef.current.remove();
+      }
+    };
+  }, [route.params]);
+
+  useEffect(() => {
+    let times: {paymentTime: string}[] = [];
+
+    switch (paymentMethod.dictLabel) {
+      case "年付":
+        times = [{paymentTime: paymentYear}];
+        break;
+      case "两季付":
+        times = [{paymentTime: paymentOneSeason}, {paymentTime: paymentTwoSeason}];
+        break;
+      case "三季付":
+        times = [{paymentTime: paymentOneSeason}, {paymentTime: paymentTwoSeason}, {paymentTime: paymentThreeSeason}];
+        break;
     }
 
-    // 安卓返回键处理
-    const backHandler = BackHandler.addEventListener("hardwareBackPress", handleBackPress);
-    return () => backHandler.remove();
-  }, [route.params]);
+    setContractFormInfo(prev => ({
+      ...prev,
+      times,
+      totalAmount: contractAmountTotal,
+      paymentAmount: contractPayment,
+    }));
+  }, [
+    paymentMethod.dictLabel,
+    paymentYear,
+    paymentOneSeason,
+    paymentTwoSeason,
+    paymentThreeSeason,
+    contractAmountTotal,
+    contractPayment,
+  ]);
 
   // 返回处理
   const handleBackPress = () => {
-    if (isChangeContractFormInfo) {
+    if (contractType !== "新建") {
       setMsgText("是否保存修改信息？");
       setLeftBtnText("不保存");
       setRightBtnText("保存");
       setRightBtnStyle({color: Global.colors.primary});
-      setShowSavePopup(true);
+      setShowOperationPopup(true);
       setOperateState("保存");
       return true; // 阻止默认返回
+    } else {
+      beforeRemoveRef.current();
+      navigation.goBack();
     }
-    navigation.goBack();
     return false;
   };
 
   // 作废合同
-  const obsoleteContract = useCallback(
-    debounce(() => {
-      setMsgText("是否作废该合同？");
-      setLeftBtnText("取消");
-      setRightBtnText("作废");
-      setRightBtnStyle({color: "#FF3D3B"});
-      setShowSavePopup(true);
-      setOperateState("作废");
-    }, 500),
-    [],
-  );
+  const obsoleteContract = () => {
+    setMsgText("是否作废该合同？");
+    setLeftBtnText("取消");
+    setRightBtnStyle({color: "#FF3D3B"});
+    setRightBtnText("作废");
+    setOperateState("作废");
+    setShowOperationPopup(true);
+  };
 
-  // 租赁期限选择器
+  // 打开租赁期限选择器
   const openLeaseTermPicker = () => setIsShowLeaseTermPicker(true);
+
+  // 关闭租赁期限选择器
   const closeLeaseTermPicker = (year: number) => {
     setIsShowLeaseTermPicker(false);
     if (year) {
@@ -254,23 +281,23 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
 
   // 付款方式选择器
   const openPaymentMethodPicker = () => setIsShowPaymentMethodPicker(true);
+
+  // 关闭付款方式选择器
   const closePaymentMethodPicker = (method: PaymentMethodsDictionary) => {
+    console.log("关闭付款方式选择器", method);
     setIsShowPaymentMethodPicker(false);
     if (method) {
       setPaymentMethod(method);
-      setContractFormInfo(prev => ({...prev, paymentMethod: method.dictValue}));
     }
   };
 
-  // 付款时间常量
   const PAYMENT_YEAR = "paymentYear";
   const PAYMENT_ONE_SEASON = "paymentOneSeason";
   const PAYMENT_TWO_SEASON = "paymentTwoSeason";
   const PAYMENT_THREE_SEASON = "paymentThreeSeason";
 
-  // 设置付款时间
-  const setPaymentTime = (payMethod: string, time: string) => {
-    switch (payMethod) {
+  const setPaymentTime = (method: string, time: string) => {
+    switch (method) {
       case PAYMENT_YEAR:
         setPaymentYear(time);
         break;
@@ -283,25 +310,26 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
       case PAYMENT_THREE_SEASON:
         setPaymentThreeSeason(time);
         break;
-      default:
-        break;
     }
-    formatParams();
   };
 
   // 付款时间选择器
   const openPaymentTimePicker = (method: string) => {
+    console.log("付款时间选择器", method);
     setIsShowPaymentTimePicker(true);
     setPayMethod(method);
   };
 
   // 关闭付款时间选择器
-  const closePaymentTimePicker = (time: QuarterItem) => {
+  const closePaymentTimePicker = (time: string) => {
+    console.log("关闭付款时间选择器", time);
     setIsShowPaymentTimePicker(false);
-    if (time) setPaymentTime(payMethod, time);
+    if (time) {
+      setPaymentTime(payMethod, time);
+    }
   };
 
-  // 亩数调整
+  // 亩数增加
   const addMuNumber = () => {
     setContractFormInfo(prev => ({
       ...prev,
@@ -309,6 +337,7 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
     }));
   };
 
+  // 亩数减少
   const reduceMuNumber = () => {
     if (contractFormInfo.actualAcreNum <= 0) return;
     setContractFormInfo(prev => ({
@@ -319,15 +348,18 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
 
   // 地块位置编辑
   const editLandPosition = () => setIsEditLandPosition(true);
+
+  // 地块修改取消
   const positionPopupCancel = () => setIsEditLandPosition(false);
+
+  // 修改地块完成
   const positionPopupConfirm = () => {
     setIsEditLandPosition(false);
-    ToastAndroid.show("修改成功", ToastAndroid.SHORT);
   };
 
   // 省市区选择
   const openProvincePopup = () => setShowProvincePopup(true);
-  const closeProvincePopup = (location: {province: string; city: string; district: string}) => {
+  const closeProvincePopup = (location: {province: string; city: string; district: string; township: string}) => {
     setShowProvincePopup(false);
     if (location) {
       setContractFormInfo(prev => ({
@@ -335,7 +367,7 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
         province: location.province,
         city: location.city,
         district: location.district,
-        detailaddress: "",
+        township: location.township,
       }));
     }
   };
@@ -344,63 +376,28 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
   const scanCard = (type: string) => {
     setScanType(type);
     if (type === "身份证") {
-      setImageType("1");
       setScanResultTitle("身份证信息");
     } else {
-      setImageType("2");
       setScanResultTitle("银行卡信息");
     }
-    openChooseImage();
+    navigation.navigate("OcrCardScanner", {
+      type,
+      onOcrResult: async (result: {type: string; data: any}) => {
+        handleOcrResult(result, type);
+      },
+    });
+  };
+
+  // 处理OCR识别结果
+  const handleOcrResult = (result: {type: string; data: any}, scanType: string) => {
+    console.log("处理OCR识别结果", result);
+    if (!result.data) return;
+    const data = JSON.parse(result.data);
+    setOcrInfo(data);
   };
 
   // 选择图片
-  const openChooseImage = () => {
-    // React Native 图片选择需集成 react-native-image-picker
-    // 此处为示例逻辑
-    // ImagePicker.showImagePicker({}, (response) => {
-    //   if (response.didCancel) return;
-    //   setImageUrl(response.uri);
-    //   uploadImg(response.uri, imageType);
-    // });
-  };
-
-  // 上传图片识别
-  const uploadImg = (filePath: string, imageType: string) => {
-    ToastAndroid.show("图片识别中", ToastAndroid.SHORT);
-    // React Native 文件上传需使用 fetch/axios
-    // 此处为示例逻辑
-    // const formData = new FormData();
-    // formData.append('file', {
-    //   uri: filePath,
-    //   type: 'image/jpeg',
-    //   name: 'ocr.jpg',
-    // });
-    // formData.append('type', imageType);
-
-    // fetch('http://60.205.213.205:8091/upload/uploadOCRImg', {
-    //   method: 'POST',
-    //   headers: {
-    //     'token': 'xxx', // 从存储获取
-    //     'Content-Type': 'multipart/form-data',
-    //   },
-    //   body: formData,
-    // })
-    // .then(res => res.json())
-    // .then(data => {
-    //   ToastAndroid.hide();
-    //   if (data.code === 200) {
-    //     setOcrInfo(JSON.parse(data.data));
-    //     setShowOcrPopup(true);
-    //   } else {
-    //     setShowSavePopup(true);
-    //     setOperateState('识别');
-    //     setMsgText('无法识别银行卡');
-    //     setRightBtnStyle({ color: '#08AE3C' });
-    //     setLeftBtnText('重试');
-    //     setRightBtnText('手动输入');
-    //   }
-    // });
-  };
+  const openChooseImage = () => {};
 
   // OCR弹窗处理
   const scanPopupCance = () => setShowOcrPopup(false);
@@ -422,108 +419,148 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
   };
 
   // 保存合同
-  const saveContract = useCallback(
-    debounce(() => {
-      if (allFieldsFilled) {
-        setMsgText("是否保存修改信息？");
-        setLeftBtnText("不保存");
-        setRightBtnText("保存");
-        setRightBtnStyle({color: Global.colors.primary});
-        setShowSavePopup(true);
-        setOperateState("保存");
-      } else {
-        ToastAndroid.show("当前有信息未填完成", ToastAndroid.SHORT);
-      }
-    }, 500),
-    [allFieldsFilled],
-  );
-
-  // 保存弹窗取消
-  const handleCancel = () => {
-    if (operateState === "识别") {
-      openChooseImage();
-    } else {
-      navigation.goBack();
+  const saveContract = debounce(() => {
+    if (allFieldsFilled) {
+      setMsgText("是否保存该合同？");
+      setRightBtnStyle({color: Global.colors.primary});
+      setLeftBtnText("不保存");
+      setRightBtnText("保存");
+      setOperateState("保存");
+      setShowOperationPopup(true);
     }
-    setShowSavePopup(false);
+  }, 500);
+
+  // 操作弹窗左侧按钮点击
+  const handleOperationPopupCancel = () => {
+    setShowOperationPopup(false);
+    switch (leftBtnText) {
+      case "返回上级":
+        beforeRemoveRef.current();
+        navigation.goBack();
+        break;
+      case "不保存":
+        beforeRemoveRef.current();
+        navigation.goBack();
+        break;
+      default:
+        break;
+    }
   };
 
-  // 保存弹窗确认
-  const handleConfirm = async () => {
-    switch (operateState) {
-      case "识别":
-        setShowSavePopup(false);
-        break;
+  // 操作弹窗确认
+  const handleOperationPopupConfirm = () => {
+    setShowOperationPopup(false);
+    switch (rightBtnText) {
       case "保存":
-        await saveContractRequest();
+        saveContractRequest();
         break;
       case "作废":
-        await cancelContractRequest();
+        cancelContractRequest();
+        break;
+      case "识别":
+        openChooseImage();
         break;
       default:
         break;
     }
-  };
-
-  // 格式化参数
-  const formatParams = () => {
-    let times = [];
-    switch (paymentMethod.dictLabel) {
-      case "年付":
-        times = [{paymentTime: paymentYear}];
-        break;
-      case "两季付":
-        times = [{paymentTime: paymentOneSeason}, {paymentTime: paymentTwoSeason}];
-        break;
-      case "三季付":
-        times = [{paymentTime: paymentOneSeason}, {paymentTime: paymentTwoSeason}, {paymentTime: paymentThreeSeason}];
-        break;
-      default:
-        break;
-    }
-
-    setContractFormInfo(prev => ({
-      ...prev,
-      times,
-      totalAmount: contractAmountTotal,
-      paymentAmount: contractPayment,
-    }));
-
-    // 更新缓存
-    setContractCancheInfo({
-      startTime: contractFormInfo.startTime,
-      endTime: contractFormInfo.endTime,
-      perAcreAmount: contractFormInfo.perAcreAmount,
-      paymentMethod: contractFormInfo.paymentMethod,
-      dictLabel: paymentMethod.dictLabel,
-      times,
-    });
   };
 
   // 保存合同请求
   const saveContractRequest = async () => {
-    if (!allFieldsFilled) {
-      setShowSavePopup(false);
-      ToastAndroid.show("当前有信息未填完成", ToastAndroid.SHORT);
-      return;
-    }
-
     try {
-      // 过滤参数
-      const params = filterParams(contractFormInfo);
-      // 接口请求逻辑（示例）
-      // if (contractType === '新建') {
-      //   await addContract(params);
-      // } else {
-      //   await editContractMessage(params);
-      // }
-
-      setShowSavePopup(false);
+      console.log("保存合同请求", contractFormInfo);
+      if (contractType === "新建") {
+        await addContract(contractFormInfo);
+      } else {
+        await editContract(contractFormInfo);
+      }
+      updateStore.setIsUpdateLand(true);
+      updateStore.setIsUpdateLandDetail(true);
+      setShowOperationPopup(false);
       setShowSaveSuccessPopup(true);
     } catch (error: any) {
-      setShowSavePopup(false);
-      ToastAndroid.show(error?.data?.msg || "保存失败", ToastAndroid.SHORT);
+      setShowOperationPopup(false);
+      showCustomToast("error", error?.data?.msg || "保存失败");
     }
+  };
+
+  // 作废合同请求
+  const cancelContractRequest = async () => {
+    try {
+      // 接口请求逻辑
+      await cancelContractInfo({id: contractFormInfo.id as string});
+      setShowOperationPopup(false);
+      showCustomToast("success", "操作成功");
+      updateStore.setIsUpdateContract(true);
+
+      if (backHandlerRef.current) {
+        backHandlerRef.current.remove();
+        backHandlerRef.current = null;
+      }
+
+      if (beforeRemoveRef.current) {
+        beforeRemoveRef.current();
+        beforeRemoveRef.current = null;
+      }
+
+      navigation.goBack();
+    } catch (error: any) {
+      showCustomToast("error", error?.data?.msg || "请求失败");
+    }
+  };
+
+  // 关闭保存成功弹窗
+  const closeSaveSuccessPopup = () => {
+    setShowSaveSuccessPopup(false);
+    navigation.goBack();
+  };
+
+  // 查看合同
+  const viewContract = () => {
+    setShowSaveSuccessPopup(false);
+    navigation.navigate("ElectronicContract", {
+      contractInfo: contractFormInfo,
+    });
+  };
+
+  // 获取地块合同详情
+  const getLandContractDetail = async () => {
+    const {data} = await getContractInfoDetail({landId: route.params.landId});
+    console.log("获取地块合同详情", data);
+    const contractInfo = filterParams(data);
+    setContractFormInfo(prev => ({
+      ...prev,
+      ...contractInfo,
+      paymentMethod: data?.dictValue,
+      totalAmount: contractAmountTotal,
+      paymentAmount: contractPayment,
+    }));
+    setPaymentMethod({dictLabel: data?.dictLabel, dictValue: data?.dictValue});
+
+    if (contractInfo.times) {
+      switch (data?.dictLabel) {
+        case "年付":
+          setPaymentYear(contractInfo.times[0].paymentTime);
+          break;
+        case "两季付":
+          setPaymentOneSeason(contractInfo.times[0].paymentTime);
+          setPaymentTwoSeason(contractInfo.times[1].paymentTime);
+          break;
+        case "三季付":
+          setPaymentOneSeason(contractInfo.times[0].paymentTime);
+          setPaymentTwoSeason(contractInfo.times[1].paymentTime);
+          setPaymentThreeSeason(contractInfo.times[2].paymentTime);
+          break;
+        default:
+          break;
+      }
+    }
+  };
+
+  // 转换地块坐标为json字符串
+  const convertCoordinates = (coordinates: {lat: number; lng: number}[]) => {
+    if (!coordinates || coordinates.length === 0) return "";
+    return coordinates.map(item => `${item.lat},${item.lng}`).join(";");
   };
 
   // 过滤参数
@@ -539,7 +576,7 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
       "paymentAmount",
       "paymentMethod",
       "actualAcreNum",
-      "landGps",
+      "gpsList",
       "province",
       "city",
       "district",
@@ -563,64 +600,29 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
     return result as AddContractParamsType;
   };
 
-  // 作废合同请求
-  const cancelContractRequest = async () => {
-    try {
-      // 接口请求逻辑
-      // await cancelContractMessage({ id: contractFormInfo.id });
-      setShowSavePopup(false);
-      ToastAndroid.show("操作成功", ToastAndroid.SHORT);
-      navigation.goBack();
-    } catch (error: any) {
-      ToastAndroid.show(error?.data?.msg || "请求失败", ToastAndroid.SHORT);
-    }
-  };
-
-  // 关闭保存成功弹窗
-  const closeSavePopup = () => {
-    setShowSaveSuccessPopup(false);
-    navigation.navigate("Home"); // 切换到首页tab
-  };
-
-  // 查看合同
-  const viewContract = () => {
-    setShowSaveSuccessPopup(false);
-    navigation.navigate("ElectronicContractDetails", {
-      contractInfo: JSON.stringify(contractFormInfo),
-    });
-  };
-
-  // 获取地块合同详情
-  const getLandContractDetail = (landInfo: any) => {
-    const contractInfo = filterParams(landInfo);
-    setContractFormInfo(prev => ({
-      ...prev,
-      ...contractInfo,
-      paymentMethod: landInfo?.dictValue,
-      totalAmount: contractAmountTotal,
-      paymentAmount: contractPayment,
-    }));
-    setPaymentMethod({dictLabel: landInfo?.dictLabel, dictValue: landInfo?.dictValue});
-
-    if (contractInfo.times) {
-      switch (landInfo?.dictLabel) {
-        case "年付":
-          setPaymentYear(contractInfo.times[0].paymentTime);
-          break;
-        case "两季付":
-          setPaymentOneSeason(contractInfo.times[0].paymentTime);
-          setPaymentTwoSeason(contractInfo.times[1].paymentTime);
-          break;
-        case "三季付":
-          setPaymentOneSeason(contractInfo.times[0].paymentTime);
-          setPaymentTwoSeason(contractInfo.times[1].paymentTime);
-          setPaymentThreeSeason(contractInfo.times[2].paymentTime);
-          break;
-        default:
-          break;
+  useFocusEffect(() => {
+    beforeRemoveRef.current = navigation.addListener("beforeRemove", (e: {preventDefault: () => void}) => {
+      e.preventDefault();
+      if (contractType !== "新建") {
+        setShowOperationPopup(true);
       }
-    }
-  };
+    });
+
+    // Android 实体返回键监听
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (contractType !== "新建") {
+        setShowOperationPopup(true);
+      }
+      return true;
+    });
+
+    return () => {
+      if (beforeRemoveRef.current) {
+        beforeRemoveRef.current();
+      }
+      backHandler.remove();
+    };
+  });
 
   // 渲染省市区选择
   const renderProvinceContent = () => (
@@ -639,6 +641,10 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
             {contractFormInfo.district && <Text style={AddContractScreenStyles.splitText}>/</Text>}
             <Text style={AddContractScreenStyles.contentText} numberOfLines={1}>
               {contractFormInfo.district}
+            </Text>
+            {contractFormInfo.township && <Text style={AddContractScreenStyles.splitText}>/</Text>}
+            <Text style={AddContractScreenStyles.contentText} numberOfLines={1}>
+              {contractFormInfo.township}
             </Text>
           </Text>
           <Image source={require("@/assets/images/common/icon-right.png")} style={AddContractScreenStyles.rightIcon} />
@@ -664,8 +670,9 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
       <CustomStatusBar
         navTitle={`${contractType}流转合同`}
         rightTitle={contractType === "编辑" ? "作废" : ""}
-        rightTitleStyle={{color: "#FF3D3B", fontSize: 16, fontWeight: "500"}}
+        rightBtnColor={{color: "#FF3D3B", fontSize: 16, fontWeight: "500"}}
         onBack={handleBackPress}
+        onRightPress={obsoleteContract}
       />
 
       {/* 滚动内容 */}
@@ -898,7 +905,9 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
             <View style={[AddContractScreenStyles.msgBoxItem, AddContractScreenStyles.borderBottom]}>
               <Text style={AddContractScreenStyles.msgText}>地块坐标</Text>
               <View style={[AddContractScreenStyles.msgInput, AddContractScreenStyles.ellipsis]}>
-                <Text style={AddContractScreenStyles.msgInputText}>{contractFormInfo.landGps}</Text>
+                <Text style={AddContractScreenStyles.msgInputText} numberOfLines={1}>
+                  {convertCoordinates(contractFormInfo.gpsList)}
+                </Text>
               </View>
             </View>
             <View style={AddContractScreenStyles.msgBoxItem}>
@@ -977,7 +986,10 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
 
       {/* 保存按钮 */}
       <View style={AddContractScreenStyles.btnSave}>
-        <TouchableOpacity style={[AddContractScreenStyles.btn, {opacity: allFieldsFilled ? 1 : 0.3}]} onPress={saveContract}>
+        <TouchableOpacity
+          style={[AddContractScreenStyles.btn, {opacity: allFieldsFilled ? 1 : 0.3}]}
+          disabled={!allFieldsFilled}
+          onPress={saveContract}>
           <Text style={AddContractScreenStyles.btnText}>保存</Text>
         </TouchableOpacity>
       </View>
@@ -987,6 +999,7 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
         visible={isShowLeaseTermPicker}
         onClosePopup={() => setIsShowLeaseTermPicker(false)}
         onConfirm={year => closeLeaseTermPicker(year)}
+        defaultYear={contractFormInfo.termOfLease}
       />
 
       {/* 租赁时间弹窗 */}
@@ -996,18 +1009,28 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
         onConfirm={time => closeLeaseTimePicker(time)}
       />
 
-      {/* 支付方式弹窗 */}
+      {/* 付款方式弹窗 */}
       <PaymentMethodPicker
         visible={isShowPaymentMethodPicker}
         onClose={() => setIsShowPaymentMethodPicker(false)}
         onConfirm={method => closePaymentMethodPicker(method)}
+        initialValue={paymentMethod.dictValue}
       />
 
-      {/* 支付时间弹窗 */}
+      {/* 付款时间弹窗 */}
       <PaymentTimePicker
         visible={isShowPaymentTimePicker}
         onClose={() => setIsShowPaymentTimePicker(false)}
         onConfirm={time => closePaymentTimePicker(time)}
+        initialDate={
+          // 使用对象映射替代多层三元表达式，更易维护且不易出错
+          {
+            [PAYMENT_YEAR]: paymentYear,
+            [PAYMENT_ONE_SEASON]: paymentOneSeason,
+            [PAYMENT_TWO_SEASON]: paymentTwoSeason,
+            [PAYMENT_THREE_SEASON]: paymentThreeSeason,
+          }[payMethod] || ""
+        }
       />
 
       {/* 识别结果弹窗 */}
@@ -1030,19 +1053,37 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
       {/* 省市区三级联动选择 */}
       <ProvinceCityDistrictPicker
         visible={showProvincePopup}
+        location={{
+          province: contractFormInfo.province,
+          city: contractFormInfo.city,
+          district: contractFormInfo.district,
+          township: contractFormInfo.township as string,
+        }}
         onClose={() => setShowProvincePopup(false)}
         onConfirm={closeProvincePopup}
+      />
+
+      {/* 操作提示弹窗 */}
+      <Popup
+        visible={showOperationPopup}
+        showTitle={false}
+        msgText={msgText}
+        leftBtnText={leftBtnText}
+        rightBtnText={rightBtnText}
+        rightBtnStyle={rightBtnStyle}
+        onLeftBtn={handleOperationPopupCancel}
+        onRightBtn={handleOperationPopupConfirm}
       />
 
       {/* 保存成功弹窗 */}
       <Popup
         visible={showSaveSuccessPopup}
-        title="提示"
+        showTitle={false}
         msgText={`合同${contractType}成功`}
         leftBtnText="关闭"
         rightBtnText="查看合同"
-        onLeftBtn={() => closeSavePopup()}
-        onRightBtn={() => viewContract()}
+        onLeftBtn={closeSaveSuccessPopup}
+        onRightBtn={viewContract}
       />
     </View>
   );

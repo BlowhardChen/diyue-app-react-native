@@ -71,5 +71,7 @@ export type FarmStackParamList = {
 // 合同管理相关
 export type ContractStackParamList = {
   ContractManage: undefined;
-  AddContract: {contractType: string};
+  AddContract: {contractType: string; landId?: string; landCoordinates?: string};
+  ElectronicContract: {contractInfo: string; page?: string};
+  ContractDetail: {contractInfo: string; contractType: string};
 };

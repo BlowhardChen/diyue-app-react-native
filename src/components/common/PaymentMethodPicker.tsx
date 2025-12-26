@@ -1,8 +1,10 @@
 // 付款方式选择器组件
+import {dictDataList} from "@/services/common";
 import {Global} from "@/styles/global";
 import React, {useState, useEffect} from "react";
 import {View, Text, TouchableOpacity, Modal, StyleSheet, Dimensions, ToastAndroid} from "react-native";
 import {WheelPicker} from "react-native-wheel-picker-android";
+import {showCustomToast} from "./CustomToast";
 
 // 适配 750 设计稿的 rpx 转换
 const {width: SCREEN_WIDTH} = Dimensions.get("window");
@@ -20,26 +22,10 @@ interface PaymentMethodPickerProps {
   visible: boolean; // 控制弹窗显示隐藏
   onClose: () => void; // 关闭弹窗回调
   onConfirm: (method: PaymentMethodItem) => void; // 确认选择回调
+  initialValue?: string; // 新增：默认选中的付款方式值（如 "1"、"2"）
 }
 
-// 模拟接口请求（需替换为实际接口调用）
-const dictDataList = async (params: {dictType: string}): Promise<{data: PaymentMethodItem[]}> => {
-  // 实际项目中替换为真实接口请求
-  // 示例返回数据（模拟 contract_pay_methods 字典）
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve({
-        data: [
-          {dictLabel: "年付", dictValue: "1"},
-          {dictLabel: "两季付", dictValue: "2"},
-          {dictLabel: "三季付", dictValue: "3"},
-        ],
-      });
-    }, 500);
-  });
-};
-
-const PaymentMethodPicker: React.FC<PaymentMethodPickerProps> = ({visible, onClose, onConfirm}) => {
+const PaymentMethodPicker: React.FC<PaymentMethodPickerProps> = ({visible, onClose, onConfirm, initialValue}) => {
   // 状态管理
   const [selectedIndex, setSelectedIndex] = useState<number>(0); // 选中索引
   const [methods, setMethods] = useState<PaymentMethodItem[]>([]); // 付款方式列表
@@ -52,10 +38,16 @@ const PaymentMethodPicker: React.FC<PaymentMethodPickerProps> = ({visible, onClo
       const {data} = await dictDataList({dictType: "contract_pay_methods"});
       console.log("getPaymentList", data);
       setMethods(data);
-      setSelectedIndex(0); // 默认选中第一个
+
+      // 新增：如果有初始值，找到对应索引，否则默认0
+      if (initialValue && data.length > 0) {
+        const targetIndex = data.findIndex(item => item.dictValue === initialValue);
+        setSelectedIndex(targetIndex >= 0 ? targetIndex : 0);
+      } else {
+        setSelectedIndex(0); // 默认选中第一个
+      }
     } catch (error: any) {
-      ToastAndroid.show(error?.data?.msg || "请求失败", ToastAndroid.SHORT);
-      throw error;
+      showCustomToast("error", error?.data?.msg || "请求失败");
     } finally {
       setLoading(false);
     }
@@ -67,7 +59,7 @@ const PaymentMethodPicker: React.FC<PaymentMethodPickerProps> = ({visible, onClo
       // 仅在弹窗显示时加载数据
       getPaymentList();
     }
-  }, [visible]);
+  }, [visible, initialValue]); // 新增：initialValue变化时重新计算索引
 
   // 确认选择
   const handleConfirm = () => {

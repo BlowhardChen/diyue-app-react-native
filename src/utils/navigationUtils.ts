@@ -61,7 +61,7 @@ export const getTargetRoute = async (): Promise<string | null> => {
   }
 };
 
-// 保存一个目标路由（手动触发）
+// 清除目标路由（手动触发）
 export const clearTargetRoute = async () => {
   try {
     await AsyncStorage.removeItem(TARGET_ROUTE_KEY);
@@ -74,6 +74,7 @@ export const clearTargetRoute = async () => {
 export const navigateToTargetRoute = async () => {
   try {
     const targetRoute = await getTargetRoute();
+    console.log("目标路由:", targetRoute);
     if (!targetRoute) {
       console.log("没有记录的目标路由");
       return;
@@ -82,10 +83,8 @@ export const navigateToTargetRoute = async () => {
     const parsed = JSON.parse(targetRoute);
 
     if (typeof parsed === "string") {
-      // 兼容旧数据，只保存了路由名
       navigationRef.current?.navigate(parsed as never);
     } else if (parsed.parent && parsed.screen) {
-      // Tab 页面
       (navigationRef.current as any)?.navigate(parsed.parent, {
         screen: parsed.screen,
       });

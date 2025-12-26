@@ -28,6 +28,7 @@ export const LandDetailsPopupStyles = StyleSheet.create({
     justifyContent: "space-between",
     marginHorizontal: 16,
     marginTop: 12,
+    marginBottom: 8,
   },
   headerTitle: {
     fontSize: 20,

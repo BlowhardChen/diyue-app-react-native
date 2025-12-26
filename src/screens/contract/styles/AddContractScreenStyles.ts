@@ -131,7 +131,6 @@ export const AddContractScreenStyles = StyleSheet.create({
   },
   ellipsis: {
     flex: 1,
-    flexWrap: "wrap",
   },
   landLocation: {
     maxWidth: 250,

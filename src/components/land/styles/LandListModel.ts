@@ -70,4 +70,19 @@ export const LandListModelStyles = StyleSheet.create({
   landListBox: {
     flexGrow: 1,
   },
+  empty: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: "50%",
+  },
+  emptyImg: {
+    width: 87,
+    height: 79,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "400",
+    color: "#000",
+    marginTop: 10,
+  },
 });

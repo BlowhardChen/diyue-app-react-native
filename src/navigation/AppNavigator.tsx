@@ -22,7 +22,7 @@ import DataUploadScreen from "@/screens/device/DataUploadScreen";
 import ServiceAgreementScreen from "../screens/bootPage/ServiceAgreementScreen";
 import PrivacyPolicyDetailScreen from "../screens/bootPage/PrivacyPolicyDetailScreen";
 import LandInfoEditScreen from "@/screens/land/LandInfoEditScreen";
-import OcrCardScanner from "@/components/land/OcrCardScanner";
+import OcrCardScannerScreen from "@/screens/land/OcrCardScannerScreen";
 import LandDetailScreen from "@/screens/land/LandDetailScreen";
 import QuitLandScreen from "@/screens/land/QuitLandScreen";
 import SelectLandScreen from "@/screens/land/SelcetLandScreen";
@@ -36,6 +36,8 @@ import PatrolFieldManageScreen from "@/screens/farming/PatrolFieldManageScreen";
 import FarmDataCalculatorScreen from "@/screens/farming/FarmDataCalculatorScreen";
 import ContractManageScreen from "@/screens/contract/ContractManageScreen";
 import AddContractScreen from "@/screens/contract/AddContractScreen";
+import ElectronicContractScreen from "@/screens/contract/ElectronicContractScreen";
+import ContractDetailScreen from "@/screens/contract/ContractDetailScreen";
 
 type Props = {
   initialRouteName?: keyof RootStackParamList;
@@ -77,6 +79,8 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
           },
         },
       }}>
+      <Stack.Screen name="ContractDetail" component={ContractDetailScreen} />
+      <Stack.Screen name="ElectronicContract" component={ElectronicContractScreen} />
       <Stack.Screen name="AddContract" component={AddContractScreen} />
       <Stack.Screen name="ContractManage" component={ContractManageScreen} />
       <Stack.Screen name="FarmDataCalculator" component={FarmDataCalculatorScreen} />
@@ -90,7 +94,7 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
       <Stack.Screen name="SelectLand" component={SelectLandScreen} />
       <Stack.Screen name="QuitLand" component={QuitLandScreen} />
       <Stack.Screen name="LandDetail" component={LandDetailScreen} />
-      <Stack.Screen name="OcrCardScanner" component={OcrCardScanner} />
+      <Stack.Screen name="OcrCardScanner" component={OcrCardScannerScreen} />
       <Stack.Screen name="LandInfoEdit" component={LandInfoEditScreen} />
       <Stack.Screen name="DataUpload" component={DataUploadScreen} />
       <Stack.Screen name="DifferentialConfig" component={DifferentialConfigScreen} />

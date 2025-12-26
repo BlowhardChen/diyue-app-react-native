@@ -1,8 +1,9 @@
+// 卡片识别页面
 import React, {useEffect, useRef, useState} from "react";
 import {View, Text, Image, TouchableOpacity, Vibration} from "react-native";
 import {Camera, useCameraPermission} from "react-native-vision-camera";
 import {RouteProp, useNavigation, useRoute} from "@react-navigation/native";
-import {OcrCardScannerStyles} from "./styles/OcrCardScanner";
+import {OcrCardScannerStyles} from "./styles/OcrCardScannerScreen";
 import {SafeAreaView} from "react-native-safe-area-context";
 import PermissionPopup from "@/components/common/PermissionPopup";
 import OcrPlaceholder from "@/components/land/OcrPlaceholder";
@@ -11,7 +12,8 @@ import {showCustomToast} from "@/components/common/CustomToast";
 import {getToken} from "@/utils/tokenUtils";
 import CustomLoading from "@/components/common/CustomLoading";
 import {useOCR} from "@/utils/uploadImg";
-import Popup from "../common/Popup";
+import Popup from "../../components/common/Popup";
+import {navigateToTargetRoute} from "@/utils/navigationUtils";
 
 type OcrCardScannerParams = {
   type: "身份证" | "银行卡";
@@ -20,7 +22,7 @@ type OcrCardScannerParams = {
 
 type OcrCardScannerRouteProp = RouteProp<Record<string, OcrCardScannerParams>, string>;
 
-const OcrCardScanner = () => {
+const OcrCardScannerScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<OcrCardScannerRouteProp>();
   const {type, onOcrResult} = route.params;
@@ -95,7 +97,7 @@ const OcrCardScanner = () => {
     const {success, ocrInfo} = await uploadImg(filePath, token, type === "身份证" ? "1" : "2");
     if (success) {
       onOcrResult({type, data: ocrInfo});
-      navigation.goBack();
+      handleGoBack();
     } else {
       setShowPopup(true);
     }
@@ -179,4 +181,4 @@ const OcrCardScanner = () => {
   );
 };
 
-export default OcrCardScanner;
+export default OcrCardScannerScreen;

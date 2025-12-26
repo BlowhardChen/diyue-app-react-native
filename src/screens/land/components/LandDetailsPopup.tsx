@@ -26,14 +26,14 @@ type LandStackParamList = {
   LandInfoEdit: {queryInfo: LandDetailInfo};
   AddDevice: undefined;
   FindLandDetail: {landId: string};
-  AddContract: {contractType: string};
+  AddContract: {contractType: string; landInfo: LandDetailInfo; landId?: string; landCoordinates?: {lat: number; lng: number}[]};
 };
 
 const LandDetailsPopup: React.FC<Props> = ({landInfo, contractDetail, landOrderList, onClose, onBack, onLandManage}) => {
   const navigation = useNavigation<StackNavigationProp<LandStackParamList>>();
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState("基础信息");
-
+  console.log("地块详情", landInfo);
   // 当地块信息变化时重置状态
   useEffect(() => {
     setActiveTab("基础信息");
@@ -47,7 +47,16 @@ const LandDetailsPopup: React.FC<Props> = ({landInfo, contractDetail, landOrderL
 
   // 地块信息编辑
   const handleLandInfoEdit = () => {
-    navigation.navigate("LandInfoEdit", {queryInfo: landInfo});
+    if (activeTab === "基础信息") {
+      navigation.navigate("LandInfoEdit", {queryInfo: landInfo});
+    } else if (activeTab === "合同信息") {
+      navigation.navigate("AddContract", {
+        contractType: "编辑",
+        landInfo,
+        landId: landInfo?.id,
+        landCoordinates: landInfo?.list as {lat: number; lng: number}[],
+      });
+    }
   };
 
   // 地块管理弹窗
@@ -61,7 +70,11 @@ const LandDetailsPopup: React.FC<Props> = ({landInfo, contractDetail, landOrderL
 
   // 新建合同
   const addContract = () => {
-    navigation.navigate("AddContract", {contractType: "新建"});
+    navigation.navigate("AddContract", {
+      contractType: "新建",
+      landInfo,
+      landCoordinates: landInfo?.list as {lat: number; lng: number}[],
+    });
   };
 
   // 拨打电话
@@ -90,14 +103,16 @@ const LandDetailsPopup: React.FC<Props> = ({landInfo, contractDetail, landOrderL
       <Header title="地块详情" onBack={onBack} onClose={onClose} />
 
       {/* Tab切换容器 */}
-      <TabContainer activeTab={activeTab} landType={landInfo?.landType} onTabChange={handleTabChange} />
+      {landInfo?.type !== "1" && (
+        <TabContainer activeTab={activeTab} landType={landInfo?.landType} onTabChange={handleTabChange} />
+      )}
 
       {/* 内容区域 - 根据当前Tab显示对应内容 */}
       {activeTab === "基础信息" && (
         <BasicInfoContent landInfo={landInfo} isExpanded={isExpanded} callPhone={callPhone} replaceKeywords={replaceKeywords} />
       )}
 
-      {activeTab === "合同信息" && (
+      {activeTab === "合同信息" && landInfo?.type !== "1" && (
         <ContractInfoContent
           landInfo={landInfo}
           contractDetail={contractDetail}

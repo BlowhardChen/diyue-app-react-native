@@ -26,7 +26,7 @@ import {deviceStore} from "@/stores/deviceStore";
 import {updateStore} from "@/stores/updateStore";
 import useOptimizedHeading from "@/hooks/useOptimizedHeading";
 import LandDetailsPopup from "@/screens/land/components/LandDetailsPopup";
-import {getContractMessageDetail} from "@/services/contract";
+import {getContractInfoDetail} from "@/services/contract";
 import {ContractDetail} from "@/types/contract";
 import CustomLoading from "@/components/common/CustomLoading";
 import LandManagePopup from "@/screens/land/components/LandManagePopup";
@@ -577,6 +577,7 @@ const LandManagementScreen = observer(() => {
       showCustomToast("error", "地块详情数据为空");
       return;
     }
+    console.log("地块详情数据", data[0]);
     setLandInfo(data[0]);
     setLandName(data[0].landName || "");
     if (data[0].landType === "2") {
@@ -591,7 +592,8 @@ const LandManagementScreen = observer(() => {
 
   // 获取合同详细信息
   const getContractDetail = async (id: string) => {
-    const {data} = await getContractMessageDetail({landId: id});
+    const {data} = await getContractInfoDetail({landId: id});
+    console.log("获取合同详细信息", data);
     setContractDetail(data);
   };
 

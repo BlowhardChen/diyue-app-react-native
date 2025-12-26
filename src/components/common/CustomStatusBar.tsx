@@ -33,7 +33,7 @@ const NavBar: React.FC<NavBarProps> = ({
       <View style={styles.header}>
         {/* 返回按钮 */}
         <TouchableOpacity style={styles.iconBtn} onPress={onBack}>
-          <Image source={require("../../assets/images/common/icon-back-top.png")} style={styles.iconImage} />
+          <Image source={require("@/assets/images/common/icon-back-top.png")} style={styles.iconImage} />
         </TouchableOpacity>
 
         {/* 中间标题 */}
@@ -102,13 +102,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "500",
     color: "#000",
     maxWidth: 240,
   },
   subTitle: {
     fontSize: 12,
-    color: "#999",
+    color: "#000",
+    fontWeight: "500",
     marginTop: 2,
   },
   rightContainer: {
@@ -116,16 +117,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "center",
   },
-  // rightTitleStyle: {
-  //   width: 56,
-  //   height: 28,
-  //   alignItems: "center",
-  //   justifyContent: "center",
-  //   color: "#FFFFFF",
-  //   fontSize: 16,
-  //   backgroundColor: "#08AE3C",
-  //   borderRadius: 6,
-  // },
   rightBtn: {
     fontSize: 14,
   },
