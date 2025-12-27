@@ -1,12 +1,13 @@
 // 获取验证码&验证码登录
 import React, {useState, useEffect, useRef, useMemo, useCallback} from "react";
-import {View, Text, TextInput, TouchableOpacity, Image, StatusBar} from "react-native";
+import {View, Text, TextInput, TouchableOpacity, Image, StatusBar, StyleSheet} from "react-native";
 import {SafeAreaView} from "react-native-safe-area-context";
 import {RouteProp, useNavigation, useRoute, useFocusEffect} from "@react-navigation/native";
 import {styles} from "./styles/CodeLoginScreen";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {codeLogin, getCodeForgotPwd, getCodeLogin, getCodeRegister} from "@/services/account";
 import debounce from "lodash/debounce";
+import {userStore} from "@/stores/userStore";
 
 const CODE_LENGTH = 6;
 const COUNTRY_CODE = "+86";
@@ -118,21 +119,34 @@ const CodeLoginScreen = () => {
     setCode(numericText);
   };
 
+  // 手动聚焦输入框（新增：处理点击格子时的聚焦）
+  const handleClickCodeArea = () => {
+    inputRef.current?.focus();
+    setFocus(true);
+  };
+
   // 验证码登录逻辑
   const handleAutoLogin = useCallback(
     async (enteredCode: string) => {
-      const {data} = await codeLogin({
-        mobile: phoneNumber,
-        mobileCode: enteredCode,
-      });
-      if (data?.register) {
-        navigation.navigate("SetPassword", {
-          viewType: "setPassword",
+      try {
+        // 新增：添加异常捕获，避免登录失败导致崩溃
+        const {data} = await codeLogin({
           mobile: phoneNumber,
           mobileCode: enteredCode,
         });
-      } else {
-        navigation.navigate("Main");
+        userStore.setUserInfo(data.member);
+        if (data?.register) {
+          navigation.navigate("SetPassword", {
+            viewType: "setPassword",
+            mobile: phoneNumber,
+            mobileCode: enteredCode,
+          });
+        } else {
+          navigation.navigate("Main");
+        }
+      } catch (error) {
+        console.error("验证码登录失败：", error);
+        // 可添加错误提示，比如 Toast 提示验证码错误
       }
     },
     [navigation, phoneNumber],
@@ -167,7 +181,7 @@ const CodeLoginScreen = () => {
       {/* 头部返回按钮 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Image source={require("../../assets/images/common/icon-back-green.png")} style={styles.backIcon} />
+          <Image source={require("@/assets/images/common/icon-back-green.png")} style={styles.backIcon} />
           <Text style={styles.backText}>返回</Text>
         </TouchableOpacity>
       </View>
@@ -179,22 +193,30 @@ const CodeLoginScreen = () => {
           验证码已发送至 {COUNTRY_CODE} <Text>{hidePhoneNumber(phoneNumber)}</Text>
         </Text>
 
-        {/* 验证码输入框 */}
+        {/* 验证码输入框 - 关键修改：外层添加点击事件，穿透到输入框 */}
         <View style={styles.codeInputContainer}>
-          {/* 隐形输入框，覆盖整块区域 */}
+          {/* 使用一个可见但透明的输入框 */}
           <TextInput
             ref={inputRef}
-            style={styles.hiddenInput}
+            style={[
+              styles.hiddenInput,
+              {
+                opacity: 0.15,
+                backgroundColor: "transparent",
+                zIndex: 2,
+              },
+            ]}
             value={code}
             onChangeText={handleCodeChange}
             keyboardType="number-pad"
             maxLength={CODE_LENGTH}
-            autoFocus
-            caretHidden // 隐藏光标
+            autoFocus={focus}
+            onFocus={() => setFocus(true)}
+            onBlur={() => setFocus(false)}
           />
 
-          {/* 格子显示层 */}
-          <View style={styles.codeDisplay} pointerEvents="none">
+          {/* 展示层作为视觉反馈 */}
+          <View style={[styles.codeDisplay, {zIndex: 1}]} pointerEvents="none">
             {Array.from({length: CODE_LENGTH}).map((_, index) => (
               <View key={index} style={[styles.codeDigit, focus && index === code.length && styles.codeDigitFocused]}>
                 <Text style={styles.codeDigitText}>{code[index] || ""}</Text>

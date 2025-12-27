@@ -1,6 +1,5 @@
-// 圈地
+// 标记位置
 import {View, Text, TouchableOpacity, Image} from "react-native";
-import {EnclosureScreenStyles} from "./styles/EnclosureScreen";
 import {useEffect, useRef, useState} from "react";
 import {observer} from "mobx-react-lite";
 import {mapStore} from "@/stores/mapStore";
@@ -27,6 +26,7 @@ import {updateStore} from "@/stores/updateStore";
 import WebSocketClass from "@/utils/webSocketClass";
 import {deviceStore} from "@/stores/deviceStore";
 import React from "react";
+import {EnclosureScreenStyles} from "../land/styles/EnclosureScreen";
 
 type EnclosureStackParamList = {
   LandInfoEdit: {navigation: string; queryInfo: SaveLandResponse};

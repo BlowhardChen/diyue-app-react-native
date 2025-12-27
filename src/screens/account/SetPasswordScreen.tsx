@@ -8,6 +8,7 @@ import {StackNavigationProp} from "@react-navigation/stack";
 import {styles} from "./styles/SetPasswordScreen";
 import {showCustomToast} from "@/components/common/CustomToast";
 import {forgotPassword, registerAccount} from "@/services/account";
+import {userStore} from "@/stores/userStore";
 
 type RootStackParamList = {
   Main: undefined;
@@ -117,11 +118,12 @@ const SetPasswordScreen = () => {
     }
 
     if (viewType === "register") {
-      await registerAccount({
+      const {data} = await registerAccount({
         mobile,
         mobileCode,
         password: newPassword,
       });
+      userStore.setUserInfo(data.member);
     }
 
     navigation.navigate("Main");
@@ -138,7 +140,7 @@ const SetPasswordScreen = () => {
         {/* 头部返回按钮 */}
         <View style={styles.header}>
           <TouchableOpacity onPress={backView} style={styles.backButton}>
-            <Image source={require("../../assets/images/common/icon-back-green.png")} style={styles.backIcon} />
+            <Image source={require("@/assets/images/common/icon-back-green.png")} style={styles.backIcon} />
             <Text style={styles.backText}>返回</Text>
           </TouchableOpacity>
         </View>
@@ -153,7 +155,7 @@ const SetPasswordScreen = () => {
         <View style={styles.inputBox}>
           {/* 新密码输入框 */}
           <View style={styles.passwordFormItem}>
-            <Image source={require("../../assets/images/login/icon-passwword.png")} style={styles.inputIcon} />
+            <Image source={require("@/assets/images/login/icon-passwword.png")} style={styles.inputIcon} />
             <TextInput
               style={styles.formInput}
               value={newPassword}
@@ -169,15 +171,15 @@ const SetPasswordScreen = () => {
               {/* 有内容 && 聚焦 才显示清空按钮 */}
               {newPassword && isNewFocused && (
                 <TouchableOpacity onPress={() => clearPassword("new")} style={styles.iconButton}>
-                  <Image source={require("../../assets/images/login/icon-clear.png")} style={styles.inputIcon} />
+                  <Image source={require("@/assets/images/login/icon-clear.png")} style={styles.inputIcon} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity onPress={() => togglePasswordVisibility("new")} style={styles.iconButton}>
                 <Image
                   source={
                     isNewPasswordShow
-                      ? require("../../assets/images/login/icon-hide.png")
-                      : require("../../assets/images/login/icon-view.png")
+                      ? require("@/assets/images/login/icon-hide.png")
+                      : require("@/assets/images/login/icon-view.png")
                   }
                   style={styles.inputIcon}
                 />
@@ -187,7 +189,7 @@ const SetPasswordScreen = () => {
 
           {/* 确认密码输入框 */}
           <View style={styles.passwordFormItem}>
-            <Image source={require("../../assets/images/login/icon-passwword.png")} style={styles.inputIcon} />
+            <Image source={require("@/assets/images/login/icon-passwword.png")} style={styles.inputIcon} />
             <TextInput
               style={styles.formInput}
               value={confirmPassword}
@@ -203,15 +205,15 @@ const SetPasswordScreen = () => {
               {/* 有内容 && 聚焦 才显示清空按钮 */}
               {confirmPassword && isConfirmFocused && (
                 <TouchableOpacity onPress={() => clearPassword("confirm")} style={styles.iconButton}>
-                  <Image source={require("../../assets/images/login/icon-clear.png")} style={styles.inputIcon} />
+                  <Image source={require("@/assets/images/login/icon-clear.png")} style={styles.inputIcon} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity onPress={() => togglePasswordVisibility("confirm")} style={styles.iconButton}>
                 <Image
                   source={
                     isConfirmPasswordShow
-                      ? require("../../assets/images/login/icon-hide.png")
-                      : require("../../assets/images/login/icon-view.png")
+                      ? require("@/assets/images/login/icon-hide.png")
+                      : require("@/assets/images/login/icon-view.png")
                   }
                   style={styles.inputIcon}
                 />
@@ -236,8 +238,8 @@ const SetPasswordScreen = () => {
               <Image
                 source={
                   isSelectRadio
-                    ? require("../../assets/images/login/icon-checked.png")
-                    : require("../../assets/images/login/icon-unchecked.png")
+                    ? require("@/assets/images/login/icon-checked.png")
+                    : require("@/assets/images/login/icon-unchecked.png")
                 }
                 style={styles.radioIcon}
               />

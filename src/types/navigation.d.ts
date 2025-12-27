@@ -5,7 +5,8 @@ export type RootStackParamList = AuthParamList &
   DeviceStackParamList &
   LandMapStackParamList &
   FarmStackParamList &
-  ContractStackParamList;
+  ContractStackParamList &
+  PatrolParamList;
 
 // 启动页&隐私政策&服务协议&隐私政策详情页
 export type AuthParamList = {
@@ -74,4 +75,14 @@ export type ContractStackParamList = {
   AddContract: {contractType: string; landId?: string; landCoordinates?: string};
   ElectronicContract: {contractInfo: string; page?: string};
   ContractDetail: {contractInfo: string; contractType: string};
+};
+
+// 巡田管理相关
+export type PatrolParamList = {
+  AbnormalUpload: undefined | {id?: number};
+  AbnormalRecord: undefined;
+  AbnormalDetail: {id: number};
+  PatrolManage: {id: number};
+  PatrolDetail: {id: number};
+  MarkPosition: {type: string; id?: number; markPoints?: {lat: number; lon: number}[]};
 };

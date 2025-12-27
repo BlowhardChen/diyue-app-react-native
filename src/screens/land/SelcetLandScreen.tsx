@@ -556,7 +556,7 @@ const SelectLandScreen = observer(({route}: {route: {params: {type: string}}}) =
             style={{flex: 1}}
           />
           <View style={EnclosureScreenStyles.mapCopyright}>
-            <Image source={require("../../assets/images/home/icon-td.png")} style={EnclosureScreenStyles.iconImg} />
+            <Image source={require("@/assets/images/home/icon-td.png")} style={EnclosureScreenStyles.iconImg} />
             <Text style={EnclosureScreenStyles.copyrightText}>
               ©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471
             </Text>
@@ -576,15 +576,11 @@ const SelectLandScreen = observer(({route}: {route: {params: {type: string}}}) =
         </View>
         {/* 右侧控制按钮 */}
         <View style={EnclosureScreenStyles.rightControl}>
-          <MapControlButton
-            iconUrl={require("../../assets/images/home/icon-layer.png")}
-            iconName="图层"
-            onPress={onToggleMapLayer}
-          />
+          <MapControlButton iconUrl={require("@/assets/images/home/icon-layer.png")} iconName="图层" onPress={onToggleMapLayer} />
         </View>
         <View style={EnclosureScreenStyles.locationControl}>
           <MapControlButton
-            iconUrl={require("../../assets/images/home/icon-location.png")}
+            iconUrl={require("@/assets/images/home/icon-location.png")}
             iconName="定位"
             onPress={onLocatePosition}
             style={{marginTop: 16}}

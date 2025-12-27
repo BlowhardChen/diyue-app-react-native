@@ -65,7 +65,7 @@ const PersonalInfoScreen = () => {
           <TouchableOpacity style={styles.itemRight} onPress={editAvatar}>
             <View style={styles.avatar}>
               <Image
-                source={userInfo?.avatar ? {uri: userInfo.avatar} : require("../../assets/images/my/icon-avatar.png")}
+                source={userInfo?.avatar ? {uri: userInfo.avatar} : require("@/assets/images/my/icon-avatar.png")}
                 style={styles.avatarImg}
               />
             </View>

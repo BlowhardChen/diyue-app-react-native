@@ -57,7 +57,7 @@ const EditPasswordScreen = () => {
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <TouchableOpacity style={styles.header} onPress={() => navigation.goBack()}>
         <View style={styles.headerLeft}>
-          <Image source={require("../../assets/images/common/icon-back-green.png")} style={styles.backIcon} />
+          <Image source={require("@/assets/images/common/icon-back-green.png")} style={styles.backIcon} />
           <Text style={styles.backText}>返回</Text>
         </View>
       </TouchableOpacity>
@@ -70,7 +70,7 @@ const EditPasswordScreen = () => {
       <View style={styles.inputBox}>
         {/* 新密码 */}
         <View style={styles.inputItem}>
-          <Image source={require("../../assets/images/login/icon-passwword.png")} style={styles.icon} />
+          <Image source={require("@/assets/images/login/icon-passwword.png")} style={styles.icon} />
           <TextInput
             style={styles.input}
             placeholder="输入新密码"
@@ -83,8 +83,8 @@ const EditPasswordScreen = () => {
             <Image
               source={
                 isNewPasswordShow
-                  ? require("../../assets/images/login/icon-hide.png")
-                  : require("../../assets/images/login/icon-view.png")
+                  ? require("@/assets/images/login/icon-hide.png")
+                  : require("@/assets/images/login/icon-view.png")
               }
               style={styles.icon}
             />
@@ -93,7 +93,7 @@ const EditPasswordScreen = () => {
 
         {/* 确认密码 */}
         <View style={styles.inputItem}>
-          <Image source={require("../../assets/images/login/icon-passwword.png")} style={styles.icon} />
+          <Image source={require("@/assets/images/login/icon-passwword.png")} style={styles.icon} />
           <TextInput
             style={styles.input}
             placeholder="确认新密码"
@@ -106,8 +106,8 @@ const EditPasswordScreen = () => {
             <Image
               source={
                 isConfirmPasswordShow
-                  ? require("../../assets/images/login/icon-hide.png")
-                  : require("../../assets/images/login/icon-view.png")
+                  ? require("@/assets/images/login/icon-hide.png")
+                  : require("@/assets/images/login/icon-view.png")
               }
               style={styles.icon}
             />

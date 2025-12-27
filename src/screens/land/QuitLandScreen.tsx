@@ -407,7 +407,7 @@ const QuitLandScreen = observer(() => {
             style={{flex: 1}}
           />
           <View style={styles.mapCopyright}>
-            <Image source={require("../../assets/images/home/icon-td.png")} style={styles.iconImg} />
+            <Image source={require("@/assets/images/home/icon-td.png")} style={styles.iconImg} />
             <Text style={styles.copyrightText}>©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471</Text>
           </View>
         </View>
@@ -425,15 +425,11 @@ const QuitLandScreen = observer(() => {
         </View>
         {/* 右侧控制按钮 */}
         <View style={styles.rightControl}>
-          <MapControlButton
-            iconUrl={require("../../assets/images/home/icon-layer.png")}
-            iconName="图层"
-            onPress={onToggleMapLayer}
-          />
+          <MapControlButton iconUrl={require("@/assets/images/home/icon-layer.png")} iconName="图层" onPress={onToggleMapLayer} />
         </View>
         <View style={[styles.locationControl, {bottom: showLandDetailsPopup ? 500 : 60}]}>
           <MapControlButton
-            iconUrl={require("../../assets/images/home/icon-location.png")}
+            iconUrl={require("@/assets/images/home/icon-location.png")}
             iconName="定位"
             onPress={onLocatePosition}
             style={{marginTop: 16}}

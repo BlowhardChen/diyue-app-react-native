@@ -50,7 +50,7 @@ const PrivacyPolicyScreen: React.FC = () => {
 
   return (
     <>
-      <ImageBackground source={require("../../assets/images/bootPage/boot.png")} style={styles.background} resizeMode="cover">
+      <ImageBackground source={require("@/assets/images/bootPage/boot.png")} style={styles.background} resizeMode="cover">
         <View style={styles.dialogBox}>
           <View style={styles.dialog}>
             <Text style={styles.title}>欢迎使用地约APP</Text>

@@ -3,6 +3,7 @@ import {useAuth} from "@/hooks/useAuth";
 import {UserInfo} from "@/types/user";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
+import {userStore} from "@/stores/userStore";
 
 type RootStackParamList = {
   Main: undefined;
@@ -16,6 +17,7 @@ export const useLogin = () => {
     const {data} = await accountLogin({mobile, password});
     const {token, member} = data as unknown as {token: string; member: UserInfo};
     await login(token, member);
+    userStore.setUserInfo(member);
     navigation.reset({
       index: 0,
       routes: [{name: "Main"}],

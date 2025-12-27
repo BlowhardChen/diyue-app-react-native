@@ -22,20 +22,20 @@ const Tab = createBottomTabNavigator<TabParamList>();
 // 图片资源
 const tabIcons: Record<keyof TabParamList, {active: ImageSourcePropType; inactive: ImageSourcePropType}> = {
   LandManagement: {
-    active: require("../assets/tabBar/land_green.png"),
-    inactive: require("../assets/tabBar/land_black.png"),
+    active: require("@/assets/tabBar/land_green.png"),
+    inactive: require("@/assets/tabBar/land_black.png"),
   },
   FarmManagement: {
-    active: require("../assets/tabBar/tractor_green.png"),
-    inactive: require("../assets/tabBar/tractor_black.png"),
+    active: require("@/assets/tabBar/tractor_green.png"),
+    inactive: require("@/assets/tabBar/tractor_black.png"),
   },
   FarmSupplies: {
-    active: require("../assets/tabBar/barn_green.png"),
-    inactive: require("../assets/tabBar/barn_black.png"),
+    active: require("@/assets/tabBar/barn_green.png"),
+    inactive: require("@/assets/tabBar/barn_black.png"),
   },
   My: {
-    active: require("../assets/tabBar/my_green.png"),
-    inactive: require("../assets/tabBar/my_black.png"),
+    active: require("@/assets/tabBar/my_green.png"),
+    inactive: require("@/assets/tabBar/my_black.png"),
   },
 };
 

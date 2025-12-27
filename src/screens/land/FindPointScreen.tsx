@@ -517,7 +517,7 @@ const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number
             style={{flex: 1}}
           />
           <View style={FindPointScreenStyles.mapCopyright}>
-            <Image source={require("../../assets/images/home/icon-td.png")} style={FindPointScreenStyles.iconImg} />
+            <Image source={require("@/assets/images/home/icon-td.png")} style={FindPointScreenStyles.iconImg} />
             <Text style={FindPointScreenStyles.copyrightText}>
               ©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471
             </Text>

@@ -4,9 +4,9 @@ import RootSiblings from "react-native-root-siblings";
 
 type ToastType = "success" | "error" | "info";
 
-const successIcon = require("../../assets/images/common/icon-success.png");
-const errorIcon = require("../../assets/images/common/icon-erroe.png");
-const infoIcon = require("../../assets/images/common/icon-info.png");
+const successIcon = require("@/assets/images/common/icon-success.png");
+const errorIcon = require("@/assets/images/common/icon-erroe.png");
+const infoIcon = require("@/assets/images/common/icon-info.png");
 
 let toastInstance: RootSiblings | null = null;
 

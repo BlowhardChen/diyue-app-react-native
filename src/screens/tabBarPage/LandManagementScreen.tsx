@@ -639,7 +639,7 @@ const LandManagementScreen = observer(() => {
           setRtkLocation(newLocation); // 更新状态
           console.log("WebSocket 接收定位数据:", newLocation);
 
-          // 关键修改：首次定位用 SET_ICON_LOCATION（带居中），后续用 UPDATE_ICON_LOCATION（不带居中）
+          // 首次定位用 SET_ICON_LOCATION（带居中），后续用 UPDATE_ICON_LOCATION（不带居中）
           const messageType = isFirstSocketLocationRef.current ? "SET_ICON_LOCATION" : "UPDATE_ICON_LOCATION";
 
           webViewRef.current?.postMessage(

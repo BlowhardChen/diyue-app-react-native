@@ -1,5 +1,5 @@
 // 我的
-import React, {useState, useCallback} from "react";
+import React, {useState, useCallback, useEffect} from "react";
 import {
   View,
   Text,
@@ -23,6 +23,8 @@ import {useOCR} from "@/utils/uploadImg";
 import {getToken} from "@/utils/tokenUtils";
 import CustomLoading from "@/components/common/CustomLoading";
 import {showCustomToast} from "@/components/common/CustomToast";
+import {observer} from "mobx-react-lite";
+import {userStore} from "@/stores/userStore";
 
 interface UserInfo {
   acreageNum: number;
@@ -60,7 +62,7 @@ type RootStackParamList = {
   HostedOrder: {type?: string};
 };
 
-const MyScreen = () => {
+const MyScreen = observer(() => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [userInfo, setUserInfo] = useState<any>({} as UserInfo);
   const [ordersList, setOrdersList] = useState<OrderItem[]>([]);
@@ -112,6 +114,7 @@ const MyScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
+      console.log("我的", userStore.userInfo);
       fetchUserInfo();
     }, []),
   );
@@ -432,6 +435,6 @@ const MyScreen = () => {
       <CustomLoading visible={loading} text="图片识别中..." />
     </View>
   );
-};
+});
 
 export default MyScreen;

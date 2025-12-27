@@ -68,7 +68,7 @@ const RegisterScreen = () => {
   const validatePhoneNumber = (phoneNumber: string) => {
     const phoneNumberRegex = /^1[3456789]\d{9}$/;
     if (!phoneNumberRegex.test(phoneNumber.replace(/\s/g, ""))) {
-      showToast(require("../../assets/images/common/icon-erroe.png"), "请输入正确手机号");
+      showToast(require("@/assets/images/common/icon-erroe.png"), "请输入正确手机号");
       return false;
     }
     return true;
@@ -100,7 +100,7 @@ const RegisterScreen = () => {
   // 获取验证码
   const getCode = () => {
     if (!phone.trim()) {
-      showToast(require("../../assets/images/common/icon-erroe.png"), "请输入手机号");
+      showToast(require("@/assets/images/common/icon-erroe.png"), "请输入手机号");
       return;
     }
 
@@ -121,7 +121,7 @@ const RegisterScreen = () => {
       {/* 头部返回按钮 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={backView} style={styles.backButton}>
-          <Image source={require("../../assets/images/common/icon-back-green.png")} style={styles.backIcon} />
+          <Image source={require("@/assets/images/common/icon-back-green.png")} style={styles.backIcon} />
           <Text style={styles.backText}>返回</Text>
         </TouchableOpacity>
       </View>
@@ -143,7 +143,7 @@ const RegisterScreen = () => {
 
         {/* 手机号输入框 */}
         <View style={styles.inputContainer}>
-          <Image source={require("../../assets/images/login/icon-phone.png")} style={styles.inputIcon} />
+          <Image source={require("@/assets/images/login/icon-phone.png")} style={styles.inputIcon} />
           <TextInput
             style={styles.input}
             value={phone}
@@ -155,7 +155,7 @@ const RegisterScreen = () => {
           />
           {phone ? (
             <TouchableOpacity onPress={clearPhone}>
-              <Image source={require("../../assets/images/login/icon-clear.png")} style={styles.inputIcon} />
+              <Image source={require("@/assets/images/login/icon-clear.png")} style={styles.inputIcon} />
             </TouchableOpacity>
           ) : (
             <View style={styles.inputIcon} />

@@ -39,15 +39,13 @@ export const styles = StyleSheet.create({
     marginBottom: 60,
   },
   codeInputContainer: {
+    height: 60,
     marginBottom: 24,
     position: "relative",
   },
   hiddenInput: {
     ...StyleSheet.absoluteFillObject,
     position: "absolute",
-    width: 1,
-    height: 1,
-    opacity: 0,
   },
   codeDisplay: {
     flexDirection: "row",

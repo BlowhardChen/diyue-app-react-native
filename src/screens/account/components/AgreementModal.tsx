@@ -29,11 +29,7 @@ const AgreementModal: React.FC<Props> = ({visible, onClose, onAgree}) => {
           {/* 关闭按钮 */}
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <View>
-              <Image
-                source={require("../../../assets/images/common/icon-close.png")}
-                style={styles.closeText}
-                resizeMode="contain"
-              />
+              <Image source={require("@/assets/images/common/icon-close.png")} style={styles.closeText} resizeMode="contain" />
             </View>
           </TouchableOpacity>
 

@@ -116,3 +116,90 @@ export const farmingDetailInfo = (data: {farmingId: string; userId?: string; isS
     data,
   });
 };
+
+/**
+ * 巡田管理-巡田任务列表
+ */
+export const patrolTaskList = (data: {status: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/taskLog/queryTaskList",
+    data,
+  });
+};
+
+/**
+ * 巡田管理-巡田任务详情
+ */
+export const patrolTaskDetail = (data: {id: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/taskLog/queryTask",
+    data,
+  });
+};
+
+/**
+ * 巡田管理-巡田任务开始
+ */
+export const patrolTaskStart = (data: {id: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/taskLog/startTask",
+    data,
+  });
+};
+
+/**
+ * 巡田管理-巡田任务结束
+ */
+export const patrolTaskEnd = (data: {id: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/taskLog/stopTask",
+    data,
+  });
+};
+
+/**
+ * 巡田管理-巡田任务轨迹列表
+ */
+export const patrolTaskLocusList = (data: {taskLogId: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/taskLogLocus/queryTaskLogLocusList",
+    data,
+  });
+};
+
+/**
+ * 巡田管理-添加异常上报
+ */
+export const patrolTaskAddException = (data: any) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/exception/addException",
+    data,
+  });
+};
+
+/**
+ * 巡田管理-异常上报列表
+ */
+export const patrolTaskExceptionList = () => {
+  return http<any>({
+    method: "POST",
+    url: "/app/exception/queryExceptionList",
+  });
+};
+
+/**
+ * 巡田管理-异常上报详情
+ */
+export const patrolTaskExceptionDetail = (data: {taskLogId: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/exception/queryException",
+    data,
+  });
+};

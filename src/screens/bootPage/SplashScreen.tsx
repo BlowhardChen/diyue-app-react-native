@@ -29,7 +29,7 @@ const SplashScreen: React.FC<Props> = ({navigation}) => {
   return (
     <>
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-      <ImageBackground source={require("../../assets/images/bootPage/boot.png")} style={styles.container} resizeMode="cover" />
+      <ImageBackground source={require("@/assets/images/bootPage/boot.png")} style={styles.container} resizeMode="cover" />
     </>
   );
 };

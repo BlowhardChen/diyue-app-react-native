@@ -150,7 +150,7 @@ const LoginScreen = () => {
 
           {/* Logo */}
           <View style={styles.logoContainer}>
-            <Image source={require("../../assets/images/login/logo.png")} style={styles.logo} resizeMode="contain" />
+            <Image source={require("@/assets/images/login/logo.png")} style={styles.logo} resizeMode="contain" />
           </View>
 
           {/* 登录框 */}
@@ -174,11 +174,7 @@ const LoginScreen = () => {
                 {/* 手机号输入 */}
                 <View style={styles.inputItem}>
                   <View style={styles.iconContainer}>
-                    <Image
-                      source={require("../../assets/images/login/icon-phone.png")}
-                      style={styles.icon}
-                      resizeMode="contain"
-                    />
+                    <Image source={require("@/assets/images/login/icon-phone.png")} style={styles.icon} resizeMode="contain" />
                   </View>
                   <TextInput
                     style={styles.input}
@@ -191,11 +187,7 @@ const LoginScreen = () => {
                   />
                   {phone ? (
                     <TouchableOpacity onPress={clearPhone} style={styles.clearIconContainer}>
-                      <Image
-                        source={require("../../assets/images/login/icon-clear.png")}
-                        style={styles.icon}
-                        resizeMode="contain"
-                      />
+                      <Image source={require("@/assets/images/login/icon-clear.png")} style={styles.icon} resizeMode="contain" />
                     </TouchableOpacity>
                   ) : null}
                 </View>
@@ -204,7 +196,7 @@ const LoginScreen = () => {
                 <View style={styles.inputItem}>
                   <View style={styles.iconContainer}>
                     <Image
-                      source={require("../../assets/images/login/icon-passwword.png")}
+                      source={require("@/assets/images/login/icon-passwword.png")}
                       style={styles.icon}
                       resizeMode="contain"
                     />
@@ -222,7 +214,7 @@ const LoginScreen = () => {
                     {password ? (
                       <TouchableOpacity onPress={clearPassword} style={styles.clearIconContainer}>
                         <Image
-                          source={require("../../assets/images/login/icon-clear.png")}
+                          source={require("@/assets/images/login/icon-clear.png")}
                           style={styles.icon}
                           resizeMode="contain"
                         />
@@ -232,8 +224,8 @@ const LoginScreen = () => {
                       <Image
                         source={
                           isPasswordVisible
-                            ? require("../../assets/images/login/icon-view.png")
-                            : require("../../assets/images/login/icon-hide.png")
+                            ? require("@/assets/images/login/icon-view.png")
+                            : require("@/assets/images/login/icon-hide.png")
                         }
                         style={styles.icon}
                         resizeMode="contain"
@@ -268,11 +260,7 @@ const LoginScreen = () => {
                 {/* 手机号输入 */}
                 <View style={[styles.inputItem, {marginTop: 12}]}>
                   <View style={styles.iconContainer}>
-                    <Image
-                      source={require("../../assets/images/login/icon-phone.png")}
-                      style={styles.icon}
-                      resizeMode="contain"
-                    />
+                    <Image source={require("@/assets/images/login/icon-phone.png")} style={styles.icon} resizeMode="contain" />
                   </View>
                   <TextInput
                     style={styles.input}
@@ -285,11 +273,7 @@ const LoginScreen = () => {
                   />
                   {phone ? (
                     <TouchableOpacity onPress={clearPhone} style={styles.clearIconContainer}>
-                      <Image
-                        source={require("../../assets/images/login/icon-clear.png")}
-                        style={styles.icon}
-                        resizeMode="contain"
-                      />
+                      <Image source={require("@/assets/images/login/icon-clear.png")} style={styles.icon} resizeMode="contain" />
                     </TouchableOpacity>
                   ) : null}
                 </View>
@@ -321,14 +305,14 @@ const LoginScreen = () => {
         </KeyboardAwareScrollView>
         {/* 底部协议 */}
         <View style={styles.fixedBottom}>
-          <Image source={require("../../assets/images/login/bottom-bg.png")} style={styles.bottomBackground} resizeMode="cover" />
+          <Image source={require("@/assets/images/login/bottom-bg.png")} style={styles.bottomBackground} resizeMode="cover" />
           <View style={styles.agreementContainer}>
             <TouchableOpacity onPress={() => setAgreementChecked(!isAgreementChecked)} style={styles.checkboxContainer}>
               <Image
                 source={
                   isAgreementChecked
-                    ? require("../../assets/images/login/icon-checked.png")
-                    : require("../../assets/images/login/icon-unchecked.png")
+                    ? require("@/assets/images/login/icon-checked.png")
+                    : require("@/assets/images/login/icon-unchecked.png")
                 }
                 style={styles.checkboxIcon}
                 resizeMode="contain"
