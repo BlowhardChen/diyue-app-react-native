@@ -41,6 +41,7 @@ import ContractDetailScreen from "@/screens/contract/ContractDetailScreen";
 import AbnormalRecordScreen from "@/screens/patrol/AbnormalRecordScreen";
 import AbnormalDetailScreen from "@/screens/patrol/AbnormalDetailScreen";
 import AbnormalUploadScreen from "@/screens/patrol/AbnormalUploadScreen";
+import MarkPositionScreen from "@/screens/patrol/MarkPositionScreen";
 
 type Props = {
   initialRouteName?: keyof RootStackParamList;
@@ -82,6 +83,7 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
           },
         },
       }}>
+      <Stack.Screen name="MarkPosition" component={MarkPositionScreen} />
       <Stack.Screen name="AbnormalUpload" component={AbnormalUploadScreen} />
       <Stack.Screen name="AbnormalDetail" component={AbnormalDetailScreen} />
       <Stack.Screen name="AbnormalRecord" component={AbnormalRecordScreen} />

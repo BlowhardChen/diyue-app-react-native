@@ -10,7 +10,7 @@ import PermissionPopup from "@/components/common/PermissionPopup";
 import {FarmSupplieMallScreenStyles} from "./styles/FarmSupplieMallScreen";
 import LinearGradient from "react-native-linear-gradient";
 import {showCustomToast} from "@/components/common/CustomToast";
-import CustomerServicePopup from "@/components/common/KfPhoneModal";
+import CustomerServicePopup from "@/components/common/CustomerServicePopup";
 
 const FarmSupplieMallScreen: React.FC = () => {
   const {showKfPopup, isShowPowerPopup, cancelOpenPower, confirmOpenPower, setShowKfPopup} = usePhoneCall();

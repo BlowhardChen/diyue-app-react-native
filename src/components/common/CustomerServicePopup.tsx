@@ -2,9 +2,8 @@
 import React from "react";
 import {View, Text, TouchableOpacity, Image, Modal, StyleSheet} from "react-native";
 import LinearGradient from "react-native-linear-gradient";
-import usePhoneCall from "@/hooks/usePhoneCall"; // 根据实际路径调整
+import usePhoneCall from "@/hooks/usePhoneCall";
 import {Global} from "@/styles/global";
-import {on} from "events";
 
 // 定义组件属性接口
 interface CustomerServicePopupProps {

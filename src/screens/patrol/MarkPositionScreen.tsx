@@ -12,7 +12,7 @@ import LandEnclosureCustomNavBar from "@/components/land/LandEnclosureCustomNavB
 import useOptimizedHeading from "@/hooks/useOptimizedHeading";
 import KeepAwake from "react-native-keep-awake";
 import Popup from "@/components/common/Popup";
-import {useNavigation, useFocusEffect} from "@react-navigation/native";
+import {useNavigation, useFocusEffect, useRoute, RouteProp} from "@react-navigation/native";
 import {BackHandler} from "react-native";
 import {checkLocationPermission, requestLocationPermission} from "@/utils/checkPermissions";
 import {showCustomToast} from "@/components/common/CustomToast";
@@ -27,22 +27,18 @@ import WebSocketClass from "@/utils/webSocketClass";
 import {deviceStore} from "@/stores/deviceStore";
 import React from "react";
 import {EnclosureScreenStyles} from "../land/styles/EnclosureScreen";
+import {PatrolParamList} from "@/types/navigation";
 
-type EnclosureStackParamList = {
-  LandInfoEdit: {navigation: string; queryInfo: SaveLandResponse};
-};
-
-const EnclosureScreen = observer(() => {
-  const navigation = useNavigation<StackNavigationProp<EnclosureStackParamList>>();
+const MarkPositionScreen = observer(() => {
+  const navigation = useNavigation<StackNavigationProp<PatrolParamList>>();
+  const route = useRoute<RouteProp<PatrolParamList, "MarkPosition">>();
   const [popupTips, setPopupTips] = useState("请点击打点按钮打点或点击十字光标标点");
   const [dotTotal, setDotTotal] = useState(0);
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const webViewRef = useRef<WebView>(null);
   const [isWebViewReady, setIsWebViewReady] = useState(false);
-  const [showBackPopup, setShowBackPopup] = useState(false);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
-  const beforeRemoveRef = useRef<any>(null);
   const watchIdRef = useRef<number | null>(null);
   const isFirstLocationRef = useRef(true);
   const [isPolygonIntersect, setIsPolygonIntersect] = useState(false);
@@ -513,7 +509,6 @@ const EnclosureScreen = observer(() => {
         type: "CONTINUE_ENCLOSURE",
       }),
     );
-    navigation.navigate("LandInfoEdit", {navigation: "Enclosure", queryInfo: landInfo as SaveLandResponse});
   };
 
   // 继续圈地
@@ -717,24 +712,7 @@ const EnclosureScreen = observer(() => {
   };
 
   useFocusEffect(() => {
-    beforeRemoveRef.current = navigation.addListener("beforeRemove", e => {
-      e.preventDefault();
-      if (!showBackPopup) {
-        setShowBackPopup(true);
-      }
-    });
-
-    // Android 实体返回键监听
-    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (!showBackPopup) {
-        setShowBackPopup(true);
-      }
-      return true;
-    });
-
     return () => {
-      beforeRemoveRef.current();
-      backHandler.remove();
       stopPositionWatch();
     };
   });
@@ -751,10 +729,10 @@ const EnclosureScreen = observer(() => {
       />
       {/* 顶部导航 */}
       <LandEnclosureCustomNavBar
-        navTitle="圈地"
+        navTitle={route.params?.type === "mark" ? "标记打点" : "查看标记位置"}
         showRightIcon={true}
         onBackView={() => {
-          setShowBackPopup(true);
+          navigation.goBack();
         }}
       />
       {/* 地图 */}
@@ -817,22 +795,6 @@ const EnclosureScreen = observer(() => {
         </TouchableOpacity>
         {/* 图层切换弹窗 */}
         {showMapSwitcher && <MapSwitcher onClose={() => setShowMapSwitcher(false)} onSelectMap={handleSelectMap} />}
-        {/* 返回上级页面确认弹窗 */}
-        <Popup
-          visible={showBackPopup}
-          title="是否退出圈地"
-          msgText="退出后不会保留已打点位"
-          leftBtnText="退出"
-          rightBtnText="继续圈地"
-          onLeftBtn={() => {
-            setShowBackPopup(false);
-            beforeRemoveRef.current();
-            navigation.goBack();
-          }}
-          onRightBtn={() => {
-            setShowBackPopup(false);
-          }}
-        />
         {/* 保存成功弹窗 */}
         <Popup
           visible={showSaveSuccessPopup}
@@ -855,4 +817,4 @@ const EnclosureScreen = observer(() => {
   );
 });
 
-export default EnclosureScreen;
+export default MarkPositionScreen;

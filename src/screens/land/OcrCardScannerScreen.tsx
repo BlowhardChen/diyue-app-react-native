@@ -14,6 +14,7 @@ import CustomLoading from "@/components/common/CustomLoading";
 import {useOCR} from "@/utils/uploadImg";
 import Popup from "../../components/common/Popup";
 import {navigateToTargetRoute} from "@/utils/navigationUtils";
+import {launchImageLibrary} from "react-native-image-picker";
 
 type OcrCardScannerParams = {
   type: "身份证" | "银行卡";
@@ -104,7 +105,14 @@ const OcrCardScannerScreen = () => {
   };
 
   // 打开相册
-  const openPhotoAlbum = async () => {};
+  const openPhotoAlbum = async () => {
+    launchImageLibrary({mediaType: "photo", quality: 0.8, includeBase64: false}, async response => {
+      if (response.didCancel) return;
+      if (response.assets) {
+        uploadOCRImg(response.assets[0].uri as string);
+      }
+    });
+  };
 
   // 手动输入
   const handleManualInput = () => {

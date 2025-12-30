@@ -12,6 +12,7 @@ import {dictDataList} from "@/services/common";
 import {patrolTaskAddException} from "@/services/farming";
 import {locationToAddress} from "@/services/land";
 import {AbnormalUploadScreenStyles} from "./styles/AbnormalUploadScreen";
+import PopupInfo from "@/components/common/PopupInfo";
 
 type AbnormalUploadRouteParams = {
   AbnormalUpload: {
@@ -32,6 +33,7 @@ const AbnormalUploadScreen: React.FC = () => {
   const [location, setLocation] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [taskId, setTaskId] = useState<string>("");
+  const [showCameraPopup, setShowCameraPopup] = useState<boolean>(false);
 
   // 返回上一页
   const backView = () => {
@@ -49,57 +51,58 @@ const AbnormalUploadScreen: React.FC = () => {
     setIsSaveType(hasSelected);
   };
 
-  // 查看标记位置
-  const viewMarkPosition = () => {
+  // 标记位置
+  const markPosition = () => {
     navigation.navigate("MarkPosition", {
       type: "mark",
       markPoints: markPoints.length ? markPoints : [],
     });
   };
 
+  // 关闭相机弹窗
+  const closeCameraPopup = () => {
+    setShowCameraPopup(false);
+  };
+
   // 上传图片（相册/相机）
   const uploadImg = () => {
-    // 选项配置
-    const options = {
-      mediaType: "photo",
-      quality: 0.8,
-      includeBase64: false,
-    };
-
-    // 弹出选择框
-    Alert.alert("选择图片", "请选择图片来源", [
-      {text: "相册", onPress: () => pickImageFromAlbum(options)},
-      {text: "相机", onPress: () => takePhoto(options)},
-      {text: "取消", style: "cancel"},
-    ]);
+    setShowCameraPopup(true);
   };
 
   // 从相册选择图片
-  const pickImageFromAlbum = async (options: any) => {
-    launchImageLibrary(options, async response => {
-      if (response.didCancel) return;
-      if (response.error) {
-        Alert.alert("错误", "选择图片失败");
-        return;
-      }
-
-      // 上传到OSS
-      await uploadToOss(response.assets[0].uri);
-    });
+  const pickImageFromAlbum = async () => {
+    launchImageLibrary(
+      {
+        mediaType: "photo",
+        quality: 0.8,
+        includeBase64: false,
+      },
+      async response => {
+        if (response.didCancel) return;
+        if (response.assets) {
+          // 上传到OSS
+          await uploadToOss(response.assets[0].uri as string);
+        }
+      },
+    );
   };
 
   // 相机拍照
-  const takePhoto = async (options: any) => {
-    launchCamera(options, async response => {
-      if (response.didCancel) return;
-      if (response.error) {
-        Alert.alert("错误", "拍照失败");
-        return;
-      }
-
-      // 上传到OSS
-      await uploadToOss(response.assets[0].uri);
-    });
+  const takePhoto = async () => {
+    launchCamera(
+      {
+        mediaType: "photo",
+        quality: 0.8,
+        includeBase64: false,
+      },
+      async response => {
+        if (response.didCancel) return;
+        if (response.assets) {
+          // 上传到OSS
+          await uploadToOss(response.assets[0].uri as string);
+        }
+      },
+    );
   };
 
   // 上传图片到OSS服务器
@@ -305,10 +308,7 @@ const AbnormalUploadScreen: React.FC = () => {
           {/* 标记位置 */}
           <View style={[AbnormalUploadScreenStyles.infoItem, AbnormalUploadScreenStyles.borderBottom]}>
             <Text style={AbnormalUploadScreenStyles.infoLabel}>标记位置</Text>
-            <TouchableOpacity
-              style={AbnormalUploadScreenStyles.markPositionContainer}
-              onPress={viewMarkPosition}
-              activeOpacity={0.9}>
+            <TouchableOpacity style={AbnormalUploadScreenStyles.markPositionContainer} onPress={markPosition} activeOpacity={0.9}>
               <Text style={AbnormalUploadScreenStyles.markPositionText}>
                 {markPoints.length ? (
                   <>
@@ -380,6 +380,20 @@ const AbnormalUploadScreen: React.FC = () => {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* 图片选择弹窗 */}
+      {showCameraPopup && (
+        <PopupInfo
+          showCloseBtn={true}
+          title="请选择图片来源"
+          leftBtnText="相册选择"
+          rightBtnText="相机拍摄"
+          onLeftBtn={pickImageFromAlbum}
+          onRightBtn={takePhoto}
+          onClosePopup={closeCameraPopup}>
+          <View></View>
+        </PopupInfo>
+      )}
     </View>
   );
 };
