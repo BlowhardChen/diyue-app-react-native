@@ -13,7 +13,6 @@ import {getToken} from "@/utils/tokenUtils";
 import CustomLoading from "@/components/common/CustomLoading";
 import {useOCR} from "@/utils/uploadImg";
 import Popup from "../../components/common/Popup";
-import {navigateToTargetRoute} from "@/utils/navigationUtils";
 import {launchImageLibrary} from "react-native-image-picker";
 
 type OcrCardScannerParams = {

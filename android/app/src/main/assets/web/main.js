@@ -114,10 +114,44 @@
                   MarkerModule?.drawFindMarker(map, data.data.findPoint);
                   PolylineModule?.drawFindNavigationPolyline(map,[locationPoint.lon,locationPoint.lat],[findPoint.lon,findPoint.lat]);
                 break;
+              // 更新查找导航线
               case "UPDATE_FIND_NAVIGATION_POLYLINE":
                   const updateFindPoint = data.data.findPoint;
                   const updateLocationPoint = data.data.locationPoint;
                   PolylineModule?.updateFindNavigationPolyline(map,[updateLocationPoint.lon,updateLocationPoint.lat],[updateFindPoint.lon,updateFindPoint.lat]);
+                break;
+              // 绘制地图标记已圈地块
+              case "DRAW_MARK_ENCLOSURE_LAND":
+                  PolygonModule?.drawMarkEnclosureLandPolygon(map, data.data);
+                break;
+              // 地图标记点（打点按钮）
+              case "DOT_MARKER_POINT":
+                  if (data.location) { 
+                    const {lon, lat} = data.location;
+                    MarkerModule?.drawMarkPointMarker(map, {lon, lat});
+                  } 
+                break;
+              // 地图十字光标标记点
+              case "CURSOR_MARK_DOT_MARKER":
+                  const markCenter = map.getView().getCenter(); 
+                  const markCursorCoordinate = ol.proj.toLonLat(markCenter); 
+                  MarkerModule?.drawMarkPointMarker(map, {lon: markCursorCoordinate[0], lat: markCursorCoordinate[1]});
+                break;
+              // 地图标记撤销打点
+              case "REMOVE_MARK_DOT_MARKER":
+                  MarkerModule?.removeMarkDotMarker(map);
+                break;
+              // 保存标记点
+              case "SAVE_MARK_POINT":
+                  MarkerModule?.saveMarkPoint();
+                break;
+              // 绘制异常标记点
+              case "DRAW_ABNORMAL_MARKED_POINTS":
+                  MarkerModule?.drawAbnormalMarkedPoints(map, data.data);
+                break;
+              // 绘制巡田轨迹
+              case "DRAW_PATROL_LOCUS":
+                  PolylineModule?.drawPatrolLocusPolyline(map, data.data);
                 break;
               default:
                   WebBridge.postMessage("未处理的消息类型:" + data.type);

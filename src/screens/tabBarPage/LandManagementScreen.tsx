@@ -695,7 +695,7 @@ const LandManagementScreen = observer(() => {
       case "WEBVIEW_READY":
         setIsWebViewReady(true);
         if (hasLocationPermission && !(deviceStore.deviceImei && deviceStore.status === "1")) {
-          startPositionWatch();
+          locateDevicePosition(true);
         }
         break;
       // 点击多边形

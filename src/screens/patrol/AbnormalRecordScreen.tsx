@@ -24,7 +24,7 @@ const AbnormalRecordScreen = () => {
 
   // 查看异常记录详情
   const viewAbnormalDetail = (item: any) => {
-    navigation.navigate("AbnormalDetail", {id: item.taskLogId});
+    navigation.navigate("AbnormalDetail", {id: item.id});
   };
 
   // 格式化异常情况

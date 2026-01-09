@@ -1,11 +1,11 @@
 // 异常上传
 import React, {useState, useEffect, useCallback} from "react";
-import {View, Text, Image, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator} from "react-native";
+import {View, Text, Image, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Platform} from "react-native";
 import {RouteProp, useNavigation, useRoute} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {PatrolParamList} from "@/types/navigation";
 import CustomStatusBar from "@/components/common/CustomStatusBar";
-import {debounce} from "lodash";
+import {debounce, set} from "lodash";
 import axios from "axios";
 import {launchImageLibrary, launchCamera} from "react-native-image-picker";
 import {dictDataList} from "@/services/common";
@@ -13,6 +13,13 @@ import {patrolTaskAddException} from "@/services/farming";
 import {locationToAddress} from "@/services/land";
 import {AbnormalUploadScreenStyles} from "./styles/AbnormalUploadScreen";
 import PopupInfo from "@/components/common/PopupInfo";
+import {showCustomToast} from "@/components/common/CustomToast";
+import {getToken} from "@/utils/tokenUtils";
+import RNFetchBlob from "rn-fetch-blob";
+import ImageView from "react-native-image-viewing";
+import PermissionPopup from "@/components/common/PermissionPopup";
+import {useCameraPermission} from "react-native-vision-camera";
+import CustomLoading from "@/components/common/CustomLoading";
 
 type AbnormalUploadRouteParams = {
   AbnormalUpload: {
@@ -34,6 +41,12 @@ const AbnormalUploadScreen: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [taskId, setTaskId] = useState<string>("");
   const [showCameraPopup, setShowCameraPopup] = useState<boolean>(false);
+  const [previewVisible, setPreviewVisible] = useState<boolean>(false);
+  const [previewIndex, setPreviewIndex] = useState<number>(0);
+  const [images, setImages] = useState<{uri: string}[]>([]);
+  const [showPermissionPopup, setShowPermissionPopup] = useState(false);
+  const {requestPermission} = useCameraPermission();
+  const [permissionGranted, setPermissionGranted] = useState(false);
 
   // 返回上一页
   const backView = () => {
@@ -54,9 +67,24 @@ const AbnormalUploadScreen: React.FC = () => {
   // 标记位置
   const markPosition = () => {
     navigation.navigate("MarkPosition", {
-      type: "mark",
-      markPoints: markPoints.length ? markPoints : [],
+      type: "Mark",
+      onMarkPointResult: async result => {
+        handleMarkPointResult(result);
+      },
     });
+  };
+
+  // 处理标记位置回调
+  const handleMarkPointResult = async (data: any) => {
+    setMarkPoints(data.data);
+    // 根据经纬度获取地址
+    const res = await locationToAddress({
+      longitude: data.data[0].longitude,
+      latitude: data.data[0].latitude,
+    });
+    const {regeocode} = JSON.parse(res.data);
+    const {formatted_address} = regeocode;
+    setLocation(formatted_address);
   };
 
   // 关闭相机弹窗
@@ -85,10 +113,32 @@ const AbnormalUploadScreen: React.FC = () => {
         }
       },
     );
+    setShowCameraPopup(false);
+  };
+
+  // 接受权限
+  const handleAcceptPermission = async () => {
+    setShowPermissionPopup(false);
+    const granted = await requestPermission();
+    if (granted) {
+      setPermissionGranted(true);
+    } else {
+      showCustomToast("error", "未获得相机权限");
+    }
+  };
+
+  // 拒绝权限
+  const handleRejectPermission = () => {
+    setShowPermissionPopup(false);
+    setPermissionGranted(false);
   };
 
   // 相机拍照
   const takePhoto = async () => {
+    if (!permissionGranted) {
+      setShowPermissionPopup(true);
+      return;
+    }
     launchCamera(
       {
         mediaType: "photo",
@@ -103,42 +153,44 @@ const AbnormalUploadScreen: React.FC = () => {
         }
       },
     );
+    setShowCameraPopup(false);
   };
 
   // 上传图片到OSS服务器
   const uploadToOss = async (fileUri: string) => {
+    console.log("上传图片路径:", fileUri);
     setLoading(true);
-    // try {
-    //   // RN 上传文件需要处理 FormData
-    //   const formData = new FormData();
-    //   const fileName = `abnormal_${Date.now()}.jpg`;
+    try {
+      const token = await getToken();
+      const fileName = `abnormal_${Date.now()}.jpg`;
 
-    //   // 适配 iOS/Android 文件格式
-    //   formData.append("multipartFile", {
-    //     uri: Platform.OS === "ios" ? fileUri.replace("file://", "") : fileUri,
-    //     type: "image/jpeg",
-    //     name: fileName,
-    //   });
-    //   formData.append("type", "0");
-    //   formData.append("fileName", "other");
+      // 使用 rn-fetch-blob 上传
+      const res = await RNFetchBlob.fetch(
+        "POST",
+        "http://xtnf.com/app/aliyun/oss/uploadToAliOss",
+        {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+        [
+          {name: "multipartFile", filename: fileName, data: RNFetchBlob.wrap(fileUri)},
+          {name: "type", data: "0"},
+          {name: "fileName", data: "other"},
+        ],
+      );
 
-    //   // 上传请求
-    //   const res = await axios.post("http://xtnf.com/app/aliyun/oss/uploadToAliOss", formData, {
-    //     headers: {
-    //       "Content-Type": "multipart/form-data",
-    //       Authorization: `Bearer ${token}`,
-    //     },
-    //   });
-
-    //   if (res.status === 200) {
-    //     setImgList([...imgList, res.data.data]);
-    //   }
-    // } catch (error) {
-    //   Alert.alert("错误", "图片上传失败");
-    //   console.error("OSS上传失败:", error);
-    // } finally {
-    //   setLoading(false);
-    // }
+      const responseData = JSON.parse(res.data);
+      if (res.respInfo.status === 200 && responseData.data) {
+        const newImgUrl = responseData.data;
+        console.log("图片上传成功，URL:", newImgUrl);
+        setImgList(prev => [...prev, newImgUrl]);
+        setImages(prev => [...prev, {uri: newImgUrl}]);
+      }
+    } catch (error: any) {
+      showCustomToast("error", "图片上传失败，请重试");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 删除图片
@@ -146,62 +198,52 @@ const AbnormalUploadScreen: React.FC = () => {
     const newImgList = [...imgList];
     newImgList.splice(index, 1);
     setImgList(newImgList);
+
+    const newImages = [...images];
+    newImages.splice(index, 1);
+    setImages(newImages);
   };
 
   // 预览图片
-  const previewImage = (currentImg: string) => {
-    // RN 图片预览：可使用 react-native-image-viewing 或系统相册
-    Alert.alert("预览图片", "", [
-      {text: "保存图片", onPress: () => saveImageToAlbum(currentImg)},
-      {text: "关闭", style: "cancel"},
-    ]);
-  };
-
-  // 保存图片到相册（可选）
-  const saveImageToAlbum = async (imgUrl: string) => {
-    // 需安装 react-native-fs 或 expo-media-library
-    // 此处简化，仅做示例
-    Alert.alert("提示", "图片预览功能已触发，实际需集成保存逻辑");
+  const previewImage = (currentImg: string, index: number) => {
+    setPreviewIndex(index);
+    setPreviewVisible(true);
   };
 
   // 防抖保存异常上报
-  const saveAbnormal = useCallback(
-    debounce(async () => {
-      setLoading(true);
-      try {
-        // 构造参数
-        const params = {
-          comment: comment || "",
-          location: location || "",
-          exceptionImageList: imgList.map(url => ({url})),
-          exceptionGpsList: markPoints.map(item => ({
-            lng: item.longitude,
-            lat: item.latitude,
-            ...(item.landId && {landId: item.landId}),
-          })),
-          exceptionReportList: [
-            // 选中的异常类型
-            ...abnormalList.filter(item => item.default).map(item => ({dictLabel: item.dictLabel})),
-            // 其他输入
-            ...(otherInfo ? [{dictLabel: otherInfo}] : []),
-          ],
-          ...(taskId && {taskLogId: taskId}),
-        };
+  const saveAbnormal = debounce(async () => {
+    setLoading(true);
+    try {
+      // 构造参数
+      const params = {
+        comment: comment || "",
+        location: location || "",
+        exceptionImageList: imgList.map(url => ({url})),
+        exceptionGpsList: markPoints.map(item => ({
+          lng: item.longitude,
+          lat: item.latitude,
+          ...(item.landId && {landId: item.landId}),
+        })),
+        exceptionReportList: [
+          // 选中的异常类型
+          ...abnormalList.filter(item => item.default).map(item => ({dictLabel: item.dictLabel})),
+          // 其他输入
+          ...(otherInfo ? [{dictLabel: otherInfo}] : []),
+        ],
+        ...(taskId && {taskLogId: taskId}),
+      };
 
-        // 提交上报
-        await patrolTaskAddException(params);
+      // 提交上报
+      await patrolTaskAddException(params);
 
-        Alert.alert("成功", "上报成功");
-        backView();
-      } catch (error) {
-        Alert.alert("错误", "上报失败，请重试");
-        console.error("上报失败:", error);
-      } finally {
-        setLoading(false);
-      }
-    }, 500),
-    [abnormalList, otherInfo, comment, imgList, markPoints, location, taskId],
-  );
+      showCustomToast("success", "上报成功");
+      backView();
+    } catch (error) {
+      showCustomToast("error", "上报失败，请重试");
+    } finally {
+      setLoading(false);
+    }
+  }, 500);
 
   // 获取异常类型列表
   const getAbnormalList = async () => {
@@ -209,21 +251,8 @@ const AbnormalUploadScreen: React.FC = () => {
       const {data} = await dictDataList({dictType: "patrol_abnormal_type"});
       setAbnormalList(data || []);
     } catch (error) {
-      Alert.alert("错误", "获取异常类型失败");
-      console.error("获取异常类型:", error);
+      showCustomToast("error", "获取异常类型失败");
     }
-  };
-
-  // 监听标记位置回调（替代 uni.$on）
-  const handleMarkPoint = async (data: any) => {
-    setMarkPoints(data.data);
-    // 根据经纬度获取地址
-    const res = await locationToAddress({
-      longitude: data.data[0]?.longitude,
-      latitude: data.data[0]?.latitude,
-    });
-    const {regeocode} = JSON.parse(res.data);
-    setLocation(regeocode.formatted_address);
   };
 
   useEffect(() => {
@@ -257,7 +286,7 @@ const AbnormalUploadScreen: React.FC = () => {
   // 渲染图片列表
   const renderImageItem = (imgUrl: string, index: number) => (
     <View key={index} style={AbnormalUploadScreenStyles.imgListItem}>
-      <TouchableOpacity onPress={() => previewImage(imgUrl)} activeOpacity={0.9}>
+      <TouchableOpacity onPress={() => previewImage(imgUrl, index)} activeOpacity={0.9}>
         <Image source={{uri: imgUrl}} style={AbnormalUploadScreenStyles.imgItemImage} resizeMode="cover" />
       </TouchableOpacity>
       <TouchableOpacity style={AbnormalUploadScreenStyles.imgCloseBtn} onPress={() => deleteImg(index)} activeOpacity={0.8}>
@@ -274,7 +303,6 @@ const AbnormalUploadScreen: React.FC = () => {
     <View style={AbnormalUploadScreenStyles.container}>
       {/* 导航栏 */}
       <CustomStatusBar navTitle="异常上报" onBack={backView} />
-
       {/* 内容滚动区 */}
       <ScrollView
         style={AbnormalUploadScreenStyles.contentScroll}
@@ -365,7 +393,6 @@ const AbnormalUploadScreen: React.FC = () => {
           </View>
         </View>
       </ScrollView>
-
       {/* 底部保存按钮 */}
       <View style={AbnormalUploadScreenStyles.buttonBox}>
         <TouchableOpacity
@@ -380,7 +407,6 @@ const AbnormalUploadScreen: React.FC = () => {
           )}
         </TouchableOpacity>
       </View>
-
       {/* 图片选择弹窗 */}
       {showCameraPopup && (
         <PopupInfo
@@ -394,6 +420,23 @@ const AbnormalUploadScreen: React.FC = () => {
           <View></View>
         </PopupInfo>
       )}
+      {/* 图片预览组件 */}
+      <ImageView
+        images={images}
+        imageIndex={previewIndex}
+        visible={previewVisible}
+        onRequestClose={() => setPreviewVisible(false)}
+      />
+      {/* 相机权限 */}
+      <PermissionPopup
+        visible={showPermissionPopup}
+        onAccept={handleAcceptPermission}
+        onReject={handleRejectPermission}
+        title={"开启相机权限"}
+        message={"开启相机权限将用于识别卡片信息"}
+      />
+      {/* 图片上传加载弹窗 */}
+      <CustomLoading visible={loading} text="图片上传中..." />
     </View>
   );
 };

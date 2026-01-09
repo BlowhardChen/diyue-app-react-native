@@ -1,4 +1,4 @@
-// 巡田管理
+// 巡田任务
 import React, {useState, useEffect} from "react";
 import {View, Text, Image, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator} from "react-native";
 import {useNavigation} from "@react-navigation/native";
@@ -181,7 +181,7 @@ const PatrolFieldManageScreen: React.FC = ({}) => {
     <SafeAreaView style={PatrolFieldManageScreenStyles.container}>
       {/* 导航栏 */}
       <CustomStatusBar
-        navTitle="巡田管理"
+        navTitle="巡田任务"
         rightTitle="异常记录"
         rightBtnColor={{color: "#555", fontSize: 15, fontWeight: "500"}}
         onBack={backView}

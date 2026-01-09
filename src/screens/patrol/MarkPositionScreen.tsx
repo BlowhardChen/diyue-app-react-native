@@ -1,6 +1,6 @@
 // 标记位置
 import {View, Text, TouchableOpacity, Image} from "react-native";
-import {useEffect, useRef, useState} from "react";
+import {use, useEffect, useLayoutEffect, useRef, useState} from "react";
 import {observer} from "mobx-react-lite";
 import {mapStore} from "@/stores/mapStore";
 import MapControlButton from "@/components/land/MapControlButton";
@@ -11,28 +11,35 @@ import Geolocation from "@react-native-community/geolocation";
 import LandEnclosureCustomNavBar from "@/components/land/LandEnclosureCustomNavBar";
 import useOptimizedHeading from "@/hooks/useOptimizedHeading";
 import KeepAwake from "react-native-keep-awake";
-import Popup from "@/components/common/Popup";
 import {useNavigation, useFocusEffect, useRoute, RouteProp} from "@react-navigation/native";
-import {BackHandler} from "react-native";
 import {checkLocationPermission, requestLocationPermission} from "@/utils/checkPermissions";
 import {showCustomToast} from "@/components/common/CustomToast";
-import {LandListData, MapWebviewMessage, SaveLandParams, SaveLandResponse} from "@/types/land";
+import {MapWebviewMessage} from "@/types/land";
 import {getToken} from "@/utils/tokenUtils";
-import {addLand, getLandListData} from "@/services/land";
-import {getNowDate} from "@/utils/public";
+import {getLandListData} from "@/services/land";
 import {StackNavigationProp} from "@react-navigation/stack";
-import CustomLoading from "@/components/common/CustomLoading";
 import {updateStore} from "@/stores/updateStore";
 import WebSocketClass from "@/utils/webSocketClass";
 import {deviceStore} from "@/stores/deviceStore";
 import React from "react";
 import {EnclosureScreenStyles} from "../land/styles/EnclosureScreen";
 import {PatrolParamList} from "@/types/navigation";
+import {patrolTaskLocusList} from "@/services/farming";
+
+type MarkPositionParams = {
+  type: "Mark" | "Detail";
+  taskLogId?: string;
+  markPoints: Array<{lon: number; lat: number}>;
+  abnormalReport?: string[];
+  onMarkPointResult: (result: {data: any}) => void;
+};
+
+type MarkPositionRouteProp = RouteProp<Record<string, MarkPositionParams>, string>;
 
 const MarkPositionScreen = observer(() => {
   const navigation = useNavigation<StackNavigationProp<PatrolParamList>>();
-  const route = useRoute<RouteProp<PatrolParamList, "MarkPosition">>();
-  const [popupTips, setPopupTips] = useState("请点击打点按钮打点或点击十字光标标点");
+  const route = useRoute<MarkPositionRouteProp>();
+  const {type, taskLogId, onMarkPointResult, markPoints, abnormalReport} = route.params;
   const [dotTotal, setDotTotal] = useState(0);
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
@@ -41,11 +48,6 @@ const MarkPositionScreen = observer(() => {
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const watchIdRef = useRef<number | null>(null);
   const isFirstLocationRef = useRef(true);
-  const [isPolygonIntersect, setIsPolygonIntersect] = useState(false);
-  const [showSaveSuccessPopup, setShowSaveSuccessPopup] = useState(false);
-  const [landInfo, setLandInfo] = useState<SaveLandResponse>();
-  const [isSaving, setIsSaving] = useState(false);
-  const [enclosureLandData, setEnclosureLandData] = useState<LandListData[]>();
   const webSocketRef = useRef<WebSocketClass | null>(null);
   const [useLocationFromSocket, setUseLocationFromSocket] = useState(false);
   const [rtkLocation, setRtkLocation] = useState<{lat: number; lon: number}>({lat: 0, lon: 0});
@@ -87,8 +89,6 @@ const MarkPositionScreen = observer(() => {
   // 页面聚焦时：启动WebSocket连接（无论设备状态）
   useFocusEffect(
     React.useCallback(() => {
-      console.log("LandManagementScreen 页面聚焦，初始化WebSocket连接（无论设备状态）");
-
       // 初始化WebSocket（不管设备是否在线）
       initWebSocket();
 
@@ -97,7 +97,6 @@ const MarkPositionScreen = observer(() => {
 
       // 页面失焦时：关闭WebSocket + 停止GPS
       return () => {
-        console.log("LandManagementScreen 页面失焦，关闭所有定位相关");
         if (webSocketRef.current) {
           webSocketRef.current.close();
           webSocketRef.current = null;
@@ -111,6 +110,22 @@ const MarkPositionScreen = observer(() => {
   useEffect(() => {
     initLocationByDeviceStatus();
   }, [deviceStore.status, hasLocationPermission, isWebViewReady]);
+
+  useLayoutEffect(() => {
+    console.log("markPoints:", markPoints);
+    console.log("abnormalReport:", abnormalReport?.join(", "));
+    if (markPoints.length > 0) {
+      webViewRef.current?.postMessage(
+        JSON.stringify({
+          type: "DRAW_ABNORMAL_MARKED_POINTS",
+          data: {markPoints, abnormalReport},
+        }),
+      );
+    }
+    if (taskLogId) {
+      getPatrolLocusData(taskLogId);
+    }
+  }, [markPoints, taskLogId]);
 
   // 初始化定位权限和地图图层
   const initLocationPermission = async () => {
@@ -409,7 +424,7 @@ const MarkPositionScreen = observer(() => {
   // 地图十字光标点击
   const onMapCursorDot = () => {
     setDotTotal(dotTotal + 1);
-    webViewRef.current?.postMessage(JSON.stringify({type: "CURSOR_DOT_MARKER"}));
+    webViewRef.current?.postMessage(JSON.stringify({type: "CURSOR_MARK_DOT_MARKER"}));
   };
 
   // 撤销打点
@@ -418,7 +433,7 @@ const MarkPositionScreen = observer(() => {
       return;
     }
     setDotTotal(dotTotal - 1);
-    webViewRef.current?.postMessage(JSON.stringify({type: "REMOVE_DOT_MARKER"}));
+    webViewRef.current?.postMessage(JSON.stringify({type: "REMOVE_MARK_DOT_MARKER"}));
   };
 
   // 打点
@@ -432,7 +447,7 @@ const MarkPositionScreen = observer(() => {
       setDotTotal(prev => prev + 1);
       webViewRef.current?.postMessage(
         JSON.stringify({
-          type: "DOT_MARKER",
+          type: "DOT_MARKER_POINT",
           location: rtkLocation,
         }),
       );
@@ -450,7 +465,7 @@ const MarkPositionScreen = observer(() => {
         setDotTotal(prev => prev + 1);
         webViewRef.current?.postMessage(
           JSON.stringify({
-            type: "DOT_MARKER",
+            type: "DOT_MARKER_POINT",
             location: {lon: longitude, lat: latitude},
           }),
         );
@@ -458,80 +473,37 @@ const MarkPositionScreen = observer(() => {
       error => {
         showCustomToast("error", "获取定位失败，请检查权限");
       },
-      {enableHighAccuracy: true, timeout: 10000, maximumAge: 1000},
+      {enableHighAccuracy: false, timeout: 10000, maximumAge: 1000},
     );
   };
 
   // 保存
   const onSave = async () => {
-    if (dotTotal < 3) {
-      return;
-    }
-
-    if (isPolygonIntersect) {
-      return;
-    }
-    const token = await getToken();
-    // 向WebView发送保存请求
     webViewRef.current?.postMessage(
       JSON.stringify({
-        type: "SAVE_POLYGON",
-        token,
+        type: "SAVE_MARK_POINT",
       }),
     );
-  };
-
-  // 保存地块
-  const saveLandFunc = async (landParams: SaveLandParams) => {
-    try {
-      setIsSaving(true);
-      const {data} = await addLand({
-        landName: getNowDate(),
-        list: landParams.polygonPath,
-        acreageNum: landParams.area,
-        actualAcreNum: landParams.area,
-        url: landParams.landUrl ?? "",
-      });
-      setLandInfo(data);
-      setIsSaving(false);
-      setShowSaveSuccessPopup(true);
-      updateStore.setIsUpdateLand(true);
-    } catch (error) {
-      setIsSaving(false);
-    }
-  };
-
-  // 编辑地块信息
-  const editEnclosureInfo = async () => {
-    setShowSaveSuccessPopup(false);
-    webViewRef.current?.postMessage(
-      JSON.stringify({
-        type: "CONTINUE_ENCLOSURE",
-      }),
-    );
-  };
-
-  // 继续圈地
-  const continueEnclosure = async () => {
-    setShowSaveSuccessPopup(false);
-    webViewRef.current?.postMessage(
-      JSON.stringify({
-        type: "CONTINUE_ENCLOSURE",
-      }),
-    );
-    setDotTotal(0);
-    setPopupTips("请点击打点按钮或点击十字光标打点");
   };
 
   // 获取已圈地地块数据
   const getEnclosureLandData = async () => {
     const {data} = await getLandListData({quitStatus: "0"});
-    console.log("获取已圈地地块数据", data);
-    setEnclosureLandData(data);
     webViewRef.current?.postMessage(
       JSON.stringify({
-        type: "DRAW_ENCLOSURE_LAND",
+        type: "DRAW_MARK_ENCLOSURE_LAND",
         data,
+      }),
+    );
+  };
+
+  // 获取巡田轨迹数据
+  const getPatrolLocusData = async (id: string) => {
+    const {data} = await patrolTaskLocusList({taskLogId: id});
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "DRAW_PATROL_LOCUS",
+        data: data[0],
       }),
     );
   };
@@ -573,7 +545,7 @@ const MarkPositionScreen = observer(() => {
           setRtkLocation(newLocation); // 更新状态
           console.log("WebSocket 接收定位数据:", newLocation);
 
-          // 关键修改：首次定位用 SET_ICON_LOCATION（带居中），后续用 UPDATE_ICON_LOCATION（不带居中）
+          // 首次定位用 SET_ICON_LOCATION（带居中），后续用 UPDATE_ICON_LOCATION（不带居中）
           const messageType = isFirstSocketLocationRef.current ? "SET_ICON_LOCATION" : "UPDATE_ICON_LOCATION";
 
           webViewRef.current?.postMessage(
@@ -629,84 +601,27 @@ const MarkPositionScreen = observer(() => {
       case "WEBVIEW_READY":
         setIsWebViewReady(true);
         if (hasLocationPermission && !(deviceStore.deviceImei && deviceStore.status === "1")) {
-          startPositionWatch();
+          locateDevicePosition(true);
         }
         break;
       // 重复打点
       case "WEBVIEW_DOT_REPEAT":
         showCustomToast("error", "当前点位已保存，请前往下一个点位");
         break;
-      // 打点更新
-      case "WEBVIEW_UPDATE_DOT_TOTAL":
-        handleDotTotalChange(data);
-        break;
-      // 地块多边形自相交
-      case "WEBVIEW_POLYGON_INTERSECT":
-        setIsPolygonIntersect(data.isPolygonIntersect as boolean);
-        if (data.isPolygonIntersect && data.message) {
-          setPopupTips(data.message);
-        }
-        break;
-      // 保存地块
-      case "SAVE_POLYGON":
-        saveLandFunc(data.saveLandParams as SaveLandParams);
+      // 保存标记点
+      case "SAVE_MARK_POINT_RESULT":
+        onMarkPointResult({data: data.data});
+        navigation.goBack();
         break;
       // 报错处理
       case "WEBVIEW_ERROR":
         showCustomToast("error", data.message ?? "操作失败");
-        break;
-      // 点击地块
-      case "POLYGON_CLICK":
-        let enclosureLand;
-        if (enclosureLandData) {
-          enclosureLand = enclosureLandData.find(item => item.id === data.id);
-        }
-        webViewRef.current?.postMessage(
-          JSON.stringify({
-            type: "SHOW_COMMON_DOT",
-            data: enclosureLand?.gpsList,
-          }),
-        );
-        break;
-      // 借点成功
-      case "WEBVIEW_BORROW_DOT":
-        if (data.point) {
-          setDotTotal(dotTotal + 1);
-          webViewRef.current?.postMessage(
-            JSON.stringify({
-              type: "DOT_MARKER",
-              location: {lon: data.point.lon, lat: data.point.lat},
-            }),
-          );
-        }
-
         break;
       // 控制台日志
       case "WEBVIEW_CONSOLE_LOG":
         console.log("WEBVIEW_CONSOLE_LOG", data);
         break;
       default:
-        break;
-    }
-  };
-
-  // 处理点变换消息提示
-  const handleDotTotalChange = (data: MapWebviewMessage) => {
-    switch (data.total) {
-      case 0:
-        setPopupTips("请点击打点按钮或十字光标打点");
-        break;
-      case 1:
-        setPopupTips("请继续添加下一个点位");
-        break;
-      case 2:
-        setPopupTips("已生成线段，请继续添加下一个点位");
-        break;
-      case 3:
-        setPopupTips(data.message ? data.message : "已形成闭合区域，是否保存");
-        break;
-      default:
-        setPopupTips(data.message ? data.message : "已形成闭合区域，是否保存");
         break;
     }
   };
@@ -729,7 +644,7 @@ const MarkPositionScreen = observer(() => {
       />
       {/* 顶部导航 */}
       <LandEnclosureCustomNavBar
-        navTitle={route.params?.type === "mark" ? "标记打点" : "查看标记位置"}
+        navTitle={type === "Mark" ? "标记打点" : "查看标记位置"}
         showRightIcon={true}
         onBackView={() => {
           navigation.goBack();
@@ -737,9 +652,11 @@ const MarkPositionScreen = observer(() => {
       />
       {/* 地图 */}
       <View style={EnclosureScreenStyles.mapBox}>
-        <View style={EnclosureScreenStyles.popupTips}>
-          <Text style={EnclosureScreenStyles.popupTipsText}>{popupTips}</Text>
-        </View>
+        {type === "Mark" && (
+          <View style={EnclosureScreenStyles.popupTips}>
+            <Text style={EnclosureScreenStyles.popupTipsText}>请点击打点按钮打点或点击十字光标标点</Text>
+          </View>
+        )}
         <View style={EnclosureScreenStyles.map} collapsable={false}>
           <WebView
             ref={webViewRef}
@@ -773,46 +690,39 @@ const MarkPositionScreen = observer(() => {
           />
         </View>
         {/* 底部按钮 */}
-        <View style={EnclosureScreenStyles.footerButtonGroup}>
-          <TouchableOpacity style={[EnclosureScreenStyles.buttonBase, EnclosureScreenStyles.buttonRevoke]} onPress={onRevokeDot}>
-            <Text style={EnclosureScreenStyles.revokeText}>撤销</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[EnclosureScreenStyles.buttonBase, EnclosureScreenStyles.buttonDot]} onPress={onDot}>
-            <Image source={require("@/assets/images/common/icon-plus.png")} style={EnclosureScreenStyles.dotIcon} />
-            <Text style={EnclosureScreenStyles.dotText}>打点</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[EnclosureScreenStyles.buttonBase, EnclosureScreenStyles.buttonSave]} onPress={onSave}>
-            <Text style={[EnclosureScreenStyles.saveText, {color: dotTotal >= 3 ? "#08ae3c" : "#999"}]}>保存</Text>
-          </TouchableOpacity>
-        </View>
-        {/* 十字光标 */}
-        <TouchableOpacity style={EnclosureScreenStyles.locationCursor} activeOpacity={1} onPress={onMapCursorDot}>
-          {mapStore.mapType === "标准地图" ? (
-            <Image source={require("@/assets/images/common/icon-cursor-green.png")} style={EnclosureScreenStyles.cursorIcon} />
-          ) : (
-            <Image source={require("@/assets/images/common/icon-cursor.png")} style={EnclosureScreenStyles.cursorIcon} />
-          )}
-        </TouchableOpacity>
+        {type === "Mark" && (
+          <>
+            <View style={EnclosureScreenStyles.footerButtonGroup}>
+              <TouchableOpacity
+                style={[EnclosureScreenStyles.buttonBase, EnclosureScreenStyles.buttonRevoke]}
+                onPress={onRevokeDot}>
+                <Text style={EnclosureScreenStyles.revokeText}>撤销</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[EnclosureScreenStyles.buttonBase, EnclosureScreenStyles.buttonDot]} onPress={onDot}>
+                <Image source={require("@/assets/images/common/icon-plus.png")} style={EnclosureScreenStyles.dotIcon} />
+                <Text style={EnclosureScreenStyles.dotText}>打点</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[EnclosureScreenStyles.buttonBase, EnclosureScreenStyles.buttonSave]} onPress={onSave}>
+                <Text style={[EnclosureScreenStyles.saveText, {color: dotTotal >= 1 ? "#08ae3c" : "#999"}]}>保存</Text>
+              </TouchableOpacity>
+            </View>
+            {/* 十字光标 */}
+            <TouchableOpacity style={EnclosureScreenStyles.locationCursor} activeOpacity={1} onPress={onMapCursorDot}>
+              {mapStore.mapType === "标准地图" ? (
+                <Image
+                  source={require("@/assets/images/common/icon-cursor-green.png")}
+                  style={EnclosureScreenStyles.cursorIcon}
+                />
+              ) : (
+                <Image source={require("@/assets/images/common/icon-cursor.png")} style={EnclosureScreenStyles.cursorIcon} />
+              )}
+            </TouchableOpacity>
+          </>
+        )}
+
         {/* 图层切换弹窗 */}
         {showMapSwitcher && <MapSwitcher onClose={() => setShowMapSwitcher(false)} onSelectMap={handleSelectMap} />}
-        {/* 保存成功弹窗 */}
-        <Popup
-          visible={showSaveSuccessPopup}
-          showIcon={true}
-          showTitle={false}
-          msgText="地块保存成功"
-          leftBtnText="信息编辑"
-          rightBtnText="继续圈地"
-          onLeftBtn={() => {
-            editEnclosureInfo();
-          }}
-          onRightBtn={() => {
-            continueEnclosure();
-          }}
-        />
       </View>
-      {/* loading弹窗 */}
-      <CustomLoading visible={isSaving} text="地块保存中..." />
     </View>
   );
 });

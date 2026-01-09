@@ -870,6 +870,95 @@ window.PolygonModule = (function () {
         });
     }
 
+    /**
+     * 绘制地图标记已圈地块
+     * @param {*} map 地图对象
+     * @param {*} data 地块数据
+    */
+    function drawMarkEnclosureLandPolygon(map, data) {
+        if (data.length) {
+            removeLandPolygon(map);
+            data.forEach(item => {
+                drawMarkLandPolygon(map, item);
+            });
+         }
+    }
+
+    /**
+     * 绘制地图标记已圈地块
+     * @param {*} map 地图对象
+     * @param {*} data 地块数据
+    */
+    function drawMarkLandPolygon(map, data) {
+        if (!data || !Array.isArray(data.gpsList) || data.gpsList.length < 3) {
+            return null;
+        }
+
+        // 将坐标转换为OpenLayers可以接受的格式
+        let path3857 = data.gpsList.map((item) => {
+            return ol.proj.transform([item.lng, item.lat], 'EPSG:4326', 'EPSG:3857')
+        });
+
+        // 创建多边形几何对象
+        let polygon = new ol.geom.Polygon([path3857]);
+
+        // 创建特性并添加到源
+        let landPolygonFeature = new ol.Feature({
+            geometry: polygon,
+            id: data.id,
+            checked: data.checked ? data.checked : false,
+            landType: data.landType,
+            landName: data.landName,
+            actualAcreNum: data.actualAcreNum
+        });
+
+        const textMsg = `${data.landName}\n${data.actualAcreNum}亩`;
+
+        // 设置地块样式
+        landPolygonFeature.setStyle(
+            new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color:'#ffffff',
+                    width: 2,
+                }),
+                fill: new ol.style.Fill({
+                    color: 'rgba(0, 0, 0, 0.3)',
+                }),
+                text: new ol.style.Text({
+                    text: textMsg,
+                    font: '16px Arial',
+                    fill: new ol.style.Fill({ color: '#fff' }),
+                    stroke: new ol.style.Stroke({
+                        color: '#000',
+                        width: 2,
+                    }),
+                }),
+            })
+        );
+
+        // 创建多边形向量图层并添加到地图
+        let polygonVectorLayer = new ol.layer.Vector({
+            source: new ol.source.Vector({
+                features: [landPolygonFeature],
+            }),
+            zIndex: 99,
+        });
+
+        map.addLayer(polygonVectorLayer);
+        polygonFeatureList.push({
+            layer: polygonVectorLayer,
+            feature: landPolygonFeature,
+        });
+        return { layer: polygonVectorLayer, feature: landPolygonFeature };
+    }
+
+    /**
+     * 获取地块列表数据
+     */
+    function getPolygonFeatureList() {
+        return polygonFeatureList;
+    }
+
     return {
         drawEnclosurePolygon,
         removeEnclosurePolygon,
@@ -888,6 +977,8 @@ window.PolygonModule = (function () {
         setAllSelectPolygonActive,
         drawMergeLandPolygon,
         removeMergeLandPolygon,
-        drawFindLandPolygon
+        drawFindLandPolygon,
+        drawMarkEnclosureLandPolygon,
+        getPolygonFeatureList
     };
 })();

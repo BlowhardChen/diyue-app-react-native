@@ -15,17 +15,18 @@ const {height: SCREEN_HEIGHT} = Dimensions.get("window");
 
 // 定义参数类型
 interface RouteParams {
-  id: string;
+  id?: string;
+  taskLogId?: string;
 }
 
 const AbnormalDetailScreen = () => {
   const navigation = useNavigation<StackNavigationProp<PatrolParamList>>();
   const route = useRoute();
-  const {id} = route.params as RouteParams;
+  const {id, taskLogId} = route.params as RouteParams;
 
   // 状态管理
   const [abnormalDetailInfo, setAbnormalDetailInfo] = useState<any>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [previewVisible, setPreviewVisible] = useState<boolean>(false);
   const [previewIndex, setPreviewIndex] = useState<number>(0);
 
@@ -38,8 +39,13 @@ const AbnormalDetailScreen = () => {
   const viewMarkPosition = (): void => {
     if (abnormalDetailInfo?.id) {
       navigation.navigate("MarkPosition", {
-        type: "detail",
-        id: abnormalDetailInfo.id,
+        type: "Detail",
+        taskLogId,
+        markPoints: abnormalDetailInfo.exceptionGpsList.map((item: any) => ({
+          lat: item.lat,
+          lon: item.lng,
+        })),
+        abnormalReport: abnormalDetailInfo.exceptionReportList.map((item: any) => item.dictLabel),
       });
     }
   };
@@ -57,10 +63,10 @@ const AbnormalDetailScreen = () => {
   };
 
   // 获取异常详情
-  const getAbnormalDetail = async (detailId: string): Promise<void> => {
+  const getAbnormalDetail = async (id?: string, taskLogId?: string): Promise<void> => {
     try {
       setLoading(true);
-      const {data} = await patrolTaskExceptionDetail({taskLogId: detailId});
+      const {data} = id ? await patrolTaskExceptionDetail({id}) : await patrolTaskExceptionDetail({taskLogId});
       console.log("获取异常详情成功:", data);
       setAbnormalDetailInfo(data[0] || {});
     } catch (error) {
@@ -71,10 +77,14 @@ const AbnormalDetailScreen = () => {
   };
 
   useEffect(() => {
+    console.log("AbnormalDetailScreen mounted with id:", id);
     if (id) {
       getAbnormalDetail(id);
     }
-  }, [id]);
+    if (taskLogId) {
+      getAbnormalDetail(taskLogId);
+    }
+  }, [id, taskLogId]);
 
   // 处理图片预览数据源
   const images =

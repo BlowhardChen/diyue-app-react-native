@@ -84,5 +84,11 @@ export type PatrolParamList = {
   AbnormalDetail: {id: number};
   PatrolManage: {id: number};
   PatrolDetail: {id: number};
-  MarkPosition: {type: string; id?: number; markPoints?: {lat: number; lon: number}[]};
+  MarkPosition: {
+    type: string;
+    taskLogId?: string;
+    onMarkPointResult?: (result: {data: any}) => void;
+    markPoints?: {lat: number; lon: number}[];
+    abnormalReport?: string[];
+  };
 };

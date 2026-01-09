@@ -196,7 +196,7 @@ export const patrolTaskExceptionList = () => {
 /**
  * 巡田管理-异常上报详情
  */
-export const patrolTaskExceptionDetail = (data: {taskLogId: string}) => {
+export const patrolTaskExceptionDetail = (data: {id?: string; taskLogId?: string}) => {
   return http<any>({
     method: "POST",
     url: "/app/exception/queryException",

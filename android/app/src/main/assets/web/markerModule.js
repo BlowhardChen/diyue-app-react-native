@@ -5,9 +5,10 @@ window.MarkerModule = (function () {
     let dotMarkerCoordinates = [];       // 打点经纬度数组（[{lon,lat}, ...]）
     let commonPointMarkers = [];        // 公共点标准数组
     let findPointMarkers = [];        // 查找点标准数组
+    let markPointMarkers = [];        // 标记点标准数组
 
     /**
-     * 绘制地图打点（核心）
+     * 绘制地图打点
      * @param {ol.Map} map
      * @param {{lon:number, lat:number}} location
      */
@@ -44,7 +45,7 @@ window.MarkerModule = (function () {
                 anchor: [0.5, 0.5],
                 anchorXUnits: 'fraction',
                 anchorYUnits: 'fraction',
-                src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAAAXNSR0IArs4c6QAAAtxJREFUWEfNmE1sTFEUx383KmyahrBpWgk2aPVDYqEaWpFaSFhJtGz7SRtiS8WwFcLo9GNbrcSKxIKIltAuhGmZYiGRaNMNIU03ROWaw3svb+5MvXmvPu5LZnPvPef+5pz//ThXEfLTWq8H9gG1wGZgHVDouJkH3gOvgcfAXaXUuzBTqHwGa62XAYeA40ANkJcdoIExIA7cVEp9D5ov0LHWei9wFdgU5Cyg/w3QqZS6/7txiwJprVcCl4GWEBEJYpaI9QMnlFJfcg3OCaS1XgvcSf+2ZxlpDZOTMD4GUymYnoF5kY4oqRBKS6CsHHbUQGUlqJxTPAX2K6U+mP6zRjswj7JSJCAPR2GgH6angyLxq7+0FJpbYHddLjBJ4S4TKgPISZPAZEZmdhZi5+DVVH4g5qgtZdB9FoqLzR6JlEB56TOBeoHWDKtkErpPw9xcNBjXqqgIYhegutr006eUanMbPSBnNd3LELDAnDoJCwtLg3GtCwrg4iUTSoTe4K6+n0DOPpPK0I2kqbV56ZEx/4pEqm/ATJ/oqVz2KRfoMDDs2YqA29uiayYonqKpRK8p9Eal1A0XSLb5nZ6f0RHoPhPkdmn9sfNQV+/38SSdtlqltd4AvPW0I9E52pT/0o6KJVvC4JA/SqKljQIkCk94fieS0NUZdZpwdlfiUFXlt2kXoEHgiNea6IHhoXCOo45ubIL2Dr/1dQF6BmzzWo91wMsXUacIZ7e1Aq71+G2eC5CcJ2u81oMH4POncI6jjl61Gm7d9lt/FCDZtld4rXvqYeFb1CnC2RUshwcjfpuvVgJZl7L/J+qKCohni9q6ZW9sjBPQJXf5f/AtsjHadXRIHNJ3IXsOVwfIuuuHFIL2XNCcKElBaMcV1l1PWmt7LvlOlKRatacMcqCkarWjUPSlLqCUnoDxcUilYMYopUtKoPwPltI+KHseG/yHhjXPMQaUPQ9W5hHrlE0Nf+tJ7weMM2/KMUGazgAAAABJRU5ErkJggg==',
+                src: Base64Images.dotMarkerJS,
                 crossOrigin: 'anonymous',
                 scale: scale,
                 rotateWithView: true
@@ -193,7 +194,7 @@ window.MarkerModule = (function () {
                 anchor: [0.5, 0.5],
                 anchorXUnits: 'fraction',
                 anchorYUnits: 'fraction',
-                src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGwAAABsCAMAAAC4uKf/AAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAA/UExURUdwTP///////////////////////////////////////////////wBm/2qm/9/r/yJ7/4G0/7rV/53F/0iR/8UpuJkAAAAMdFJOUwBv0J5M9ZAoD+e0f3GFDYUAAAJVSURBVGje7ZrJloMgEEWDTA6Mkv//1hYwaU3SRhDq9IK7ybCpU4/iWRTebv8eQuBi9cPQgwUbhRihYiGxgGBiceqDUQ4SrBOBDiLWJFYmIBHnGUTI3ouojdFeyNr1z7yAdynv/pNVtg4fw8kF57+RutbhRZQBL2RVI8GriJ4gJK4sopUrtqqQWxGrCzn6VMxvMON/V3Lk4L9KblDVHDlah9xRzUi6FxGfQlZw5OlNxKeQE4SItYRc/dcrd1fWOmetuoefFRw5+q9Rs9gxK1PekYN1aC0+EP8lha3jCFrQSPA2k9lZtWDdvM0UFxXxsUa7bbZZw0JC8lVErcx76Ru15jfwgrG0kn+whut4sVhWHmAL5UZC+6uNPCRsbUFJAZeKHc4x7npLHjW08gT2qpLBEYWSpwgPgAsuiU/n9cwNX9rMTp7mSt/62kx950K7xT70AV92QPbjJlS9lUnY3PpnqSI+hMxIrafnq35f/zR91VBOYjG19La1y0ksppbcSPLkUtwUJM9QcZYZzBk6jnkqRh1TTzY0T8WoI01fMi2z0MmLRnKXLC4aSa4PlxfMJVfIlO6LW3+cko1R5QVTyfaIrwXD/zcYqIygBQJa+qCbGtSuQI0Y9hED+vAEbQtAGx7YVg60SQVtv2EPFqBHJtjDIOgxF/YADzuaAB26wI6TYAdlsCPAJVoHN9xcahKfGdviUvNvMnwbSA8lB/uMHo3aKSt7P8J/w73dILDyN2g96j6F6lClW0+Oxl1+dER13y/gBE0MYzYhAvNGSKPRaDQajUbjD34Ahjuw/2IMQQQAAAAASUVORK5CYII=',
+                src: Base64Images.locationMarkerJS,
                 crossOrigin: 'anonymous',
                 scale: 0.3,
                 rotateWithView: true
@@ -245,7 +246,7 @@ window.MarkerModule = (function () {
                 anchor: [0.5, 0.5],
                 anchorXUnits: 'fraction',
                 anchorYUnits: 'fraction',
-                src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGwAAABsCAMAAAC4uKf/AAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAA/UExURUdwTP///////////////////////////////////////////////wBm/2qm/9/r/yJ7/4G0/7rV/53F/0iR/8UpuJkAAAAMdFJOUwBv0J5M9ZAoD+e0f3GFDYUAAAJVSURBVGje7ZrJloMgEEWDTA6Mkv//1hYwaU3SRhDq9IK7ybCpU4/iWRTebv8eQuBi9cPQgwUbhRihYiGxgGBiceqDUQ4SrBOBDiLWJFYmIBHnGUTI3ouojdFeyNr1z7yAdynv/pNVtg4fw8kF57+RutbhRZQBL2RVI8GriJ4gJK4sopUrtqqQWxGrCzn6VMxvMON/V3Lk4L9KblDVHDlah9xRzUi6FxGfQlZw5OlNxKeQE4SItYRc/dcrd1fWOmetuoefFRw5+q9Rs9gxK1PekYN1aC0+EP8lha3jCFrQSPA2k9lZtWDdvM0UFxXxsUa7bbZZw0JC8lVErcx76Ru15jfwgrG0kn+whut4sVhWHmAL5UZC+6uNPCRsbUFJAZeKHc4x7npLHjW08gT2qpLBEYWSpwgPgAsuiU/n9cwNX9rMTp7mSt/62kx950K7xT70AV92QPbjJlS9lUnY3PpnqSI+hMxIrafnq35f/zR91VBOYjG19La1y0ksppbcSPLkUtwUJM9QcZYZzBk6jnkqRh1TTzY0T8WoI01fMi2z0MmLRnKXLC4aSa4PlxfMJVfIlO6LW3+cko1R5QVTyfaIrwXD/zcYqIygBQJa+qCbGtSuQI0Y9hED+vAEbQtAGx7YVg60SQVtv2EPFqBHJtjDIOgxF/YADzuaAB26wI6TYAdlsCPAJVoHN9xcahKfGdviUvNvMnwbSA8lB/uMHo3aKSt7P8J/w73dILDyN2g96j6F6lClW0+Oxl1+dER13y/gBE0MYzYhAvNGSKPRaDQajUbjD34Ahjuw/2IMQQQAAAAASUVORK5CYII=',
+                src: Base64Images.locationMarkerJS,
                 crossOrigin: 'anonymous',
                 scale: 0.3,
                 rotateWithView: true,
@@ -421,7 +422,7 @@ window.MarkerModule = (function () {
                         anchor: [0.5, 0.5],
                         anchorXUnits: 'fraction',
                         anchorYUnits: 'fraction',
-                        src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAAAXNSR0IArs4c6QAAApJJREFUWEfNmDtoFEEYx3+DoDYWgoI2gopEwUpQfMTYSCxMqaCmNxEUbNTG0kYrQcFH7QtiqYVi4ztEkipgJIJgo2DAwsYIMu5/mX3Nrs7enRdm4OBuduab333P+dbQ4bCWjcAhYBDYBmwAVjkxP4DPwHvgFfDEGD51coRps9halgFHgdPAXqDVPsACb4DrwIQx/A6dFxRsLQeBa8DWkLDA8zngjDE8+9e6vwJZy0rgKnCyA42EmKWx28BZY/jZtLgRyFrWAo+Tz876Jm3ZDxxOXGQPsAVY7ZZ9B+YTF3vrtr90VqtJeScBxvDNf1IDcjAvmk10BLgEDIQ04Z5/AC4CD5vWy4RDPlQFyJlJMJ5mFFj3gN0tQfxlk8AJqAecNCWo3Hw+0E1grCrugPuHa7qEybYtANLwc1/OLWMYzyZzIBdNT6sOLBhNLe8RJtv+K8kCwz6UHH04i74UyOWZ2arfyExTSQrpVTP+f5Gmdvnmkz9tV57KgI4lnnq/ulWR0q3PhBQqn1KEVsZxY3iQASnN7ysey9YTIak9Plfir0Tf68Rsg8ZaNgEfC98Ro0pR29DulkspQaVQLpQOfdksIHn4jULsUFMkdHtqYJ+CRlkmH6cEdCdJr6PF3BXgXJ8AfLE660J58q6ApoEdxayIVRqWYqi0yCL5mBGQ6kkptr8A65aCBvgKrC+ftSAgpe0Vxaz3s69oi5BeKvKxGCVQdCaLzqm9sL8MnO+r51RTTD3so0uMcZWOtIjYtIeKo7g6oOiuH2oE47mgOS2pIYzjCpuFobXEc8l3WlJhiacNclDqWuNoFEuma9FKj7gmoKmV1iX+EfAfWukSVDwvG8qFLJrXMR5UPC+s/LLv2ib1w315pfcHfpD3xwJR4DUAAAAASUVORK5CYII=',
+                        src: Base64Images.commonDotMarkerJS,
                         scale: 0.8, // 缩放比例
                         crossOrigin: 'anonymous',
                 })
@@ -558,6 +559,164 @@ window.MarkerModule = (function () {
      
     }
 
+    /**
+     * 绘制地图标记标记点
+     */
+    function drawMarkPointMarker(map, location) {
+        if (!filterPointDot(location, dotMarkerCoordinates)) {
+            WebBridge.postMessage({ type: 'WEBVIEW_DOT_REPEAT' });
+            return;
+        }
+
+        dotMarkerCoordinates.push(location);
+
+        const feature = new ol.Feature({
+            geometry: new ol.geom.Point(ol.proj.fromLonLat([location.lon, location.lat]))
+        });
+        feature.setStyle(getMarkMarkerStyle());
+
+        const layer = new ol.layer.Vector({
+            source: new ol.source.Vector({ features: [feature] }),
+            zIndex: 110
+        });
+
+        // 判断标记点是否在已绘制的地块内
+        let isInsideLand = isMarkerInsidePolygons(ol.proj.fromLonLat([location.lon, location.lat]), PolygonModule.getPolygonFeatureList());
+        if (isInsideLand) {
+            markPointMarkers.push({
+                longitude: location.lon,
+                latitude: location.lat,
+                landId: isInsideLand,
+            })
+        } else {
+            markPointMarkers.push({
+                longitude: location.lon,
+                latitude: location.lat,
+            })
+        }
+
+        dotMarkers.push(layer);
+        map.addLayer(layer);
+    }
+
+    /**
+     * 获取标记点打点样式
+     */
+    function getMarkMarkerStyle(scale = 0.5) {
+        return new ol.style.Style({
+           image: new ol.style.Icon({
+                anchor: [0.5, 0.5],
+                anchorXUnits: 'fraction',
+                anchorYUnits: 'fraction',
+                src: Base64Images.markPointMarkerJS,
+                crossOrigin: 'anonymous',
+                scale: scale,
+                rotateWithView: true
+            })
+        });
+    }
+
+    /**
+     * 撤销标记打点
+     * @param {ol.Map} map
+     */
+    function removeMarkDotMarker(map) {
+        if (dotMarkers.length === 0) return;
+        markPointMarkers.pop();
+        const lastLayer = dotMarkers.pop();
+        map.removeLayer(lastLayer);
+        dotMarkerCoordinates.pop();
+    }
+
+    /**
+     * 判断标记点是否在已绘制的地块内
+     */
+    function isMarkerInsidePolygons(markerPosition, polygonFeatures) {
+        // 参数为空直接返回 null
+        if (!markerPosition || !polygonFeatures || !Array.isArray(polygonFeatures) || polygonFeatures.length === 0) {
+            return null;
+        }
+        // 遍历所有多边形特征
+        for (const polygonFeature of polygonFeatures) {
+            if (!polygonFeature?.feature) {
+                continue; // 跳过无效元素，不中断遍历
+            }
+            const polygonGeometry = polygonFeature.feature.getGeometry();
+            // 几何对象存在且可判断相交
+            if (polygonGeometry && polygonGeometry.intersectsCoordinate) {
+                if (polygonGeometry.intersectsCoordinate(markerPosition)) {
+                    // 如果标记点在多边形内，返回多边形的 ID
+                    return polygonFeature.feature.get('id');
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 保存的标记点
+     */
+    function saveMarkPoint() {
+        WebBridge.postMessage({
+                type: 'SAVE_MARK_POINT_RESULT',
+                data: markPointMarkers || [],
+        });
+    }
+
+    /**
+     * 绘制异常标记点
+     * @param {ol.Map} map
+     * @param {markPoints,abnormalReport} data
+     */
+
+    function drawAbnormalMarkedPoints(map, data) {
+        const { markPoints, abnormalReport } = data;
+        if(!markPoints || !Array.isArray(markPoints) || markPoints.length === 0) {
+            WebBridge.postError('无效的标记点数据');
+            return;
+        }
+        for (let i = 0; i < markPoints.length; i++) {
+            const point = markPoints[i];
+            const feature = new ol.Feature({
+                 geometry: new ol.geom.Point(ol.proj.fromLonLat([point.lon, point.lat]))
+            });
+
+            feature.setStyle(getAbnormalMarkMarkerStyle(0.5, abnormalReport.join('、')));
+
+            const layer = new ol.layer.Vector({
+                source: new ol.source.Vector({ features: [feature] }),
+                zIndex: 111
+            });
+
+            map.addLayer(layer);
+        }
+    }
+     
+    
+    /**
+     * 获取异常标记样式
+     */
+    function getAbnormalMarkMarkerStyle(scale = 0.5, text = '') {
+        return new ol.style.Style({
+           image: new ol.style.Icon({
+                anchor: [0.5, 0.5],
+                anchorXUnits: 'fraction',
+                anchorYUnits: 'fraction',
+                src: Base64Images.markPointMarkerJS,
+                crossOrigin: 'anonymous',
+                scale: scale,
+                rotateWithView: true
+           }),
+           text: new ol.style.Text({
+              text: text, 
+              font: '16px sans-serif', 
+              fill: new ol.style.Fill({ color: 'white' }),
+              offsetY: -32, // 文字的垂直偏移量，负值让文字显示在标记点的上方
+              padding: [5, 5, 5, 5], // 上、右、下、左的内边距，单位为像素
+              backgroundFill: new ol.style.Fill({color: 'rgba(0, 0, 0, 0.5)'}),
+            })
+        });
+    }
 
     return {
         toLocateSelf,
@@ -576,6 +735,10 @@ window.MarkerModule = (function () {
         getFindPointMarkers,
         drawFindPointMarker,
         drawFindMarker,
-      
+        drawMarkPointMarker,
+        removeMarkDotMarker,
+        isMarkerInsidePolygons,
+        saveMarkPoint,
+        drawAbnormalMarkedPoints
     };
 })();

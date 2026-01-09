@@ -91,8 +91,6 @@ const EnclosureScreen = observer(() => {
   // 页面聚焦时：启动WebSocket连接（无论设备状态）
   useFocusEffect(
     React.useCallback(() => {
-      console.log("LandManagementScreen 页面聚焦，初始化WebSocket连接（无论设备状态）");
-
       // 初始化WebSocket（不管设备是否在线）
       initWebSocket();
 
@@ -101,7 +99,7 @@ const EnclosureScreen = observer(() => {
 
       // 页面失焦时：关闭WebSocket + 停止GPS
       return () => {
-        console.log("LandManagementScreen 页面失焦，关闭所有定位相关");
+        console.log("页面失焦，关闭所有定位相关");
         if (webSocketRef.current) {
           webSocketRef.current.close();
           webSocketRef.current = null;
@@ -121,7 +119,7 @@ const EnclosureScreen = observer(() => {
     const granted = await checkLocationPermission();
     if (granted) {
       setHasLocationPermission(true);
-      // 设备在线时，无需初始化GPS（WebSocket会处理）
+      // 设备不在线时，无需初始化GPS（WebSocket会处理）
       if (!(deviceStore.deviceImei && deviceStore.status === "1")) {
         initLocationByDeviceStatus();
       }
@@ -448,6 +446,7 @@ const EnclosureScreen = observer(() => {
 
   // GPS打点
   const onGpsDot = async () => {
+    console.log("onGpsDot");
     await Geolocation.getCurrentPosition(
       position => {
         const {latitude, longitude} = position.coords;
@@ -462,7 +461,7 @@ const EnclosureScreen = observer(() => {
       error => {
         showCustomToast("error", "获取定位失败，请检查权限");
       },
-      {enableHighAccuracy: true, timeout: 10000, maximumAge: 1000},
+      {enableHighAccuracy: false, timeout: 10000, maximumAge: 1000},
     );
   };
 
@@ -634,7 +633,7 @@ const EnclosureScreen = observer(() => {
       case "WEBVIEW_READY":
         setIsWebViewReady(true);
         if (hasLocationPermission && !(deviceStore.deviceImei && deviceStore.status === "1")) {
-          startPositionWatch();
+          locateDevicePosition(true);
         }
         break;
       // 重复打点
