@@ -668,27 +668,48 @@ window.MarkerModule = (function () {
      * @param {ol.Map} map
      * @param {markPoints,abnormalReport} data
      */
-
     function drawAbnormalMarkedPoints(map, data) {
-        const { markPoints, abnormalReport } = data;
-        if(!markPoints || !Array.isArray(markPoints) || markPoints.length === 0) {
+        if(!data || !Array.isArray(data) || data.length === 0) {
             WebBridge.postError('无效的标记点数据');
             return;
         }
-        for (let i = 0; i < markPoints.length; i++) {
-            const point = markPoints[i];
-            const feature = new ol.Feature({
-                 geometry: new ol.geom.Point(ol.proj.fromLonLat([point.lon, point.lat]))
+        WebBridge.postMessage({
+            type: 'WEBVIEW_CONSOLE_LOG',
+            data: data,
+        });
+        try {
+            for (let i = 0; i < data.length; i++) {
+                const item = data[i] || {};
+                const gpsList = item.exceptionGpsList || [];
+                const reportList = item.exceptionReportList || [];
+
+                if (!Array.isArray(gpsList) || gpsList.length === 0) continue;
+                
+                for (let j = 0; j < gpsList.length; j++) { 
+                    const point = gpsList[j] || {};
+                    if (!point.lng || !point.lat) continue;
+                    
+                    const feature = new ol.Feature({
+                        geometry: new ol.geom.Point(ol.proj.fromLonLat([point.lng, point.lat]))
+                    });
+
+                    const reportText = reportList?.map((ite) => ite.dictLabel).join('、') || '';
+                    feature.setStyle(getAbnormalMarkMarkerStyle(0.5, reportText));
+
+                    const layer = new ol.layer.Vector({
+                        source: new ol.source.Vector({ features: [feature] }),
+                        zIndex: 111
+                    });
+
+                    map.addLayer(layer);
+                }
+            }
+        } catch (err) {
+            // 异常捕获，不中断程序
+            WebBridge.postMessage({
+                type: 'WEBVIEW_ERROR',
+                message: `绘制异常点位失败: ${err.message}`
             });
-
-            feature.setStyle(getAbnormalMarkMarkerStyle(0.5, abnormalReport.join('、')));
-
-            const layer = new ol.layer.Vector({
-                source: new ol.source.Vector({ features: [feature] }),
-                zIndex: 111
-            });
-
-            map.addLayer(layer);
         }
     }
      

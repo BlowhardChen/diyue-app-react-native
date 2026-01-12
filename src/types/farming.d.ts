@@ -73,3 +73,19 @@ export interface FarmingListInfoData {
   identity: string;
   isShow: string;
 }
+
+// 异常记录详情数据
+
+export interface AbnormalDetailInfoData {
+  comment: string;
+  createName: string;
+  createTime: string;
+  exceptionGpsList: {lat: number; lng: number}[];
+  exceptionImageList: {url: string}[];
+  exceptionReportList: {dictLabel: string}[];
+  id: string;
+  location: string;
+  mobile: string;
+  taskLogId: string;
+  taskName: string;
+}

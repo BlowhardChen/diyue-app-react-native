@@ -81,14 +81,26 @@ export type ContractStackParamList = {
 export type PatrolParamList = {
   AbnormalUpload: undefined | {id?: number};
   AbnormalRecord: undefined;
-  AbnormalDetail: {id: number};
-  PatrolManage: {id: number};
-  PatrolDetail: {id: number};
+  AbnormalDetail: {id?: string; taskLogId?: string};
+  PatrolManage: {id: string};
+  PatrolDetail: {id: string};
   MarkPosition: {
     type: string;
     taskLogId?: string;
     onMarkPointResult?: (result: {data: any}) => void;
-    markPoints?: {lat: number; lon: number}[];
-    abnormalReport?: string[];
+    abnormalDetailInfoData?: AbnormalDetailInfoData[];
   };
 };
+export interface AbnormalDetailInfoData {
+  id: string;
+  taskLogId: string;
+  taskName: string;
+  mobile: string;
+  locationL: string;
+  comment: string;
+  createName: string;
+  createTime: string;
+  exceptionGpsList: {lat: number; lng: number}[];
+  exceptionImageList: {url: string}[];
+  exceptionReportList: {dictLabel: string}[];
+}

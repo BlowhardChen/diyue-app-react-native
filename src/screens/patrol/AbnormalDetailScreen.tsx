@@ -41,11 +41,7 @@ const AbnormalDetailScreen = () => {
       navigation.navigate("MarkPosition", {
         type: "Detail",
         taskLogId,
-        markPoints: abnormalDetailInfo.exceptionGpsList.map((item: any) => ({
-          lat: item.lat,
-          lon: item.lng,
-        })),
-        abnormalReport: abnormalDetailInfo.exceptionReportList.map((item: any) => item.dictLabel),
+        abnormalDetailInfoData: [abnormalDetailInfo],
       });
     }
   };
@@ -77,7 +73,6 @@ const AbnormalDetailScreen = () => {
   };
 
   useEffect(() => {
-    console.log("AbnormalDetailScreen mounted with id:", id);
     if (id) {
       getAbnormalDetail(id);
     }

@@ -1,6 +1,6 @@
 // 标记位置
 import {View, Text, TouchableOpacity, Image} from "react-native";
-import {use, useEffect, useLayoutEffect, useRef, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import {observer} from "mobx-react-lite";
 import {mapStore} from "@/stores/mapStore";
 import MapControlButton from "@/components/land/MapControlButton";
@@ -23,15 +23,14 @@ import WebSocketClass from "@/utils/webSocketClass";
 import {deviceStore} from "@/stores/deviceStore";
 import React from "react";
 import {EnclosureScreenStyles} from "../land/styles/EnclosureScreen";
-import {PatrolParamList} from "@/types/navigation";
+import {AbnormalDetailInfoData, PatrolParamList} from "@/types/navigation";
 import {patrolTaskLocusList} from "@/services/farming";
 
 type MarkPositionParams = {
   type: "Mark" | "Detail";
   taskLogId?: string;
-  markPoints: Array<{lon: number; lat: number}>;
-  abnormalReport?: string[];
-  onMarkPointResult: (result: {data: any}) => void;
+  abnormalDetailInfoData: AbnormalDetailInfoData[];
+  onMarkPointResult?: (result: {data: any}) => void;
 };
 
 type MarkPositionRouteProp = RouteProp<Record<string, MarkPositionParams>, string>;
@@ -39,7 +38,7 @@ type MarkPositionRouteProp = RouteProp<Record<string, MarkPositionParams>, strin
 const MarkPositionScreen = observer(() => {
   const navigation = useNavigation<StackNavigationProp<PatrolParamList>>();
   const route = useRoute<MarkPositionRouteProp>();
-  const {type, taskLogId, onMarkPointResult, markPoints, abnormalReport} = route.params;
+  const {type, taskLogId, onMarkPointResult, abnormalDetailInfoData} = route.params;
   const [dotTotal, setDotTotal] = useState(0);
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
@@ -111,21 +110,18 @@ const MarkPositionScreen = observer(() => {
     initLocationByDeviceStatus();
   }, [deviceStore.status, hasLocationPermission, isWebViewReady]);
 
-  useLayoutEffect(() => {
-    console.log("markPoints:", markPoints);
-    console.log("abnormalReport:", abnormalReport?.join(", "));
-    if (markPoints.length > 0) {
-      webViewRef.current?.postMessage(
-        JSON.stringify({
-          type: "DRAW_ABNORMAL_MARKED_POINTS",
-          data: {markPoints, abnormalReport},
-        }),
-      );
-    }
-    if (taskLogId) {
-      getPatrolLocusData(taskLogId);
-    }
-  }, [markPoints, taskLogId]);
+  useEffect(() => {
+    if (!isWebViewReady || !abnormalDetailInfoData || abnormalDetailInfoData.length === 0) return;
+    console.log("useLayoutEffect:", abnormalDetailInfoData);
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "DRAW_ABNORMAL_MARKED_POINTS",
+        data: abnormalDetailInfoData,
+      }),
+    );
+    if (!isWebViewReady || !taskLogId) return;
+    getPatrolLocusData(taskLogId);
+  }, [abnormalDetailInfoData, taskLogId, isWebViewReady]);
 
   // 初始化定位权限和地图图层
   const initLocationPermission = async () => {
@@ -387,7 +383,7 @@ const MarkPositionScreen = observer(() => {
     const watchId = Geolocation.watchPosition(
       pos => {
         const {latitude, longitude} = pos.coords;
-        // 关键：仅当定位源为GPS（useLocationFromSocket=false）时，才更新定位图标
+        // 仅当定位源为GPS（useLocationFromSocket=false）时，才更新定位图标
         if (!useLocationFromSocket) {
           webViewRef.current?.postMessage(
             JSON.stringify({
@@ -610,8 +606,10 @@ const MarkPositionScreen = observer(() => {
         break;
       // 保存标记点
       case "SAVE_MARK_POINT_RESULT":
-        onMarkPointResult({data: data.data});
-        navigation.goBack();
+        if (onMarkPointResult) {
+          onMarkPointResult({data: data.data});
+          navigation.pop(1);
+        }
         break;
       // 报错处理
       case "WEBVIEW_ERROR":
@@ -626,12 +624,6 @@ const MarkPositionScreen = observer(() => {
     }
   };
 
-  useFocusEffect(() => {
-    return () => {
-      stopPositionWatch();
-    };
-  });
-
   return (
     <View style={EnclosureScreenStyles.container}>
       {/* 权限弹窗 */}
@@ -643,13 +635,7 @@ const MarkPositionScreen = observer(() => {
         message={"获取位置权限将用于获取当前定位与记录轨迹"}
       />
       {/* 顶部导航 */}
-      <LandEnclosureCustomNavBar
-        navTitle={type === "Mark" ? "标记打点" : "查看标记位置"}
-        showRightIcon={true}
-        onBackView={() => {
-          navigation.goBack();
-        }}
-      />
+      <LandEnclosureCustomNavBar navTitle={type === "Mark" ? "标记打点" : "查看标记位置"} showRightIcon={true} />
       {/* 地图 */}
       <View style={EnclosureScreenStyles.mapBox}>
         {type === "Mark" && (

@@ -12,7 +12,7 @@ import {Global} from "@/styles/global";
 
 // 巡田任务列表项类型
 interface PatrolListItemType {
-  id: number;
+  id: string;
   status: string;
   taskName: string;
   userId: number;
