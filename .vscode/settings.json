@@ -8,5 +8,16 @@
   "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
   "stylelint.validate": ["css", "scss"],
   "files.autoSave": "onFocusChange",
-  "typescript.tsdk": "node_modules/typescript/lib"
+  "typescript.tsdk": "node_modules/typescript/lib",
+  
+  // 新增针对 web 目录的特定配置
+  "eslint.options": {
+    "overrideConfigFile": ".eslintrc.js",
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "files.associations": {
+    "**/android/app/src/main/assets/web/*.js": "javascript"
+  }
 }

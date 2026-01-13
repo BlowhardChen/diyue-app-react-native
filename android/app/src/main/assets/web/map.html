@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Map</title>
+    <style>
+        html,
+        body,
+        #map {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .ol-control button {
+            font-size: 1.5em;
+        }
+
+        .ol-zoom {
+            display: none !important;
+        }
+    </style>
+    <link rel="stylesheet" href="./ol.css" />
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <!-- JS 报错监听 -->
+    <script>
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            WebBridge.postError(`JS ERROR: ${msg} at ${lineNo}:${columnNo}`);
+        };
+    </script>
+
+    <!-- 基础库 -->
+    <script src="./ol.js"></script>
+    <script src="./turf.min.js"></script>
+
+    <!-- 模块化文件 -->
+    <script src="./transform.js"></script>
+    <script src="./base64.js"></script>
+    <script src="./mapBaseTool.js"></script>
+    <script src="./layerModule.js"></script>
+    <script src="./polylineModule.js"></script>
+    <script src="./polygonModule.js"></script>
+    <script src="./markerModule.js"></script>
+    <script src="./switchMapLayer.js"></script>
+    <script src="./webBridge.js"></script>
+    <script src="./main.js"></script>
+</body>
+
+</html>
