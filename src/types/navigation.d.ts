@@ -79,7 +79,7 @@ export type ContractStackParamList = {
 
 // 巡田管理相关
 export type PatrolParamList = {
-  AbnormalUpload: undefined | {id?: number};
+  AbnormalUpload: undefined | {id?: string};
   AbnormalRecord: undefined;
   AbnormalDetail: {id?: string; taskLogId?: string};
   PatrolManage: {id: string};

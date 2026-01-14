@@ -324,8 +324,8 @@ const PatrolDetailScreen = () => {
       setPatrolDetailInfo(data);
       console.log("巡田详情数据", data);
       if (data) {
-        await getPatrolLocusData(data.taskLogId);
-        await getPatrolDetailData(data.taskLogId);
+        await getPatrolLocusData({taskLogId: data.id, taskLogLocusId: data.taskLogId});
+        await getPatrolDetailData({id: data.id, taskLogId: data.taskLogId});
       }
     } catch (error) {
       showCustomToast("error", "巡田详情加载失败");
@@ -510,9 +510,9 @@ const PatrolDetailScreen = () => {
   };
 
   // 获取巡田轨迹数据
-  const getPatrolLocusData = async (id: string) => {
+  const getPatrolLocusData = async ({taskLogId, taskLogLocusId}: {taskLogId: string; taskLogLocusId: string}) => {
     try {
-      const {data} = await patrolTaskLocusList({taskLogId: id});
+      const {data} = await patrolTaskLocusList({taskLogId, taskLogLocusId});
       console.log("巡田轨迹数据", data);
       if (data.length === 0) return;
       if (webViewRef.current && isWebViewReady) {
@@ -529,9 +529,9 @@ const PatrolDetailScreen = () => {
   };
 
   // 获取异常点位数据
-  const getPatrolDetailData = async (id: string) => {
+  const getPatrolDetailData = async ({id, taskLogId}: {id: string; taskLogId: string}) => {
     try {
-      const {data} = await patrolTaskExceptionDetail({taskLogId: id});
+      const {data} = await patrolTaskExceptionDetail({id, taskLogId});
       console.log("异常点位数据", data);
       if (data.length === 0) return;
       if (webViewRef.current && isWebViewReady) {

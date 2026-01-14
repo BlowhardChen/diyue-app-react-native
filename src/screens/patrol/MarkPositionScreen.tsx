@@ -499,7 +499,7 @@ const MarkPositionScreen = observer(() => {
     webViewRef.current?.postMessage(
       JSON.stringify({
         type: "DRAW_PATROL_LOCUS",
-        data: data[0],
+        data: data,
       }),
     );
   };
