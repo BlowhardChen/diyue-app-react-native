@@ -79,6 +79,7 @@ const PatrolFieldManageScreen: React.FC = ({}) => {
 
     try {
       const {data} = await patrolTaskList({status: activeTab});
+      console.log("巡田记录列表:", data);
       setPatrolList(data);
       // 更新缓存
       setTabDataCache(prev => ({

@@ -153,6 +153,10 @@
               case "DRAW_PATROL_LOCUS":
                   PolylineModule?.drawPatrolLocusPolyline(map, data.data);
                 break;
+              // 更新巡田轨迹
+              case "UPDATE_PATROL_LOCUS":
+                  PolylineModule?.updatePatrolLocusPolyline(map, data.location);
+                break;
               default:
                   WebBridge.postMessage("未处理的消息类型:" + data.type);
                 break;

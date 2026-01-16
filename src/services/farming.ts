@@ -164,7 +164,7 @@ export const patrolTaskEnd = (data: {id: string}) => {
 /**
  * 巡田管理-巡田任务轨迹列表
  */
-export const patrolTaskLocusList = (data: {taskLogId: string}) => {
+export const patrolTaskLocusList = (data: {taskLogId?: string; taskLogLocusId?: string}) => {
   return http<any>({
     method: "POST",
     url: "/app/taskLogLocus/queryTaskLogLocusList",

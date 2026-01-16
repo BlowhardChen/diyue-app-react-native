@@ -1,7 +1,9 @@
 // 折线模块
 window.PolylineModule = (function () {
     let polylines = []; // 折线图层集合（按绘制顺序）
+    let locusCoordinates = []; // 巡田轨迹坐标集合
     let locusLineLayer = null; // 巡田轨迹图层对象
+
 
     /**
      * 绘制折线
@@ -134,6 +136,10 @@ window.PolylineModule = (function () {
         data.forEach(item => {
             locusPath.push(ol.proj.fromLonLat([item.lng, item.lat]))
         })
+
+        // 至少需要2个点才能绘制折线
+        if (locusPath.length < 2) return
+        
         const lineString = new ol.geom.LineString(locusPath)
         const feature = new ol.Feature({ geometry: lineString });
         // 轨迹样式
@@ -158,19 +164,27 @@ window.PolylineModule = (function () {
     /**
      * 更新巡田轨迹折线
      * @param {ol.Map} map - 地图对象
-     * @param {Array} data - 最新轨迹数据数组，[{lng: 经度, lat: 纬度}, ...]
+     * @param {Object} location - 最新轨迹点，{lng: 经度, lat: 纬度}
      */
-    function updatePatrolLocusPolyline(map, data) {
+    function updatePatrolLocusPolyline(map, location) {
+        WebBridge.postMessage({ type: 'WEBVIEW_CONSOLE_LOG', data: location });
         // 入参校验 和绘制函数保持一致
-        if (!data || data.length === 0) {
+        if (!location || !location.lng || !location.lat) {
             WebBridge.postError('无效的巡田轨迹更新数据')
             return
         }
+
+        // 加入最新轨迹点
+        locusCoordinates.push(location)
+        // 至少需要2个点才能绘制折线
+        if (locusCoordinates.length < 1) return
+        
         // 先移除旧轨迹，再重新绘制新轨迹
         if(locusLineLayer) {
             map.removeLayer(locusLineLayer)
         }
-        drawPatrolLocusPolyline(map, data)
+    
+        drawPatrolLocusPolyline(map, locusCoordinates)
     }
 
     /**

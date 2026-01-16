@@ -27,6 +27,7 @@ export default class WebSocketClass {
   private static readonly MAX_RECONNECT = MAX_RECONNECT_TIMES;
   private currentAppState: AppStateStatus = "active"; // 记录当前应用状态
   private appStateListener: any;
+  public socketTask: {send: (params: {data: any}) => void};
 
   constructor(options: Options) {
     this.options = options;
@@ -36,6 +37,10 @@ export default class WebSocketClass {
     this.reconnectTimer = null;
     this.heartbeatTimer = null;
     this.appStateListener = null;
+
+    this.socketTask = {
+      send: this.send.bind(this),
+    };
 
     // 初始化连接
     this.initWS();
@@ -239,4 +244,24 @@ export default class WebSocketClass {
       this.initWS();
     }
   };
+
+  // 发送消息
+  private send({data}: {data: any}) {
+    if (this.normalCloseFlag) {
+      console.warn("WebSocket: 已主动关闭连接，无法发送消息");
+      return;
+    }
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+      showCustomToast("error", "网络未连接，消息发送失败");
+      return;
+    }
+
+    try {
+      const sendData = typeof data === "object" ? JSON.stringify(data) : data;
+      this.socket.send(sendData);
+    } catch (error) {
+      this.options.onError?.(error as Error);
+      showCustomToast("error", "消息发送异常，请重试");
+    }
+  }
 }
