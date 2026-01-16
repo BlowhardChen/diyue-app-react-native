@@ -75,7 +75,6 @@ export interface FarmingListInfoData {
 }
 
 // 异常记录详情数据
-
 export interface AbnormalDetailInfoData {
   comment: string;
   createName: string;
@@ -88,4 +87,14 @@ export interface AbnormalDetailInfoData {
   mobile: string;
   taskLogId: string;
   taskName: string;
+}
+
+// 农事类型列表item
+export interface FarmingTypeListItem {
+  createMobile: string;
+  createName: string;
+  createTime: string;
+  dictValue: string;
+  farmingTypeId: string;
+  farmingTypeName: string;
 }

@@ -268,9 +268,6 @@ const MergeLandScreen = observer(({route}: {route: {params: {landId: string}}}) 
     );
   };
 
-  // 点回找
-  const onFindPoint = () => {};
-
   // 地块管理
   const onLandManage = (landInfo: any) => {
     setLandInfo(landInfo);
@@ -323,7 +320,6 @@ const MergeLandScreen = observer(({route}: {route: {params: {landId: string}}}) 
   // 获取合并地块列表
   const getMergeLandListData = async (id: string): Promise<void> => {
     const {data} = await getMergeLandList(id);
-    console.log("获取合并地块列表", data);
     if (!data || !data[0]) {
       showCustomToast("error", "合并地块列表为空");
       return;
@@ -340,7 +336,6 @@ const MergeLandScreen = observer(({route}: {route: {params: {landId: string}}}) 
   // 获取地块详情数据
   const getLandDetailInfoData = async (id: string): Promise<void> => {
     const {data} = await getLandDetailsInfo(id);
-    console.log("获取地块详情数据", data);
     if (!data || !data[0]) {
       showCustomToast("error", "地块详情数据为空");
       return;
@@ -468,7 +463,6 @@ const MergeLandScreen = observer(({route}: {route: {params: {landId: string}}}) 
           <LandDetailsPopup
             onClose={() => closeLandDetailsPopup()}
             onBack={() => closeLandDetailsPopup()}
-            onFindPoint={onFindPoint}
             onLandManage={onLandManage}
             landInfo={landInfo as unknown as LandDetailInfo}
             contractDetail={contractDetail as unknown as ContractDetail}
