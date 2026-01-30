@@ -1,5 +1,5 @@
-// 巡田管理
-import {View, Text, TouchableOpacity, Image, StatusBar} from "react-native";
+// 地块标注
+import {View, Text, Image, StatusBar, TouchableOpacity} from "react-native";
 import {useEffect, useRef, useState} from "react";
 import {observer} from "mobx-react-lite";
 import {mapStore} from "@/stores/mapStore";
@@ -19,32 +19,27 @@ import {getLandListData} from "@/services/land";
 import WebSocketClass from "@/utils/webSocketClass";
 import {deviceStore} from "@/stores/deviceStore";
 import React from "react";
-import {EnclosureScreenStyles} from "../land/styles/EnclosureScreen";
-import {patrolTaskEnd, patrolTaskStart} from "@/services/farming";
-import LinearGradient from "react-native-linear-gradient";
-import {PatrolManageScreenStyles} from "./styles/PatrolManageScreen";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
+import {LandMarkScreenStyles} from "./styles/LandMarkScreen";
 import {StackNavigationProp} from "@react-navigation/stack";
-import {PatrolParamList} from "@/types/navigation";
+import {RootStackParamList} from "@/types/navigation";
+import LinearGradient from "react-native-linear-gradient";
+import {FarmingWorkDataScreenStyles} from "./styles/FarmingWorkDataScreen";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
+import LandMarkScreenPopup from "./components/LandMarkScreenPopup";
 import Popup from "@/components/common/Popup";
-import {BackHandler} from "react-native";
-import {saveTargetRoute} from "@/utils/navigationUtils";
-import CustomFarmingHeader from "@/components/common/CustomFarmingHeader";
+import {Global} from "@/styles/global";
 
-type PatrolManageParams = {
-  id: string;
+type LandMarkScreenParams = {
+  farmingId: string;
 };
 
-type PatrolManageRouteProp = RouteProp<Record<string, PatrolManageParams>, string>;
+type LandMarkScreenRouteProp = RouteProp<Record<string, LandMarkScreenParams>, string>;
 
-const deviceConnected = require("@/assets/images/common/icon-device-connect.png");
-const deviceDisconnected = require("@/assets/images/common/icon-device-disconnect.png");
-
-const PatrolManageScreen = observer(() => {
-  const navigation = useNavigation<StackNavigationProp<PatrolParamList>>();
-  const route = useRoute<PatrolManageRouteProp>();
+const LandMarkScreen = observer(() => {
   const insets = useSafeAreaInsets();
-  const {id} = route.params;
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const route = useRoute<LandMarkScreenRouteProp>();
+  const {farmingId} = route.params;
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const webViewRef = useRef<WebView>(null);
@@ -56,14 +51,10 @@ const PatrolManageScreen = observer(() => {
   const [useLocationFromSocket, setUseLocationFromSocket] = useState(false);
   const [rtkLocation, setRtkLocation] = useState<{lat: number; lon: number}>({lat: 0, lon: 0});
   const isFirstSocketLocationRef = useRef(true);
-  const beforeRemoveRef = useRef<any>(null);
-  const [isPatrol, setIsPatrol] = useState(false);
-  const isPatrolRef = useRef(false);
-  const [showEndPatrolPopup, setShowEndPatrolPopup] = useState(false);
-  const [showBackPopup, setShowBackPopup] = useState(false);
   const locationLngLatRef = useRef<{longitude: number; latitude: number} | null>(null);
+  const [isShowPopup, setIsShowPopup] = useState(false);
 
-  console.log("PatrolManageScreen", id);
+  console.log("HistoryWorkDetailScreen", farmingId);
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -357,28 +348,6 @@ const PatrolManageScreen = observer(() => {
               location: {lon: longitude, lat: latitude},
             }),
           );
-          // 巡田状态下，GPS坐标实时追加轨迹线
-          if (isPatrolRef.current) {
-            webViewRef.current?.postMessage(
-              JSON.stringify({
-                type: "UPDATE_PATROL_LOCUS",
-                location: {lng: longitude, lat: latitude},
-              }),
-            );
-          }
-        }
-        // 巡田状态+有WS+GPS坐标，向服务端上报GPS坐标
-        if (isPatrolRef.current && webSocketRef.current && locationLngLatRef.current) {
-          webSocketRef.current.socketTask?.send({
-            data: JSON.stringify([
-              {
-                deviceType: "taskLog",
-                taskLogId: `${id}`,
-                lng: longitude,
-                lat: latitude,
-              },
-            ]),
-          });
         }
       },
       err => {
@@ -404,61 +373,21 @@ const PatrolManageScreen = observer(() => {
     }
   };
 
-  // 巡田拦截
-  const onBackView = () => {
-    if (isPatrol) {
-      setShowBackPopup(true);
-    } else {
-      navigation.goBack();
-    }
+  const onChoiceLand = () => {
+    setIsShowPopup(true);
   };
 
-  // 连接设备
-  const connectDevice = () => {
-    saveTargetRoute(route.name);
-    navigation.navigate("AddDevice" as any);
+  // 取消操作
+  const popupCancel = () => {
+    setIsShowPopup(false);
   };
 
-  //  异常上报
-  const uploadAbnormal = async () => {
-    navigation.navigate("AbnormalUpload", {id});
-  };
-
-  // 开始巡田
-  const startPatrol = async () => {
-    await patrolTaskStart({id});
-    setIsPatrol(true);
-    isPatrolRef.current = true;
-  };
-
-  // 结束巡田
-  const endPatrol = () => {
-    setShowEndPatrolPopup(true);
-  };
-
-  // 确认结束巡田
-  const confirmEndPatrol = async () => {
-    await patrolTaskEnd({id});
-    setShowEndPatrolPopup(false);
-    setIsPatrol(false);
-    isPatrolRef.current = false;
-    showCustomToast("success", "已为你保存巡田记录");
-    setTimeout(() => {
-      navigation.goBack();
-    }, 1200);
-  };
-
-  // 退出巡田
-  const quitPatrol = () => {
-    setShowBackPopup(false);
-    setIsPatrol(false);
-    isPatrolRef.current = false;
-    navigation.goBack();
-  };
-
-  // 继续巡田
-  const continuePatrol = () => {
-    setShowBackPopup(false);
+  // 确认操作
+  const popupConfirm = async () => {
+    try {
+      //   await completeFarming(farmingInfo.id);
+      setIsShowPopup(false);
+    } catch (error) {}
   };
 
   // 获取已圈地地块数据
@@ -509,29 +438,6 @@ const PatrolManageScreen = observer(() => {
               location: newLocation,
             }),
           );
-
-          if (isPatrolRef.current) {
-            console.log("巡田状态+有WS+GPS坐标，向服务端上报GPS坐标");
-            webViewRef.current?.postMessage(
-              JSON.stringify({
-                type: "UPDATE_PATROL_LOCUS",
-                location: {lng: newLocation.lon, lat: newLocation.lat},
-              }),
-            );
-          }
-
-          if (isPatrolRef.current && webSocketRef.current && newLocation) {
-            webSocketRef.current.socketTask?.send({
-              data: JSON.stringify([
-                {
-                  deviceType: "taskLog",
-                  taskLogId: `${id}`,
-                  lng: newLocation.lon,
-                  lat: newLocation.lat,
-                },
-              ]),
-            });
-          }
 
           if (isFirstSocketLocationRef.current) {
             isFirstSocketLocationRef.current = false;
@@ -588,40 +494,29 @@ const PatrolManageScreen = observer(() => {
     }
   };
 
-  // 返回键监听
-  useFocusEffect(() => {
-    beforeRemoveRef.current = navigation.addListener("beforeRemove", e => {
-      if (isPatrol) {
-        // 仅巡田状态拦截返回
-        e.preventDefault();
-        if (!showBackPopup) {
-          setShowBackPopup(true);
-        }
-      }
-    });
-    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (isPatrol) {
-        if (!showBackPopup) {
-          setShowBackPopup(true);
-        }
-        return true;
-      } else {
-        return false;
-      }
-    });
-    return () => {
-      beforeRemoveRef.current();
-      backHandler.remove();
-    };
-  });
-
   return (
-    <View style={EnclosureScreenStyles.container}>
+    <View style={LandMarkScreenStyles.container}>
       {/* 顶部导航 */}
-      <CustomFarmingHeader navTitle={"巡田管理"} showRightIcon={true} onBackView={onBackView} />
+      <LinearGradient
+        style={[FarmingWorkDataScreenStyles.HeaderContainer, {paddingTop: insets.top}]}
+        colors={["rgba(0,0,0,0.5)", "rgba(0,0,0,0)"]}>
+        <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+        <View style={FarmingWorkDataScreenStyles.header}>
+          <TouchableOpacity style={FarmingWorkDataScreenStyles.iconWrapper} onPress={() => navigation.goBack()}>
+            <Image
+              source={require("@/assets/images/common/icon-back-radius.png")}
+              style={FarmingWorkDataScreenStyles.iconWrapperImage}
+            />
+          </TouchableOpacity>
+
+          <Text style={FarmingWorkDataScreenStyles.title}>地块标注</Text>
+
+          <View style={FarmingWorkDataScreenStyles.iconWrapper} />
+        </View>
+      </LinearGradient>
       {/* 地图 */}
-      <View style={EnclosureScreenStyles.mapBox}>
-        <View style={EnclosureScreenStyles.map} collapsable={false}>
+      <View style={LandMarkScreenStyles.mapBox}>
+        <View style={LandMarkScreenStyles.map} collapsable={false}>
           <WebView
             ref={webViewRef}
             source={{uri: "file:///android_asset/web/map.html"}}
@@ -634,42 +529,27 @@ const PatrolManageScreen = observer(() => {
             onMessage={receiveWebviewMessage}
             style={{flex: 1}}
           />
-          <View style={EnclosureScreenStyles.mapCopyright}>
-            <Image source={require("@/assets/images/home/icon-td.png")} style={EnclosureScreenStyles.iconImg} />
-            <Text style={EnclosureScreenStyles.copyrightText}>
+          <View style={LandMarkScreenStyles.mapCopyright}>
+            <Image source={require("@/assets/images/home/icon-td.png")} style={LandMarkScreenStyles.iconImg} />
+            <Text style={LandMarkScreenStyles.copyrightText}>
               ©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471
             </Text>
           </View>
         </View>
         {/* 右侧控制按钮 */}
-        <View style={EnclosureScreenStyles.rightControl}>
+        <View style={LandMarkScreenStyles.rightControl}>
           <MapControlButton iconUrl={require("@/assets/images/home/icon-layer.png")} iconName="图层" onPress={onToggleMapLayer} />
         </View>
-        <View style={EnclosureScreenStyles.locationControl}>
+        <View style={LandMarkScreenStyles.choiceControl}>
+          <MapControlButton iconUrl={require("@/assets/images/home/icon-layer.png")} iconName="多选" onPress={onChoiceLand} />
+        </View>
+        <View style={LandMarkScreenStyles.locationControl}>
           <MapControlButton
             iconUrl={require("@/assets/images/home/icon-location.png")}
             iconName="定位"
             onPress={onLocatePosition}
             style={{marginTop: 16}}
           />
-        </View>
-        {/* 底部按钮 */}
-        <View style={PatrolManageScreenStyles.patrolButton}>
-          <View style={PatrolManageScreenStyles.patrolButtonBox}>
-            <TouchableOpacity style={PatrolManageScreenStyles.tips} onPress={uploadAbnormal} activeOpacity={0.9}>
-              <Image
-                source={require("@/assets/images/farming/icon-warning.png")}
-                style={PatrolManageScreenStyles.warningImg}
-                resizeMode="cover"
-              />
-              <Text style={PatrolManageScreenStyles.tipsText}>异常上报</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[PatrolManageScreenStyles.button, {backgroundColor: isPatrol ? "#ff3d3b" : "#08ae3c"}]}
-              onPress={isPatrol ? endPatrol : startPatrol}>
-              <Text style={PatrolManageScreenStyles.buttonText}>{isPatrol ? "结束巡田" : "开始巡田"}</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* 图层切换弹窗 */}
@@ -683,32 +563,24 @@ const PatrolManageScreen = observer(() => {
           title={"开启位置权限"}
           message={"获取位置权限将用于获取当前定位与记录轨迹"}
         />
-
-        {/* 退出巡田确认弹窗  */}
-        <Popup
-          visible={showBackPopup}
-          title="是否退出巡田"
-          msgText="退出后将停止记录轨迹"
-          leftBtnText="退出"
-          rightBtnText="继续巡田"
-          onLeftBtn={quitPatrol}
-          onRightBtn={continuePatrol}
-        />
-
-        {/* 结束巡田确认弹窗  */}
-        <Popup
-          visible={showEndPatrolPopup}
-          title="提示"
-          msgText="确定要结束巡田？"
-          leftBtnText="取消"
-          rightBtnText="确定"
-          rightBtnStyle={{color: "#ff3d3b"}}
-          onLeftBtn={() => setShowEndPatrolPopup(false)}
-          onRightBtn={confirmEndPatrol}
-        />
       </View>
+
+      {/* 操作状态卡片 */}
+      <LandMarkScreenPopup />
+
+      {/* 确认弹窗 */}
+      <Popup
+        visible={isShowPopup}
+        title="提示"
+        msgText={"请确认是否将地块标注成已作业？"}
+        leftBtnText="取消"
+        rightBtnStyle={{color: Global.colors.primary}}
+        rightBtnText={"标记已作业"}
+        onLeftBtn={popupCancel}
+        onRightBtn={popupConfirm}
+      />
     </View>
   );
 });
 
-export default PatrolManageScreen;
+export default LandMarkScreen;

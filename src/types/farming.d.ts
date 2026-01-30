@@ -98,3 +98,17 @@ export interface FarmingTypeListItem {
   farmingTypeId: string;
   farmingTypeName: string;
 }
+
+export interface AbnormalDetailInfoData {
+  id: string;
+  taskLogId: string;
+  taskName: string;
+  mobile: string;
+  locationL: string;
+  comment: string;
+  createName: string;
+  createTime: string;
+  exceptionGpsList: {lat: number; lng: number}[];
+  exceptionImageList: {url: string}[];
+  exceptionReportList: {dictLabel: string}[];
+}

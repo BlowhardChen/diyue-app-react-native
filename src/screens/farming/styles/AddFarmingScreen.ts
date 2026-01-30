@@ -6,7 +6,7 @@ const ITEM_SPACING = 4; // 项间距
 const CROP_ITEM_WIDTH = (SCREEN_WIDTH - 48 - ITEM_SPACING) / 2; // 作物项宽度
 const FARMING_ITEM_WIDTH = (SCREEN_WIDTH - 48 - ITEM_SPACING * 2) / 3; // 农事项宽度
 
-export const AddFarmScreenStyles = StyleSheet.create({
+export const AddFarmingScreenStyles = StyleSheet.create({
   container: {
     width: "100%",
     height: "100%",

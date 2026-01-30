@@ -31,7 +31,7 @@ const PatrolFieldManageScreen: React.FC = ({}) => {
 
   // 标签数据
   const tabs = [
-    {title: "待完成", type: "0"},
+    {title: "作业中", type: "0"},
     {title: "已完成", type: "1"},
   ];
 

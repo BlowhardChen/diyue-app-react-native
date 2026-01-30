@@ -64,6 +64,7 @@ export const PatrolFieldManageScreenStyles = StyleSheet.create({
     color: "#000",
   },
   activeTabText: {
+    color: Global.colors.primary,
     fontWeight: "500",
   },
   underline: {
@@ -71,15 +72,16 @@ export const PatrolFieldManageScreenStyles = StyleSheet.create({
     bottom: 0,
     width: 75,
     height: 3,
-    backgroundColor: "#08ae3c",
+    backgroundColor: Global.colors.primary,
     borderRadius: 1.5,
   },
   listContainer: {
     flex: 1,
+    marginTop: 8,
+    marginBottom: 92,
     backgroundColor: "#f7f7f8",
   },
   listContent: {
-    marginTop: 8,
     backgroundColor: "#fff",
   },
   listItemContainer: {
@@ -109,7 +111,7 @@ export const PatrolFieldManageScreenStyles = StyleSheet.create({
     height: 32,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#08ae3c",
+    backgroundColor: Global.colors.primary,
     borderRadius: rpxToPx(8),
   },
   goPatrolText: {

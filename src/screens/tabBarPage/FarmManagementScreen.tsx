@@ -29,12 +29,12 @@ const FarmManagementScreen: React.FC = () => {
     {
       iconUrl: require("@/assets/images/farming/icon-farm.png"),
       farmTypeName: "新建农事",
-      url: "AddFarm",
+      url: "AddFarming",
     },
     {
       iconUrl: require("@/assets/images/farming/icon-map.png"),
       farmTypeName: "农事地图",
-      url: "FarmMap",
+      url: "FarmingMap",
     },
     {
       iconUrl: require("@/assets/images/farming/icon-mechanical.png"),
@@ -46,11 +46,11 @@ const FarmManagementScreen: React.FC = () => {
       farmTypeName: "巡田管理",
       url: "PatrolFieldManage",
     },
-    {
-      iconUrl: require("@/assets/images/farming/icon-calculator.png"),
-      farmTypeName: "农资计算器",
-      url: "FarmDataCalculator",
-    },
+    // {
+    //   iconUrl: require("@/assets/images/farming/icon-calculator.png"),
+    //   farmTypeName: "农资计算器",
+    //   url: "FarmDataCalculator",
+    // },
   ];
 
   // 选择农事管理类型
