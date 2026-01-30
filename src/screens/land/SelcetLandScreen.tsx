@@ -99,6 +99,9 @@ const SelectLandScreen = observer(
         case "select":
           setPopupTips("请选择需要选择的地块");
           break;
+        case "farming":
+          setPopupTips("请选择农事地块");
+          break;
         default:
           setPopupTips("请选择需要操作的地块");
           break;

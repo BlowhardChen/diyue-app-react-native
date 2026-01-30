@@ -1,10 +1,10 @@
-// 机耕队任务
+// 农事地图
 import {View, Text, Image, TouchableOpacity, ActivityIndicator, ScrollView} from "react-native";
 import {FarmStackParamList} from "@/types/navigation";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import CustomStatusBar from "@/components/common/CustomStatusBar";
-import {FarmMapScreenStyles} from "./styles/FarmingMapScreen";
+import {FarmingMapScreenStyles} from "./styles/FarmingMapScreen";
 import {useState, useEffect} from "react";
 import React from "react";
 import {Global} from "@/styles/global";
@@ -35,7 +35,7 @@ const MOCK_FARMING_DATA = [
 type CropType = "小麦" | "玉米" | "大豆" | "水稻";
 type FarmingType = "犁地" | "旋耕" | "深耕" | "播种";
 
-const FarmMapScreen: React.FC = () => {
+const FarmingMapScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<FarmStackParamList>>();
   const [activeTab, setActiveTab] = useState<string>("0");
   const [loading, setLoading] = useState<boolean>(false);
@@ -100,42 +100,47 @@ const FarmMapScreen: React.FC = () => {
     setFilterModalVisible(false);
   };
 
+  // 查看农事详情
+  const viewFarmingDetail = (item: any) => {
+    navigation.navigate("FarmingDetail", {id: item.id, navTitle: "农事详情"});
+  };
+
   // 渲染农事类型子项（犁地/旋耕等）
   const renderFarmingTypeItem = (item: any) => {
     return (
-      <View style={FarmMapScreenStyles.farmingTypeItem}>
-        <Text style={FarmMapScreenStyles.farmingTypeName}>{item.name}</Text>
-        <View style={FarmMapScreenStyles.farmingTypeRight}>
-          <Text style={activeTab === "0" ? FarmMapScreenStyles.farmingAreaText : FarmMapScreenStyles.farmingAreaTextActive}>
+      <TouchableOpacity style={FarmingMapScreenStyles.farmingTypeItem} activeOpacity={1} onPress={() => viewFarmingDetail(item)}>
+        <Text style={FarmingMapScreenStyles.farmingTypeName}>{item.name}</Text>
+        <View style={FarmingMapScreenStyles.farmingTypeRight}>
+          <Text style={activeTab === "0" ? FarmingMapScreenStyles.farmingAreaText : FarmingMapScreenStyles.farmingAreaTextActive}>
             {item.area}
           </Text>
           <Image
             source={require("@/assets/images/common/icon-right.png")}
-            style={FarmMapScreenStyles.arrowIcon}
+            style={FarmingMapScreenStyles.arrowIcon}
             resizeMode="contain"
           />
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
   // 渲染农事列表项（作物分类卡片）
   const renderListItem = (item: any) => {
     return (
-      <View style={FarmMapScreenStyles.farmingCard} key={item.id}>
+      <View style={FarmingMapScreenStyles.farmingCard} key={item.id}>
         {/* 作物标题栏 */}
-        <View style={FarmMapScreenStyles.cropHeader}>
-          <Image source={item.icon} style={FarmMapScreenStyles.cropIcon} resizeMode="contain" />
-          <Text style={FarmMapScreenStyles.cropNameText}>{item.cropName}</Text>
+        <View style={FarmingMapScreenStyles.cropHeader}>
+          <Image source={item.icon} style={FarmingMapScreenStyles.cropIcon} resizeMode="contain" />
+          <Text style={FarmingMapScreenStyles.cropNameText}>{item.cropName}</Text>
         </View>
         {/* 农事类型列表 */}
-        <View style={FarmMapScreenStyles.farmingTypesContainer}>
+        <View style={FarmingMapScreenStyles.farmingTypesContainer}>
           {item.farmingTypes.map((typeItem: any) => (
             <React.Fragment key={typeItem.id}>
               {renderFarmingTypeItem(typeItem)}
               {/* 最后一项不加分割线 */}
               {typeItem.id !== item.farmingTypes[item.farmingTypes.length - 1].id && (
-                <View style={FarmMapScreenStyles.typeItemDivider} />
+                <View style={FarmingMapScreenStyles.typeItemDivider} />
               )}
             </React.Fragment>
           ))}
@@ -149,9 +154,9 @@ const FarmMapScreen: React.FC = () => {
     if (loading) {
       // 加载中状态
       return (
-        <View style={FarmMapScreenStyles.loadingContainer}>
+        <View style={FarmingMapScreenStyles.loadingContainer}>
           <ActivityIndicator size="large" color={Global.colors.primary} />
-          <Text style={FarmMapScreenStyles.loadingText}>加载中...</Text>
+          <Text style={FarmingMapScreenStyles.loadingText}>加载中...</Text>
         </View>
       );
     }
@@ -159,45 +164,45 @@ const FarmMapScreen: React.FC = () => {
     if (farmingList.length > 0) {
       // 有数据
       return (
-        <ScrollView style={FarmMapScreenStyles.listContainer} showsVerticalScrollIndicator={false}>
-          <View style={FarmMapScreenStyles.listContent}>{farmingList.map(item => renderListItem(item))}</View>
+        <ScrollView style={FarmingMapScreenStyles.listContainer} showsVerticalScrollIndicator={false}>
+          <View style={FarmingMapScreenStyles.listContent}>{farmingList.map(item => renderListItem(item))}</View>
         </ScrollView>
       );
     } else {
       // 无数据
       return (
-        <View style={FarmMapScreenStyles.noDataContainer}>
+        <View style={FarmingMapScreenStyles.noDataContainer}>
           <Image
             source={require("@/assets/images/common/contract-empty.png")}
-            style={FarmMapScreenStyles.noDataIcon}
+            style={FarmingMapScreenStyles.noDataIcon}
             resizeMode="contain"
           />
-          <Text style={FarmMapScreenStyles.noDataText}>暂无数据</Text>
+          <Text style={FarmingMapScreenStyles.noDataText}>暂无数据</Text>
         </View>
       );
     }
   };
 
   return (
-    <View style={FarmMapScreenStyles.container}>
+    <View style={FarmingMapScreenStyles.container}>
       {/* 自定义状态栏 */}
-      <CustomStatusBar navTitle={"机耕队任务"} onBack={() => navigation.goBack()} />
+      <CustomStatusBar navTitle={"农事地图"} onBack={() => navigation.goBack()} />
 
       {/* 标签导航 */}
-      <View style={FarmMapScreenStyles.navbar}>
-        <View style={FarmMapScreenStyles.tabsContainer}>
+      <View style={FarmingMapScreenStyles.navbar}>
+        <View style={FarmingMapScreenStyles.tabsContainer}>
           {tabs.map((tab, index) => (
-            <TouchableOpacity key={index} style={FarmMapScreenStyles.tabItem} activeOpacity={1} onPress={() => changeTab(tab)}>
-              <Text style={[FarmMapScreenStyles.tabText, activeTab === tab.type && FarmMapScreenStyles.activeTabText]}>
+            <TouchableOpacity key={index} style={FarmingMapScreenStyles.tabItem} activeOpacity={1} onPress={() => changeTab(tab)}>
+              <Text style={[FarmingMapScreenStyles.tabText, activeTab === tab.type && FarmingMapScreenStyles.activeTabText]}>
                 {tab.title}
               </Text>
-              {activeTab === tab.type && <View style={FarmMapScreenStyles.underline} />}
+              {activeTab === tab.type && <View style={FarmingMapScreenStyles.underline} />}
             </TouchableOpacity>
           ))}
         </View>
 
-        <TouchableOpacity style={FarmMapScreenStyles.filterBtn} activeOpacity={1} onPress={handleFilterPress}>
-          <Text style={[FarmMapScreenStyles.filterBtnText, filterModalVisible && FarmMapScreenStyles.filterBtnTextActive]}>
+        <TouchableOpacity style={FarmingMapScreenStyles.filterBtn} activeOpacity={1} onPress={handleFilterPress}>
+          <Text style={[FarmingMapScreenStyles.filterBtnText, filterModalVisible && FarmingMapScreenStyles.filterBtnTextActive]}>
             筛选
           </Text>
           <Image
@@ -206,7 +211,7 @@ const FarmMapScreen: React.FC = () => {
                 ? require("@/assets/images/common/icon-filter-active.png")
                 : require("@/assets/images/common/icon-filter.png")
             }
-            style={FarmMapScreenStyles.filterBtnImg}
+            style={FarmingMapScreenStyles.filterBtnImg}
           />
         </TouchableOpacity>
       </View>
@@ -225,4 +230,4 @@ const FarmMapScreen: React.FC = () => {
   );
 };
 
-export default FarmMapScreen;
+export default FarmingMapScreen;

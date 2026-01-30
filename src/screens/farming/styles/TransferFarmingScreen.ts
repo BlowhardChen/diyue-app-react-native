@@ -1,0 +1,233 @@
+import {Global} from "@/styles/global";
+import {Dimensions, StyleSheet} from "react-native";
+
+const {width: SCREEN_WIDTH} = Dimensions.get("window");
+
+export const TransferFarmingScreenStyles = StyleSheet.create({
+  container: {
+    width: "100%",
+    height: "100%",
+    flex: 1,
+    backgroundColor: "#F5F6F8",
+  },
+  content: {
+    flex: 1,
+    padding: 10,
+    paddingBottom: 100,
+  },
+  sectionContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 10,
+    elevation: 1,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "500",
+    color: "#000",
+  },
+  farmingType: {
+    marginLeft: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    backgroundColor: Global.colors.primary,
+    borderRadius: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  farmingTypeText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#fff",
+  },
+  landSelectBtn: {
+    width: "100%",
+    minHeight: 52,
+    borderRadius: 8,
+    backgroundColor: "#F5F6F8",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginBottom: 6,
+  },
+  landSelectText: {
+    fontSize: 16,
+    color: "#999",
+    fontWeight: "500",
+  },
+  selectLandTextContnet: {
+    flex: 1,
+    flexDirection: "column",
+  },
+  selectLandText: {
+    fontSize: 16,
+    color: "#333",
+    fontWeight: "500",
+  },
+  farmingTypeTag: {
+    marginLeft: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    backgroundColor: "#08AE3C",
+    borderRadius: 4,
+  },
+  editIconImg: {
+    width: 20,
+    height: 20,
+  },
+  operatorItem: {
+    height: 52,
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    backgroundColor: "#F5F6F8",
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  operatorItemActive: {
+    backgroundColor: "#E8F5E9",
+    borderWidth: 1,
+    borderColor: "#08AE3C",
+  },
+  operatorText: {
+    fontSize: 16,
+    color: "#333333",
+  },
+  selectLandButton: {
+    height: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    backgroundColor: "#F5F6F8",
+    borderRadius: 8,
+  },
+  arrowIcon: {
+    width: 20,
+    height: 20,
+    tintColor: "#999999",
+  },
+  input: {
+    height: 52,
+    paddingHorizontal: 16,
+    backgroundColor: "#F5F6F8",
+    borderRadius: 8,
+    fontSize: 16,
+    color: "#333333",
+  },
+  btnSave: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    width: SCREEN_WIDTH,
+    height: 84,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 1,
+  },
+  btnDisabled: {
+    opacity: 0.5,
+  },
+  btn: {
+    width: 343,
+    height: 52,
+    backgroundColor: Global.colors.primary,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  btnText: {
+    fontSize: 20,
+    fontWeight: "500",
+    color: "#fff",
+  },
+  mask: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: SCREEN_WIDTH,
+    height: "100%",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    zIndex: 2000,
+  },
+  popupBox: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  popupContent: {
+    width: 280,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    alignItems: "center",
+    overflow: "hidden",
+    elevation: 4,
+  },
+  popupContentTop: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: {
+    marginTop: 12,
+  },
+  titleText: {
+    fontSize: 20,
+    fontWeight: "500",
+    color: "#000",
+  },
+  msg: {
+    marginHorizontal: 24,
+    marginVertical: 16,
+  },
+  msgText: {
+    fontSize: 18,
+    fontWeight: "400",
+    color: "#000",
+    textAlign: "left",
+  },
+  divider: {
+    width: "100%",
+    height: 1,
+    backgroundColor: "#ededed",
+  },
+  popupBottom: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 51,
+    width: "100%",
+  },
+  btnLeft: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  btnRight: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  leftText: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: "#000",
+  },
+  rightText: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: Global.colors.primary,
+  },
+  cross: {
+    width: 1,
+    height: 24,
+    backgroundColor: "#ededed",
+  },
+});

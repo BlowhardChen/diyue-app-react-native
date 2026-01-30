@@ -29,11 +29,10 @@ import SelectLandScreen from "@/screens/land/SelcetLandScreen";
 import MergeLandScreen from "@/screens/land/MergeLandScreen";
 import FindLandDetailScreen from "@/screens/land/FindLandDetailScreen";
 import FindPointScreen from "@/screens/land/FindPointScreen";
-import AddFarmScreen from "@/screens/farming/AddFarmScreen";
-import FarmMapScreen from "@/screens/farming/FarmMapScreen";
+import AddFarmingScreen from "@/screens/farming/AddFarmingScreen";
+import FarmingMapScreen from "@/screens/farming/FarmingMapScreen";
 import MechanicalTaskScreen from "@/screens/farming/MechanicalTaskScreen";
 import PatrolFieldManageScreen from "@/screens/farming/PatrolFieldManageScreen";
-import FarmDataCalculatorScreen from "@/screens/farming/FarmDataCalculatorScreen";
 import ContractManageScreen from "@/screens/contract/ContractManageScreen";
 import AddContractScreen from "@/screens/contract/AddContractScreen";
 import ElectronicContractScreen from "@/screens/contract/ElectronicContractScreen";
@@ -44,6 +43,12 @@ import AbnormalUploadScreen from "@/screens/patrol/AbnormalUploadScreen";
 import MarkPositionScreen from "@/screens/patrol/MarkPositionScreen";
 import PatrolDetailScreen from "@/screens/patrol/PatrolDetailScreen";
 import PatrolManageScreen from "@/screens/patrol/PatrolManageScreen";
+import FarmingDetailScreen from "@/screens/farming/FarmingDetailScreen";
+import AllocateFarmingScreen from "@/screens/farming/AllocateFarmingScreen";
+import TransferFarmingScreen from "@/screens/farming/TransferFarmingScreen";
+import FarmingWorkDataScreen from "@/screens/farming/FarmingWorkDataScreen";
+import HistoryWorkDetailScreen from "@/screens/farming/HistoryWorkDetailScreen";
+import LandMarkScreen from "@/screens/farming/LandMarkScreen";
 
 type Props = {
   initialRouteName?: keyof RootStackParamList;
@@ -85,6 +90,12 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
           },
         },
       }}>
+      <Stack.Screen name="LandMark" component={LandMarkScreen} />
+      <Stack.Screen name="HistoryWorkDetail" component={HistoryWorkDetailScreen} />
+      <Stack.Screen name="FarmingWorkData" component={FarmingWorkDataScreen} />
+      <Stack.Screen name="AllocateFarming" component={AllocateFarmingScreen} />
+      <Stack.Screen name="TransferFarming" component={TransferFarmingScreen} />
+      <Stack.Screen name="FarmingDetail" component={FarmingDetailScreen} />
       <Stack.Screen name="PatrolManage" component={PatrolManageScreen} />
       <Stack.Screen name="PatrolDetail" component={PatrolDetailScreen} />
       <Stack.Screen name="MarkPosition" component={MarkPositionScreen} />
@@ -95,11 +106,10 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
       <Stack.Screen name="ElectronicContract" component={ElectronicContractScreen} />
       <Stack.Screen name="AddContract" component={AddContractScreen} />
       <Stack.Screen name="ContractManage" component={ContractManageScreen} />
-      <Stack.Screen name="FarmDataCalculator" component={FarmDataCalculatorScreen} />
       <Stack.Screen name="PatrolFieldManage" component={PatrolFieldManageScreen} />
       <Stack.Screen name="MechanicalTask" component={MechanicalTaskScreen} />
-      <Stack.Screen name="FarmMap" component={FarmMapScreen} />
-      <Stack.Screen name="AddFarm" component={AddFarmScreen} />
+      <Stack.Screen name="FarmingMap" component={FarmingMapScreen} />
+      <Stack.Screen name="AddFarming" component={AddFarmingScreen} />
       <Stack.Screen name="FindPoint" component={FindPointScreen} />
       <Stack.Screen name="FindLandDetail" component={FindLandDetailScreen} />
       <Stack.Screen name="MergeLand" component={MergeLandScreen} />
