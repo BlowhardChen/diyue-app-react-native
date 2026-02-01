@@ -72,6 +72,7 @@ export type FarmStackParamList = {
   FarmingWorkData: {farmingId: string};
   HistoryWorkDetail: {farmingId: string};
   LandMark: {farmingId: string};
+  MechanicalTaskDetail: {id: string; navTitle: string};
 };
 
 // 合同管理相关

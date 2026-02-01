@@ -12,13 +12,15 @@ import {RootStackParamList} from "@/types/navigation";
 interface Props {
   navTitle?: string;
   showRightIcon?: boolean;
+  deviceStatus?: string;
   onBackView?: () => void;
 }
 
 const deviceConnected = require("@/assets/images/common/icon-device-connect.png");
 const deviceDisconnected = require("@/assets/images/common/icon-device-disconnect.png");
+const deviceOffline = require("@/assets/images/common/icon-device-offline.png");
 
-const CustomFarmingHeader: React.FC<Props> = observer(({navTitle = "", showRightIcon = true, onBackView}) => {
+const CustomFarmingHeader: React.FC<Props> = observer(({navTitle = "", showRightIcon = true, deviceStatus = "2", onBackView}) => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute();
@@ -48,7 +50,10 @@ const CustomFarmingHeader: React.FC<Props> = observer(({navTitle = "", showRight
 
         {showRightIcon ? (
           <TouchableOpacity style={styles.iconWrapper} onPress={handleConnectDevice}>
-            <Image source={deviceStore.status === "2" ? deviceDisconnected : deviceConnected} style={styles.iconWrapperImage} />
+            <Image
+              source={deviceStore.status === "2" ? deviceDisconnected : deviceStatus === "2" ? deviceOffline : deviceConnected}
+              style={styles.iconWrapperImage}
+            />
           </TouchableOpacity>
         ) : (
           <View style={styles.iconWrapper} />

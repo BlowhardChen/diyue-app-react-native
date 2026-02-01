@@ -108,7 +108,10 @@ const FarmingMapScreen: React.FC = () => {
   // 渲染农事类型子项（犁地/旋耕等）
   const renderFarmingTypeItem = (item: any) => {
     return (
-      <TouchableOpacity style={FarmingMapScreenStyles.farmingTypeItem} activeOpacity={1} onPress={() => viewFarmingDetail(item)}>
+      <TouchableOpacity
+        style={FarmingMapScreenStyles.farmingTypeItem}
+        activeOpacity={0.8}
+        onPress={() => viewFarmingDetail(item)}>
         <Text style={FarmingMapScreenStyles.farmingTypeName}>{item.name}</Text>
         <View style={FarmingMapScreenStyles.farmingTypeRight}>
           <Text style={activeTab === "0" ? FarmingMapScreenStyles.farmingAreaText : FarmingMapScreenStyles.farmingAreaTextActive}>

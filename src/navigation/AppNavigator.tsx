@@ -49,6 +49,7 @@ import TransferFarmingScreen from "@/screens/farming/TransferFarmingScreen";
 import FarmingWorkDataScreen from "@/screens/farming/FarmingWorkDataScreen";
 import HistoryWorkDetailScreen from "@/screens/farming/HistoryWorkDetailScreen";
 import LandMarkScreen from "@/screens/farming/LandMarkScreen";
+import MechanicalTaskDetailScreen from "@/screens/farming/MechanicalTaskDetailScreen";
 
 type Props = {
   initialRouteName?: keyof RootStackParamList;
@@ -90,6 +91,7 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
           },
         },
       }}>
+      <Stack.Screen name="MechanicalTaskDetail" component={MechanicalTaskDetailScreen} />
       <Stack.Screen name="LandMark" component={LandMarkScreen} />
       <Stack.Screen name="HistoryWorkDetail" component={HistoryWorkDetailScreen} />
       <Stack.Screen name="FarmingWorkData" component={FarmingWorkDataScreen} />
