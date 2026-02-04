@@ -1,5 +1,5 @@
 // 分配农事
-import {View, Text, TouchableOpacity, ScrollView, TextInput, Image, Pressable} from "react-native";
+import {View, Text, TouchableOpacity, ScrollView, TextInput, Image} from "react-native";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import CustomStatusBar from "@/components/common/CustomStatusBar";
@@ -7,43 +7,94 @@ import {AllocateFarmingScreenStyles} from "./styles/AllocateFarmingScreen";
 import {useEffect, useState} from "react";
 import {showCustomToast} from "@/components/common/CustomToast";
 import {LandListData} from "@/types/land";
+import {farmingDetailInfo} from "@/services/farming";
+import {debounce} from "lodash";
+
+type OperatorItem = {
+  id: string;
+  account: string;
+  selectedLands: LandListData[];
+};
 
 type AllocateFarmingStackParamList = {
-  SelectLand: {type: string; onSelectLandResult: (result: LandListData[]) => void};
+  SelectLand: {type: string; lands?: LandListData[]; onSelectLandResult: (result: LandListData[]) => void};
 };
 
 const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) => {
   const navigation = useNavigation<StackNavigationProp<AllocateFarmingStackParamList>>();
-  const [selectedLand, setSelectedLand] = useState<string>("");
-  const [farmingOperAccount, setFarmingOperAccount] = useState<string>("");
+  const [operators, setOperators] = useState<OperatorItem[]>([]);
   const [isFarmParComplete, setIsFarmParComplete] = useState(false);
   const [farmingLands, setFarmingLands] = useState<LandListData[]>([]);
   const [isShowPopup, setIsShowPopup] = useState(false);
+  const [remainingLands, setRemainingLands] = useState<number>(0);
+  const [remainingArea, setRemainingArea] = useState<number>(0);
+  const [farmingDetailData, setFarmingDetailData] = useState<any>({});
+  const allAllocatedLands = operators.flatMap(item => item.selectedLands);
 
-  useEffect(() => {}, []);
-
-  // 监听表单完整性，更新保存按钮状态
   useEffect(() => {
-    const isComplete = !!selectedLand && !!farmingOperAccount;
-    setIsFarmParComplete(isComplete);
-  }, [selectedLand, farmingOperAccount]);
+    getFarmingDetailData(route.params.farmingId);
+  }, []);
+
+  // 监听表单：所有模块有账号+有选中地块，且总选中地块不重复
+  useEffect(() => {
+    const allModuleComplete = operators.every(item => !!item.account.trim() && item.selectedLands.length > 0);
+    const uniqueAllocatedLandIds = new Set(allAllocatedLands.map(land => land.id));
+    const noRepeatAllocate = uniqueAllocatedLandIds.size === allAllocatedLands.length;
+    const hasAtLeastOneOperator = operators.length > 0;
+
+    setIsFarmParComplete(allModuleComplete && noRepeatAllocate && hasAtLeastOneOperator);
+  }, [operators]);
+
+  // 计算剩余未分配地块和面积（总地块 - 已分配所有地块）
+  useEffect(() => {
+    // 已分配的唯一地块（避免重复计算）
+    const uniqueAllocatedLandIds = new Set(allAllocatedLands.map(land => land.id));
+    const allocatedLands = farmingLands.filter(land => uniqueAllocatedLandIds.has(land.id));
+
+    const remaining = farmingLands.length - allocatedLands.length;
+    const totalArea = calculateTotalArea(farmingLands);
+    const allocatedArea = calculateTotalArea(allocatedLands);
+    const remainingAreaVal = Number((totalArea - allocatedArea).toFixed(2));
+
+    setRemainingArea(remainingAreaVal);
+    setRemainingLands(remaining);
+  }, [operators, farmingLands]);
+
+  // 获取农事详情数据）
+  const getFarmingDetailData = async (id: string) => {
+    try {
+      const {data} = await farmingDetailInfo({farmingJoinTypeId: id});
+      setFarmingDetailData(data);
+      setFarmingLands(data.lands || []);
+      const initialOperator: OperatorItem = {
+        id: Date.now().toString(), // 用时间戳做唯一id
+        account: "",
+        selectedLands: data.lands || [],
+      };
+      setOperators([initialOperator]);
+    } catch (error) {
+      showCustomToast("error", "获取农事详情失败，请稍后重试");
+    }
+  };
 
   // 选择地块
-  const handleLandSelect = () => {
+  const handleLandSelect = (operatorId: string) => {
+    // 找到当前模块已选中的地块
+    const currentOperator = operators.find(item => item.id === operatorId);
+    if (!currentOperator) return;
+
     navigation.navigate("SelectLand", {
       type: "farming",
+      lands: farmingLands,
       onSelectLandResult: result => {
-        handleSelectLandResult(result);
+        handleSelectLandResult(operatorId, result);
       },
     });
   };
 
   // 处理选择地块结果
-  const handleSelectLandResult = (result: LandListData[]) => {
-    console.log("处理选择地块结果", result);
-    const farmingLands = result;
-    setFarmingLands(farmingLands);
-    console.log("地块", farmingLands);
+  const handleSelectLandResult = (operatorId: string, result: LandListData[]) => {
+    setOperators(prev => prev.map(item => (item.id === operatorId ? {...item, selectedLands: result} : item)));
   };
 
   // 计算地块亩数之和
@@ -51,81 +102,97 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
     return Number(land.reduce((total, item) => total + Number(item.actualAcreNum || 0), 0).toFixed(2));
   };
 
+  // 添加机手账号模块
+  const addOperatorAccount = debounce(() => {
+    const newOperator: OperatorItem = {
+      id: Date.now().toString(),
+      account: "",
+      selectedLands: [],
+    };
+    setOperators(prev => [...prev, newOperator]);
+  }, 300);
+
+  // 更新机手账号（指定模块）
+  const updateOperatorAccount = (operatorId: string, account: string) => {
+    setOperators(prev => prev.map(item => (item.id === operatorId ? {...item, account} : item)));
+  };
+
   // 保存分配农事
-  const saveAllocateFarm = async () => {};
+  const saveAllocateFarm = async () => {
+    setIsShowPopup(true);
+  };
 
   // 取消操作
   const popupCancel = () => {
     setIsShowPopup(false);
   };
 
-  // 确认操作
+  // 确认操作（适配多机手参数）
   const popupConfirm = async () => {
     try {
-      //   await completeFarming(farmingInfo.id);
+      // 构造多机手提交参数：每个机手对应账号+选中地块
+      const submitParams = {
+        farmingJoinTypeId: route.params.farmingId,
+        operatorList: operators.map(item => ({
+          assignMobile: item.account,
+          lands: item.selectedLands.map(land => ({landId: land.id})),
+        })),
+      };
+      console.log("多机手提交参数：", submitParams);
+      // 替换为实际接口：await allocateFarming(submitParams);
       setIsShowPopup(false);
-    } catch (error) {}
+      showCustomToast("success", "分配农事保存成功");
+      navigation.goBack();
+    } catch (error) {
+      showCustomToast("error", "保存失败，请稍后重试");
+      setIsShowPopup(false);
+    }
   };
 
   return (
     <View style={AllocateFarmingScreenStyles.container}>
       {/* 自定义状态栏 */}
       <CustomStatusBar navTitle={"分配农事"} onBack={() => navigation.goBack()} />
-      <View style={AllocateFarmingScreenStyles.popupTips}>
-        <Text style={AllocateFarmingScreenStyles.popupTipsText}>
-          剩余<Text style={AllocateFarmingScreenStyles.popupTipsActiveText}>20个</Text>地块，共
-          <Text style={AllocateFarmingScreenStyles.popupTipsActiveText}>200亩</Text>待分配
-        </Text>
-      </View>
+      {remainingLands > 0 && (
+        <View style={AllocateFarmingScreenStyles.popupTips}>
+          <Text style={AllocateFarmingScreenStyles.popupTipsText}>
+            剩余<Text style={AllocateFarmingScreenStyles.popupTipsActiveText}>{remainingLands}个</Text>地块，共
+            <Text style={AllocateFarmingScreenStyles.popupTipsActiveText}>{remainingArea}亩</Text>待分配
+          </Text>
+        </View>
+      )}
 
       {/* 主内容区 */}
       <ScrollView style={AllocateFarmingScreenStyles.content} showsVerticalScrollIndicator={false}>
-        <View style={AllocateFarmingScreenStyles.sectionContainer}>
-          <View style={AllocateFarmingScreenStyles.sectionHeader}>
-            <Text style={AllocateFarmingScreenStyles.sectionTitle}>机手账号</Text>
-            <View style={AllocateFarmingScreenStyles.farmingType}>
-              <Text style={AllocateFarmingScreenStyles.farmingTypeText}>犁地</Text>
-            </View>
-          </View>
-          <View style={AllocateFarmingScreenStyles.nameInputContainer}>
-            <TextInput
-              style={AllocateFarmingScreenStyles.nameInput}
-              value={farmingOperAccount}
-              onChangeText={setFarmingOperAccount}
-              placeholder="请输入机手账号"
-              placeholderTextColor="#999"
-            />
-          </View>
-          <View style={{marginTop: 10}}>
+        {operators.map(operator => (
+          <View key={operator.id} style={AllocateFarmingScreenStyles.sectionContainer}>
             <View style={AllocateFarmingScreenStyles.sectionHeader}>
-              <Text style={AllocateFarmingScreenStyles.sectionTitle}>选择地块</Text>
+              <Text style={AllocateFarmingScreenStyles.sectionTitle}>机手账号</Text>
+              <View style={AllocateFarmingScreenStyles.farmingType}>
+                <Text style={AllocateFarmingScreenStyles.farmingTypeText}>{farmingDetailData.farmingTypeName}</Text>
+              </View>
             </View>
-            {farmingLands.length > 0 ? (
-              <TouchableOpacity style={AllocateFarmingScreenStyles.landSelectBtn} onPress={handleLandSelect}>
-                <View style={AllocateFarmingScreenStyles.selectLandTextContnet}>
-                  {farmingLands.length > 0 && (
-                    <Text style={AllocateFarmingScreenStyles.selectLandText}>
-                      <Text>共</Text>
-                      <Text style={{color: "#08AE3C"}}>{farmingLands.length}</Text>
-                      <Text>个地块，共</Text>
-                      <Text style={{color: "#08AE3C"}}>{calculateTotalArea(farmingLands)}</Text>
-                      <Text>亩</Text>
-                    </Text>
-                  )}
-                </View>
-                <Image
-                  source={require("@/assets/images/common/icon-right-gray.png")}
-                  style={AllocateFarmingScreenStyles.editIconImg}
-                />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={AllocateFarmingScreenStyles.landSelectBtn} onPress={handleLandSelect}>
+            <View style={AllocateFarmingScreenStyles.nameInputContainer}>
+              <TextInput
+                style={AllocateFarmingScreenStyles.nameInput}
+                value={operator.account}
+                onChangeText={val => updateOperatorAccount(operator.id, val)}
+                placeholder="请输入机手账号"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={{marginTop: 10}}>
+              <View style={AllocateFarmingScreenStyles.sectionHeader}>
+                <Text style={AllocateFarmingScreenStyles.sectionTitle}>选择地块</Text>
+              </View>
+              <TouchableOpacity style={AllocateFarmingScreenStyles.landSelectBtn} onPress={() => handleLandSelect(operator.id)}>
                 <View style={AllocateFarmingScreenStyles.selectLandTextContnet}>
                   <Text style={AllocateFarmingScreenStyles.selectLandText}>
                     <Text>共</Text>
-                    <Text style={{color: "#08AE3C"}}>{"60"}</Text>
+                    <Text style={{color: "#08AE3C"}}>{operator.selectedLands.length}</Text>
                     <Text>个地块，共</Text>
-                    <Text style={{color: "#08AE3C"}}>{"2000"}</Text>
+                    <Text style={{color: "#08AE3C"}}>{calculateTotalArea(operator.selectedLands)}</Text>
                     <Text>亩</Text>
                   </Text>
                 </View>
@@ -134,22 +201,29 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
                   style={AllocateFarmingScreenStyles.editIconImg}
                 />
               </TouchableOpacity>
-            )}
+            </View>
           </View>
-        </View>
+        ))}
 
+        {/* 添加机手账号按钮：所有地块分配完成后禁用（保持原有逻辑） */}
         <View style={AllocateFarmingScreenStyles.addAllocateFarmingContainer}>
-          <TouchableOpacity style={AllocateFarmingScreenStyles.addAllocateFarming}>
+          <TouchableOpacity
+            style={[
+              AllocateFarmingScreenStyles.addAllocateFarming,
+              remainingLands === 0 && AllocateFarmingScreenStyles.btnDisabled,
+            ]}
+            disabled={remainingLands === 0}
+            onPress={addOperatorAccount}>
             <Image
               source={require("@/assets/images/farming/icon-add.png")}
               style={AllocateFarmingScreenStyles.addAllocateFarmingImg}
             />
-            <Text style={AllocateFarmingScreenStyles.addAllocateFarmingText}>添加手机账号</Text>
+            <Text style={AllocateFarmingScreenStyles.addAllocateFarmingText}>添加机手账号</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* 保存按钮（保持绝对定位） */}
+      {/* 保存按钮：表单完整时可点击 */}
       <View style={AllocateFarmingScreenStyles.btnSave}>
         <TouchableOpacity
           style={[AllocateFarmingScreenStyles.btn, !isFarmParComplete && AllocateFarmingScreenStyles.btnDisabled]}
@@ -159,6 +233,7 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
         </TouchableOpacity>
       </View>
 
+      {/* 确认弹窗：适配多机手剩余地块提示 */}
       {isShowPopup && (
         <View style={AllocateFarmingScreenStyles.mask}>
           <View style={AllocateFarmingScreenStyles.popupBox}>
@@ -169,11 +244,15 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
                 </View>
               </View>
               <View style={AllocateFarmingScreenStyles.msg}>
-                {/* 显示消息文本，应用默认样式和自定义样式 */}
-                <Text style={AllocateFarmingScreenStyles.msgText}>
-                  剩余<Text style={{color: "#FF3D3B"}}>20个</Text>地块，共<Text style={{color: "#FF3D3B"}}>200亩</Text>
-                  待分配，是否继续保存？
-                </Text>
+                {remainingLands > 0 ? (
+                  <Text style={AllocateFarmingScreenStyles.msgText}>
+                    剩余<Text style={{color: "#FF3D3B"}}>{remainingLands}个</Text>地块，共
+                    <Text style={{color: "#FF3D3B"}}>{remainingArea}亩</Text>
+                    待分配，是否继续保存？
+                  </Text>
+                ) : (
+                  <Text style={AllocateFarmingScreenStyles.msgText}>确认保存分配农事信息？</Text>
+                )}
               </View>
 
               <View style={AllocateFarmingScreenStyles.divider} />
@@ -182,7 +261,6 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
                 <TouchableOpacity style={AllocateFarmingScreenStyles.btnLeft} onPress={popupCancel}>
                   <Text style={AllocateFarmingScreenStyles.leftText}>取消</Text>
                 </TouchableOpacity>
-                {/* 按钮之间的分割线 */}
                 <View style={AllocateFarmingScreenStyles.cross} />
                 <TouchableOpacity style={AllocateFarmingScreenStyles.btnRight} onPress={popupConfirm}>
                   <Text style={AllocateFarmingScreenStyles.rightText}>保存</Text>

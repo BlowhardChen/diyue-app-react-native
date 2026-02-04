@@ -116,47 +116,57 @@ window.PolygonModule = (function () {
     }
 
     /**
-     * 绘制地块多边型
+     * 绘制地块多边型（修改后：支持绘制时直接渲染选中状态）
      */
     function drawLandPolygon(map, data) {
         if (!data || !Array.isArray(data.gpsList) || data.gpsList.length < 3) {
             return null;
         }
+        // 提取是否选中的状态（React Native端传递的isSelect属性）
+        const isSelect = !!data.isSelect;
 
         // 将坐标转换为OpenLayers可以接受的格式
         let path3857 = data.gpsList.map((item) => {
             return ol.proj.transform([item.lng, item.lat], 'EPSG:4326', 'EPSG:3857')
         });
 
-        // 创建多边形几何对象
-        let polygon = new ol.geom.Polygon([path3857]);
+        // 创建多边形几何对象（自动闭合，OpenLayers要求）
+        const closedPath3857 = [...path3857, path3857[0]];
+        let polygon = new ol.geom.Polygon([closedPath3857]);
 
-        // 创建特性并添加到源
+        // 创建特性并添加到源（保留原有属性，新增isSelect记录状态）
         let landPolygonFeature = new ol.Feature({
             geometry: polygon,
             id: data.id,
             checked: data.checked ? data.checked : false,
             landType: data.landType,
             landName: data.landName,
-            actualAcreNum: data.actualAcreNum
+            actualAcreNum: data.actualAcreNum,
+            isSelect: isSelect // 存入Feature，方便后续判断
         });
 
         const textMsg = `${data.landName}\n${data.actualAcreNum}亩`;
+        // 基础颜色（根据地块类型）
+        const landTypeColor1 = '#A1FF83'; // 流转地块
+        const landTypeColor2 = '#5BF3FF'; // 托管地块
+        const activeColor = '#FFFF00';    // 选中激活色（黄色）
 
-        // 设置地块样式
+        // 设置地块样式：区分选中/未选中
         landPolygonFeature.setStyle(
             new ol.style.Style({
                 stroke: new ol.style.Stroke({
-                    color: data.landType === '1' ? '#A1FF83' : '#5BF3FF',
+                    color: isSelect ? activeColor : (data.landType === '1' ? landTypeColor1 : landTypeColor2),
                     width: 2,
                 }),
                 fill: new ol.style.Fill({
-                    color: data.landType === '1' ? 'rgba(161, 255, 131, 0.1)' : 'rgba(91, 243, 255, 0.2)',
+                    color: isSelect 
+                        ? 'rgba(161, 255, 131, 0.1)' // 选中时的填充色（与点击后一致）
+                        : (data.landType === '1' ? 'rgba(161, 255, 131, 0.1)' : 'rgba(91, 243, 255, 0.2)'),
                 }),
                 text: new ol.style.Text({
                     text: textMsg,
                     font: '16px Arial',
-                    fill: new ol.style.Fill({ color: '#fff' }),
+                    fill: new ol.style.Fill({ color: isSelect ? activeColor : '#fff' }),
                     stroke: new ol.style.Stroke({
                         color: '#000',
                         width: 2,
@@ -172,6 +182,37 @@ window.PolygonModule = (function () {
             }),
             zIndex: 99,
         });
+
+        // 选中状态时，自动绘制黄色边长标注
+        if (isSelect) {
+            // 遍历多边形边，计算并添加边长标注
+            for (let i = 0; i < closedPath3857.length - 1; i++) {
+                let start = closedPath3857[i];
+                let end = closedPath3857[i + 1];
+                let line = new ol.geom.LineString([start, end]);
+                // 计算球面长度
+                let length = ol.sphere.getLength(line, { projection: 'EPSG:3857' });
+                let lineFeature = new ol.Feature({ geometry: line });
+                
+                lineFeature.setStyle(
+                    new ol.style.Style({
+                        text: new ol.style.Text({
+                            text: length.toFixed(2) + ' m',
+                            font: '16px Arial',
+                            textAlign: 'center',
+                            textBaseline: 'middle',
+                            placement: 'line',
+                            offsetY: -15,
+                            fill: new ol.style.Fill({ color: activeColor }), // 黄色标注
+                            stroke: new ol.style.Stroke({ color: '#000000', width: 2 }),
+                        }),
+                    })
+                );
+                // 加入边长Feature列表
+                lineFeatureList.push(lineFeature);
+                polygonVectorLayer.getSource().addFeature(lineFeature);
+            }
+        }
 
         map.addLayer(polygonVectorLayer);
         polygonFeatureList.push({
@@ -959,6 +1000,15 @@ window.PolygonModule = (function () {
         return polygonFeatureList;
     }
 
+    /**
+     * 绘制农事标注地块
+     */
+    function drawFarmingMarkLandPolygon(map, data) {
+        if (!data || !Array.isArray(data.gpsList) || data.gpsList.length < 3) {
+            return null;
+        }
+    }  
+
     return {
         drawEnclosurePolygon,
         removeEnclosurePolygon,
@@ -979,6 +1029,7 @@ window.PolygonModule = (function () {
         removeMergeLandPolygon,
         drawFindLandPolygon,
         drawMarkEnclosureLandPolygon,
-        getPolygonFeatureList
+        getPolygonFeatureList,
+        drawFarmingMarkLandPolygon
     };
 })();

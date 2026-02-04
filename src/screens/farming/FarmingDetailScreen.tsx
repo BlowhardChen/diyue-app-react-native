@@ -25,9 +25,14 @@ import {RootStackParamList} from "@/types/navigation";
 import CustomFarmingHeader from "@/components/common/CustomFarmingHeader";
 import FarmingTaskBottomPopup from "./components/FarmingTaskBottomPopup";
 import FarmingManagePopup from "./components/FarmingMangePopup";
+import {farmingDetailInfo} from "@/services/farming";
+import {update} from "lodash";
+import {updateStore} from "@/stores/updateStore";
 
 type FarmingDetailParams = {
   id: string;
+  farmingId?: string;
+  workStatus: string;
   navTitle: string;
 };
 
@@ -36,7 +41,7 @@ type FarmingDetailRouteProp = RouteProp<Record<string, FarmingDetailParams>, str
 const FarmingDetailScreen = observer(() => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<FarmingDetailRouteProp>();
-  const {id, navTitle} = route.params;
+  const {id, farmingId, workStatus, navTitle} = route.params;
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const webViewRef = useRef<WebView>(null);
@@ -50,8 +55,8 @@ const FarmingDetailScreen = observer(() => {
   const isFirstSocketLocationRef = useRef(true);
   const locationLngLatRef = useRef<{longitude: number; latitude: number} | null>(null);
   const [showManagePopup, setShowManagePopup] = useState(false);
-
-  console.log("FarmingDetailScreen", id);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [farmingDetailData, setFarmingDetailData] = useState<any>(null);
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -71,10 +76,11 @@ const FarmingDetailScreen = observer(() => {
     initLocationPermission();
   }, []);
 
-  // 获取已圈地地块数据
+  // 获取农事详情
   useEffect(() => {
-    getEnclosureLandData();
-  }, []);
+    setLoading(true);
+    getFarmingDetailData();
+  }, [updateStore.isUpdateFarming]);
 
   // 当WebView准备好时
   useEffect(() => {
@@ -377,7 +383,7 @@ const FarmingDetailScreen = observer(() => {
 
   // 查看作业数据
   const onViewWorkPress = () => {
-    navigation.navigate("FarmingWorkData", {farmingId: id});
+    navigation.navigate("FarmingWorkData", {farmingId: farmingDetailData.farmingJoinTypeId});
   };
 
   // 标注地块
@@ -394,15 +400,25 @@ const FarmingDetailScreen = observer(() => {
     }
   };
 
-  // 获取已圈地地块数据
-  const getEnclosureLandData = async () => {
-    const {data} = await getLandListData({quitStatus: "0"});
-    webViewRef.current?.postMessage(
-      JSON.stringify({
-        type: "DRAW_MARK_ENCLOSURE_LAND",
-        data,
-      }),
-    );
+  // 获取农事详情数据
+  const getFarmingDetailData = async () => {
+    try {
+      const {data} = await farmingDetailInfo({farmingJoinTypeId: id});
+      console.log("农事详情数据：", data);
+      webViewRef.current?.postMessage(
+        JSON.stringify({
+          type: "DRAW_MARK_ENCLOSURE_LAND",
+          data: data.lands,
+        }),
+      );
+      setLoading(false);
+      setFarmingDetailData(data);
+      updateStore.setIsUpdateFarming(false);
+    } catch (error) {
+      showCustomToast("error", "获取农事详情失败，请稍后重试");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 初始化WebSocket
@@ -551,22 +567,19 @@ const FarmingDetailScreen = observer(() => {
 
         {/* 作业状态弹窗 */}
         <FarmingTaskBottomPopup
-          taskInfo={{
-            taskType: "犁地",
-            taskStatus: "作业中",
-            area: "20.2",
-            operator: "张三",
-            completedArea: "12.5",
-            completedBlocks: 2,
-            totalBlocks: 8,
-          }}
+          farmingDetailInfo={{...farmingDetailData, workStatus: workStatus}}
           onManagePress={onManagePress}
           onViewWorkPress={onViewWorkPress}
           onMarkPress={onMarkPress}
         />
 
         {/* 农事管理弹窗 */}
-        {showManagePopup && <FarmingManagePopup onClosePopup={onCloseManagePopup} />}
+        {showManagePopup && (
+          <FarmingManagePopup
+            farmingInfo={{...farmingDetailData, farmingId: farmingId, workStatus: workStatus}}
+            onClosePopup={onCloseManagePopup}
+          />
+        )}
       </View>
     </View>
   );

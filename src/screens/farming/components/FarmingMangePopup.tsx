@@ -4,6 +4,8 @@ import {NavigationProp, useNavigation} from "@react-navigation/native";
 import Popup from "@/components/common/Popup";
 import {updateStore} from "@/stores/updateStore";
 import {RootStackParamList} from "@/types/navigation";
+import {completeFarming} from "@/services/farming";
+import {showCustomToast} from "@/components/common/CustomToast";
 
 const {width: screenWidth} = Dimensions.get("window");
 
@@ -14,7 +16,7 @@ interface ManageListType {
 }
 
 interface LandManageProps {
-  farmingInfo?: any;
+  farmingInfo: any;
   onClosePopup: (action?: string) => void;
 }
 
@@ -55,13 +57,13 @@ const FarmingManagePopup: React.FC<LandManageProps> = ({farmingInfo, onClosePopu
   const handleManage = (item: ManageListType) => {
     switch (item.type) {
       case "editFarming":
-        navigation.navigate("AddFarming", {id: ""});
+        navigation.navigate("AddFarming", {id: farmingInfo.farmingJoinTypeId, farmingId: farmingInfo.farmingId});
         break;
       case "allocateFarming":
-        navigation.navigate("AllocateFarming", {farmingId: ""});
+        navigation.navigate("AllocateFarming", {farmingId: farmingInfo.farmingJoinTypeId});
         break;
       case "transferFarming":
-        navigation.navigate("TransferFarming", {farmingId: ""});
+        navigation.navigate("TransferFarming", {farmingId: farmingInfo.farmingJoinTypeId});
         break;
       case "completeFarming":
         setIsShowPopup(true);
@@ -86,10 +88,15 @@ const FarmingManagePopup: React.FC<LandManageProps> = ({farmingInfo, onClosePopu
   // 确认操作
   const popupConfirm = async () => {
     try {
-      //   await completeFarming(farmingInfo.id);
+      await completeFarming({farmingId: farmingInfo.farmingJoinTypeId});
       setIsShowPopup(false);
+      updateStore.setIsUpdateFarming(true);
       onClosePopup("completeFarming");
-    } catch (error) {}
+    } catch (error: any) {
+      showCustomToast("error", error.data.message ?? "操作失败，请重试");
+    } finally {
+      setIsShowPopup(false);
+    }
   };
 
   return (

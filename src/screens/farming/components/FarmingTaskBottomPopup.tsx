@@ -1,33 +1,23 @@
 import ExpandButton from "@/screens/land/components/ExpandButton";
+import {FarmingMapDetailInfoData} from "@/types/farming";
 import React, {useState} from "react";
 import {View, Text, StyleSheet, TouchableOpacity, GestureResponderEvent} from "react-native";
 
 type FarmingTaskBottomPopupProps = {
-  taskInfo: {
-    taskType: string;
-    taskStatus: string;
-    area: string;
-    operator: string;
-    completedArea: string;
-    completedBlocks: number;
-    totalBlocks: number;
-  };
+  farmingDetailInfo: FarmingMapDetailInfoData & {userVos: {userName: string}[]; lands: any[]; status: number; workStatus: string};
   onManagePress: () => void;
   onViewWorkPress: () => void;
   onMarkPress: () => void;
 };
 
-const FarmingTaskBottomPopup = ({taskInfo, onManagePress, onViewWorkPress, onMarkPress}: FarmingTaskBottomPopupProps) => {
-  // 解构对象参数，设置默认值
-  const {
-    taskType = "犁地",
-    taskStatus = "作业中",
-    area = "20.2",
-    operator = "张三",
-    completedArea = "12.5",
-    completedBlocks = 2,
-    totalBlocks = 8,
-  } = taskInfo || {};
+const FarmingTaskBottomPopup = ({
+  farmingDetailInfo,
+  onManagePress,
+  onViewWorkPress,
+  onMarkPress,
+}: FarmingTaskBottomPopupProps) => {
+  const {farmingJoinTypeId, farmingTypeName, landCount, lands, status, totalArea, userVos, workArea, workStatus} =
+    farmingDetailInfo || {};
 
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -38,28 +28,39 @@ const FarmingTaskBottomPopup = ({taskInfo, onManagePress, onViewWorkPress, onMar
         <View style={styles.container}>
           {/* 标题行 */}
           <View style={styles.headerRow}>
-            <View style={styles.taskInfoWrapper}>
-              <Text style={styles.taskTypeText}>{taskType}</Text>
-              <Text style={styles.taskStatusText}>{taskStatus}</Text>
+            <View style={styles.farmingDetailInfoWrapper}>
+              <Text style={styles.farmingTypeNameText}>{farmingTypeName}</Text>
+              <Text style={[styles.workStatusText, {backgroundColor: workStatus === "1" ? "#F58700" : "#08AE3C"}]}>
+                {workStatus === "1" ? "作业中" : "已完成"}
+              </Text>
             </View>
-            <Text style={styles.areaText}>
-              {area}
-              <Text style={styles.unitText}>亩</Text>
+            <Text style={[styles.areaText, {color: workStatus === "1" ? "#F58700" : "#08AE3C"}]}>
+              {totalArea}
+              <Text style={[styles.unitText, {color: workStatus === "1" ? "#F58700" : "#08AE3C"}]}>亩</Text>
             </Text>
           </View>
 
           {/* 作业人 */}
           <View style={styles.operatorWrapper}>
-            <Text style={styles.operatorText}>作业人：{operator}</Text>
+            <Text style={styles.operatorText}>
+              作业人：
+              {farmingDetailInfo?.userVos?.length > 0
+                ? farmingDetailInfo.userVos.map(item => item.userName).join("、")
+                : "暂无作业人"}
+            </Text>
           </View>
 
           {/* 进度区域 */}
           <View style={styles.progressRow}>
-            <View style={styles.progressWrapper}>
+            <View style={[styles.progressWrapper, {backgroundColor: workStatus === "1" ? "#FFF2E2" : "#EBFBF0"}]}>
               <Text style={styles.progressText}>
-                已作业<Text style={{fontSize: 18, fontWeight: "500", color: "#F58700"}}>{completedArea}</Text>亩，完成地块
-                <Text style={{fontSize: 18, fontWeight: "500", color: "#F58700"}}>
-                  {completedBlocks}/{totalBlocks}
+                已作业
+                <Text style={{fontSize: 18, fontWeight: "500", color: workStatus === "1" ? "#F58700" : "#08AE3C"}}>
+                  {workArea ?? "0"}
+                </Text>
+                亩，完成地块
+                <Text style={{fontSize: 18, fontWeight: "500", color: workStatus === "1" ? "#F58700" : "#08AE3C"}}>
+                  {landCount ?? "0"}/{lands?.length}
                 </Text>
                 个
               </Text>
@@ -105,20 +106,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingHorizontal: 16,
   },
-  taskInfoWrapper: {
+  farmingDetailInfoWrapper: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  taskTypeText: {
+  farmingTypeNameText: {
     fontSize: 20,
     fontWeight: "500",
     color: "#000",
   },
-  taskStatusText: {
+  workStatusText: {
     fontSize: 14,
     color: "#fff",
-    backgroundColor: "#F58700",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 2,
@@ -126,12 +126,10 @@ const styles = StyleSheet.create({
   areaText: {
     fontSize: 20,
     fontWeight: "500",
-    color: "#F58700",
   },
   unitText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#F58700",
   },
   operatorWrapper: {
     paddingHorizontal: 16,
@@ -176,13 +174,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   firstButton: {
-    backgroundColor: "#007AFF", // 农事管理
+    backgroundColor: "#007AFF",
   },
   middleButton: {
-    backgroundColor: "#FF9500", // 作业数据
+    backgroundColor: "#FF9500",
   },
   lastButton: {
-    backgroundColor: "#08AE3C", // 标注地块
+    backgroundColor: "#08AE3C",
   },
   buttonText: {
     fontSize: 20,

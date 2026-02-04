@@ -2,60 +2,71 @@
 import React, {useState, useEffect} from "react";
 import {View, Text, TouchableOpacity, StyleSheet, Dimensions, ScrollView, Image} from "react-native";
 import {Global} from "@/styles/global";
+import {FarmingTypeListItem, FarmTypeListItem} from "@/types/farming";
+import {dictDataList} from "@/services/common";
+import {farmingTypeList} from "@/services/farming";
+import {showCustomToast} from "@/components/common/CustomToast";
 
-// 定义筛选选项类型
-type CropType = "小麦" | "玉米" | "大豆" | "水稻";
-type FarmingType = "犁地" | "旋耕" | "深耕" | "播种";
+// 字典数据类型定义
+interface DictData {
+  dictLabel: string;
+  dictValue: string;
+  icon?: string;
+}
+
+const cropIcons = {
+  wheat: require("@/assets/images/farming/icon-wheat.png"),
+  corn: require("@/assets/images/farming/icon-corn.png"),
+  soybean: require("@/assets/images/farming/icon-soybean.png"),
+  rice: require("@/assets/images/farming/icon-rice.png"),
+};
 
 // 组件属性类型
 interface FarmFilterModalProps {
   visible: boolean;
-  onConfirm: (filters: {cropTypes: CropType[]; farmingTypes: FarmingType[]}) => void;
+  onConfirm: (filters: {cropType: DictData; farmingTypes: FarmingTypeListItem[]}) => void;
   onClose: () => void;
-  initialFilters?: {
-    cropTypes: CropType[];
-    farmingTypes: FarmingType[];
-  };
 }
 
-const FarmFilterModal: React.FC<FarmFilterModalProps> = ({
-  visible,
-  onConfirm,
-  onClose,
-  initialFilters = {cropTypes: [], farmingTypes: []},
-}) => {
+const FarmFilterModal: React.FC<FarmFilterModalProps> = ({visible, onConfirm, onClose}) => {
   // 选中的作物类型
-  const [selectedCrops, setSelectedCrops] = useState<CropType[]>([]);
-  // 选中的农事类型
-  const [selectedFarming, setSelectedFarming] = useState<FarmingType[]>([]);
+  const [farmCropList, setFarmCropList] = useState<DictData[]>([]);
+  const [selectedCrop, setSelectedCrop] = useState<DictData | null>(null);
+  const [farmingTypeListData, setFarmingTypeListData] = useState<FarmingTypeListItem[]>([]);
+  const [showFarmingTypeList, setShowFarmingTypeList] = useState(false);
+  const [selectedFarmingTypes, setSelectedFarmingTypes] = useState<FarmingTypeListItem[]>([]);
 
-  // 初始化选中状态
+  // 切换作物选择
+  const handleCropSelect = async (crop: DictData) => {
+    setSelectedCrop(crop);
+    await getFarmingTypeList(crop);
+  };
+
+  // 切换农事操作选择（多选）
+  const handleFarmingTypeToggle = (type: FarmingTypeListItem) => {
+    const isSelected = selectedFarmingTypes.some(item => item.farmingTypeId === type.farmingTypeId);
+    if (isSelected) {
+      setSelectedFarmingTypes(selectedFarmingTypes.filter(item => item.farmingTypeId !== type.farmingTypeId));
+    } else {
+      setSelectedFarmingTypes([...selectedFarmingTypes, type]);
+    }
+  };
+
   useEffect(() => {
-    setSelectedCrops([...initialFilters.cropTypes]);
-    setSelectedFarming([...initialFilters.farmingTypes]);
-  }, [initialFilters]);
-
-  // 切换作物类型选中状态
-  const toggleCrop = (crop: CropType) => {
-    setSelectedCrops(prev => (prev.includes(crop) ? prev.filter(item => item !== crop) : [...prev, crop]));
-  };
-
-  // 切换农事类型选中状态
-  const toggleFarming = (farming: FarmingType) => {
-    setSelectedFarming(prev => (prev.includes(farming) ? prev.filter(item => item !== farming) : [...prev, farming]));
-  };
+    getFarmCropList();
+  }, []);
 
   // 重置筛选条件
   const handleReset = () => {
-    setSelectedCrops([]);
-    setSelectedFarming([]);
+    setSelectedCrop(null);
+    setSelectedFarmingTypes([]);
   };
 
   // 确定筛选
   const handleConfirm = () => {
     onConfirm({
-      cropTypes: selectedCrops,
-      farmingTypes: selectedFarming,
+      cropType: selectedCrop as DictData,
+      farmingTypes: selectedFarmingTypes,
     });
   };
 
@@ -64,10 +75,34 @@ const FarmFilterModal: React.FC<FarmFilterModalProps> = ({
     onClose?.();
   };
 
-  // 作物类型列表
-  const cropOptions: CropType[] = ["小麦", "玉米", "大豆", "水稻"];
-  // 农事类型列表
-  const farmingOptions: FarmingType[] = ["犁地", "旋耕", "深耕", "播种"];
+  // 获取农事作物列表
+  const getFarmCropList = async (): Promise<void> => {
+    try {
+      const {data} = await dictDataList({dictType: "farm_crops_type"});
+      const updatedList = data?.map(item => {
+        return {...item, icon: cropIcons[item.dictValue as keyof typeof cropIcons]};
+      });
+      setFarmCropList(updatedList || []);
+    } catch (error) {
+      showCustomToast("error", "获取作物列表失败");
+    }
+  };
+
+  // 获取农事类型列表
+  const getFarmingTypeList = async (crop: DictData): Promise<void> => {
+    try {
+      const {data} = await farmingTypeList({dictValue: crop.dictValue || ""});
+      if (!data || data.length === 0) {
+        setShowFarmingTypeList(false);
+        showCustomToast("error", `当前作物${crop.dictLabel}暂无农事类型`);
+        return;
+      }
+      setShowFarmingTypeList(true);
+      setFarmingTypeListData(data || []);
+    } catch (error) {
+      showCustomToast("error", `获取${crop.dictLabel}农事类型列表失败`);
+    }
+  };
 
   // 不显示时直接返回空视图
   if (!visible) return null;
@@ -83,39 +118,55 @@ const FarmFilterModal: React.FC<FarmFilterModalProps> = ({
           </View>
           {/* 作物类型选项网格 */}
           <View style={styles.optionsGrid}>
-            {cropOptions.map(crop => (
+            {farmCropList.map(crop => (
               <TouchableOpacity
-                key={crop}
-                style={[styles.optionItem, selectedCrops.includes(crop) && styles.selectedOption]}
+                key={crop.dictValue}
+                style={[styles.optionItem, selectedCrop?.dictValue === crop.dictValue && styles.selectedOption]}
                 activeOpacity={1}
-                onPress={() => toggleCrop(crop)}>
-                <Text style={[styles.optionText, selectedCrops.includes(crop) && styles.selectedText]}>{crop}</Text>
-                {selectedCrops.includes(crop) && (
+                onPress={() => handleCropSelect(crop)}>
+                <Text style={[styles.optionText, selectedCrop?.dictValue === crop.dictValue && styles.selectedText]}>
+                  {crop.dictLabel}
+                </Text>
+                {selectedCrop?.dictValue === crop.dictValue && (
                   <Image source={require("@/assets/images/common/icon-subscript.png")} style={styles.checkIcon} />
                 )}
               </TouchableOpacity>
             ))}
           </View>
-          {/* 农事类型标题 */}
-          <View style={[styles.filterTitleContainer, {marginTop: 20}]}>
-            <View style={styles.mark} />
-            <Text style={styles.filterTitle}>农事类型</Text>
-          </View>
+
           {/* 农事类型选项网格 */}
-          <View style={styles.optionsGrid}>
-            {farmingOptions.map(farming => (
-              <TouchableOpacity
-                key={farming}
-                style={[styles.optionItem, selectedFarming.includes(farming) && styles.selectedOption]}
-                activeOpacity={1}
-                onPress={() => toggleFarming(farming)}>
-                <Text style={[styles.optionText, selectedFarming.includes(farming) && styles.selectedText]}>{farming}</Text>
-                {selectedFarming.includes(farming) && (
-                  <Image source={require("@/assets/images/common/icon-subscript.png")} style={styles.checkIcon} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
+          {showFarmingTypeList && (
+            <>
+              {/* 农事类型标题 */}
+              <View style={[styles.filterTitleContainer, {marginTop: 20}]}>
+                <View style={styles.mark} />
+                <Text style={styles.filterTitle}>农事类型</Text>
+              </View>
+              <View style={styles.optionsGrid}>
+                {farmingTypeListData.map(farming => (
+                  <TouchableOpacity
+                    key={farming.farmingTypeId}
+                    style={[
+                      styles.optionItem,
+                      selectedFarmingTypes.some(item => item.farmingTypeId === farming.farmingTypeId) && styles.selectedOption,
+                    ]}
+                    activeOpacity={1}
+                    onPress={() => handleFarmingTypeToggle(farming)}>
+                    <Text
+                      style={[
+                        styles.optionText,
+                        selectedFarmingTypes.some(item => item.farmingTypeId === farming.farmingTypeId) && styles.selectedText,
+                      ]}>
+                      {farming.farmingTypeName}
+                    </Text>
+                    {selectedFarmingTypes.some(item => item.farmingTypeId === farming.farmingTypeId) && (
+                      <Image source={require("@/assets/images/common/icon-subscript.png")} style={styles.checkIcon} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
           {/* 按钮区域 */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.resetButton} activeOpacity={1} onPress={handleReset}>
@@ -151,7 +202,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#E5E5E5",
   },
   scrollContainer: {
-    minHeight: 300,
+    // minHeight: 300,
   },
   filterTitleContainer: {
     flexDirection: "row",

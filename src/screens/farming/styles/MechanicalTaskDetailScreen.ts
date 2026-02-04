@@ -13,17 +13,17 @@ export const MechanicalTaskDetailScreenStyles = StyleSheet.create({
   copyrightText: {fontSize: 8, color: "#fff"},
   rightControl: {
     position: "absolute",
-    top: 120,
+    top: 135,
     right: 16,
   },
   locationControl: {
     position: "absolute",
-    top: 190,
+    top: 210,
     right: 16,
   },
   popupTips: {
     position: "absolute",
-    top: 94,
+    top: 93,
     left: 0,
     zIndex: 999,
     width: width,

@@ -23,13 +23,25 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import LandOperationPopup from "@/components/land/LandOperationPopup";
 import {Global} from "@/styles/global";
 import {updateStore} from "@/stores/updateStore";
+import {farmingLandList} from "@/services/farming";
 
 interface landListInfoItem extends LandListData {
   isSelect: boolean;
 }
 
 const SelectLandScreen = observer(
-  ({route}: {route: {params: {type: string; onSelectLandResult: (result: LandListData[]) => void}}}) => {
+  ({
+    route,
+  }: {
+    route: {
+      params: {
+        type: string;
+        farmingTypeId?: string;
+        lands?: LandListData[];
+        onSelectLandResult: (result: LandListData[]) => void;
+      };
+    };
+  }) => {
     const insets = useSafeAreaInsets();
     const navigation = useNavigation();
     const [popupTips, setPopupTips] = useState("请点击打点按钮打点或点击十字光标标点");
@@ -77,6 +89,7 @@ const SelectLandScreen = observer(
     useEffect(() => {
       if (landListInfo.length === 0) {
         setIsCheckedAll(false);
+        setSelectedLandInfo([]);
         return;
       }
       // 检查所有项的isSelect是否都为true
@@ -412,6 +425,12 @@ const SelectLandScreen = observer(
             navigation.goBack();
           }
           break;
+        case "farming":
+          if (route.params.onSelectLandResult) {
+            route.params.onSelectLandResult(selectedLandInfo);
+            navigation.goBack();
+          }
+          break;
         default:
           showCustomToast("error", "请选择操作类型");
           break;
@@ -454,22 +473,41 @@ const SelectLandScreen = observer(
 
     // 获取地块数据
     const getLandInfoData = async () => {
-      const {data} = await getLandListData({quitStatus: "0"});
-      console.log("获取地块数据:", data);
-      // 初始化所有地块为未选中状态
-      const selectLandData = data.map((item: LandListData) => ({...item, isSelect: false}));
-      setLandListInfo(selectLandData);
-      setIsCheckedAll(false); // 初始全选框为未勾选
-      setSelectedCount(0);
-      setTotalArea(0);
+      try {
+        const routeLands = route.params.lands || [];
+        const routeLandIds = new Set(routeLands.map(item => item.id));
+        const {data} =
+          route.params.type === "farming"
+            ? await farmingLandList(route.params.farmingTypeId ? {farmingTypeId: route.params.farmingTypeId} : {})
+            : await getLandListData({quitStatus: "0"});
+        const landData = data || [];
+        console.log("接口获取的最新地块数据:", landData);
 
-      // 向 WebView 发送绘制地块的消息
-      webViewRef.current?.postMessage(
-        JSON.stringify({
-          type: "DRAW_LAND_SELECTION",
-          data: selectLandData, // 传递包含 isSelect 状态的地块数据
-        }),
-      );
+        const processedLandData = landData.map((item: LandListData) => ({
+          ...item,
+          isSelect: routeLandIds.has(item.id),
+        }));
+
+        const selectedItems = processedLandData.filter((item: {isSelect: any}) => item.isSelect);
+        setSelectedCount(selectedItems.length);
+
+        const totalAcreage = selectedItems.reduce((acc: any, cur: {actualAcreNum: any}) => acc + (cur.actualAcreNum || 0), 0);
+        setTotalArea(Number(totalAcreage.toFixed(2)));
+
+        setIsCheckedAll(processedLandData.length > 0 && selectedItems.length === processedLandData.length);
+
+        setLandListInfo(processedLandData);
+
+        webViewRef.current?.postMessage(
+          JSON.stringify({
+            type: "DRAW_LAND_SELECTION",
+            data: processedLandData,
+          }),
+        );
+      } catch (error) {
+        showCustomToast("error", "获取地块数据失败，请稍后重试");
+        console.error("获取地块数据异常:", error);
+      }
     };
 
     // 接收WebView消息

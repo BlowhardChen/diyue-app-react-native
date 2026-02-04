@@ -1,18 +1,12 @@
 // 新增农事参数
 export interface AddFarmingParams {
+  farmingId?: string;
   farmingName: string;
   dictLabel: string;
   dictValue: string;
-  totalArea: string;
-  detailaddress: string;
-  workBeginTime: string;
-  workEndTime: string;
-  teamMobile: string;
-  farmingScienceId: string;
-  farmingScienceName: string;
-  farmingScienceTypeId: string;
-  farmingScienceTypeName: string;
-  farmingLands: Array<{land: string}> | [];
+  totalArea: number;
+  farmingLands: {landType: string; landId: string}[];
+  farmingJoinTypes: {farmingTypeId: string; farmingTypeName: string}[];
 }
 
 // 农技方案列表item
@@ -50,28 +44,17 @@ export interface FarmTypeListItem {
 export interface FarmingListInfoData {
   farmingId: string;
   farmingName: string;
-  dictValue: string;
-  workBeginTime: string;
-  workEndTime: string;
+  farmingJoinTypeVoList: FarmingJoinTypeVoList[];
+}
+
+// 农事类型子项数据
+export interface FarmingJoinTypeVoList {
+  farmingJoinTypeId: string;
+  farmingTypeName: string;
   totalArea: number;
-  workStatus: string;
-  country: string;
-  province: string;
-  city: string;
-  district: string;
-  township: string;
-  administrativeVillage: string;
-  detailaddress: string;
-  nickName: string;
-  mobile: number;
-  teamUserId: string;
-  teamName: string;
-  teamMobile: string;
-  teamMemberUserId: string;
-  teamMemberName: string;
-  teamMemberMobile: string;
-  identity: string;
-  isShow: string;
+  totalLandCount: number;
+  workArea: number;
+  workLandCount: number;
 }
 
 // 异常记录详情数据
@@ -99,6 +82,7 @@ export interface FarmingTypeListItem {
   farmingTypeName: string;
 }
 
+// 异常记录详情数据
 export interface AbnormalDetailInfoData {
   id: string;
   taskLogId: string;
@@ -111,4 +95,17 @@ export interface AbnormalDetailInfoData {
   exceptionGpsList: {lat: number; lng: number}[];
   exceptionImageList: {url: string}[];
   exceptionReportList: {dictLabel: string}[];
+}
+
+// 农事地图详情数据
+export interface FarmingMapDetailInfoData {
+  farmingJoinTypeId: string;
+  farmingName: string;
+  farmingTypeName: string;
+  landCount: number;
+  lands: {id: string; landName: string; landType: string; landStatus: string; gpsList: {lat: number; lng: number}[]}[];
+  status: string;
+  totalArea: number;
+  userVos: {userName: string}[];
+  workArea: number;
 }

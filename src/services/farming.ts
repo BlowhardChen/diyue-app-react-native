@@ -24,24 +24,13 @@ export const editFarming = (data: any) => {
 };
 
 /**
- * 新建农事-删除农事
+ * 编辑农事-查询编辑农事详情
  */
-export const deleteFarming = (data: {farmingId: string}) => {
+export const getEditFarmingDetail = (id: string) => {
   return http<any>({
     method: "POST",
-    url: "/app/farming/deleteFarming",
-    data,
-  });
-};
-
-/**
- * 新建农事-农事技术方案列表
- */
-export const farmingScientceList = (data: {dictValue: string; farmingTypeId: string}) => {
-  return http<FarmScientceListItem[]>({
-    method: "POST",
-    url: "/app/farming/science/farmingScienceList",
-    data,
+    url: "/app/farming/queryEditFarming",
+    data: {id},
   });
 };
 
@@ -59,11 +48,11 @@ export const farmingTypeList = (data: {dictValue: string}) => {
 /**
  * 农事地图-农事列表
  */
-export const farmingList = (data: {
+export const getFarmingList = (data: {
   type: string;
   farmingName?: string;
   dictValue?: string;
-  farmingScienceTypeId?: string;
+  farmingScienceTypelds?: string[];
   workStatus?: string;
 }) => {
   return http<FarmingListInfoData[]>({
@@ -74,45 +63,68 @@ export const farmingList = (data: {
 };
 
 /**
- * 农事地图-农事列表统计
- */
-export const farmingCount = (data: {
-  type: string;
-  farmingName?: string;
-  dictValue?: string;
-  farmingScienceTypeIds?: string[];
-  workStatus?: string;
-}) => {
-  return http<{farmingCoun: number; totalArea: number}>({
-    method: "POST",
-    url: "/app/farming/queryFarmingCount",
-    data,
-  });
-};
-
-/**
- * 农事地图-农事数据状态统计
- */
-export const farmingStatusCount = (data: {
-  type: string;
-  dictValue: string;
-  farmingScienceTypeIds: string[];
-  taskType: string;
-}) => {
-  return http<{farmingCoun: number; totalArea: number}>({
-    method: "POST",
-    url: "/app/farming/queryFarmingWorkStatusCount",
-    data,
-  });
-};
-
-/**
  * 农事地图-农事详情
  */
-export const farmingDetailInfo = (data: {farmingId: string; userId?: string; isShow?: string}) => {
+export const farmingDetailInfo = (data: {farmingJoinTypeId: string}) => {
   return http<any>({
     method: "POST",
     url: "/app/farming/queryFarming",
+    data,
+  });
+};
+
+/**
+ * 农事详情-完成农事
+ */
+export const completeFarming = (data: {farmingId: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/farmingWorkStatus",
+    data,
+  });
+};
+
+/**
+ * 农事详情-分配农事
+ */
+export const allocateFarming = (data: {farmingJoinTypeId: string; assignMobiles: string[]; lands: {landId: string}[]}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/allotFarming",
+    data,
+  });
+};
+
+/**
+ * 农事地图-查询农事地块列表（区域所有地块列表）
+ */
+export const farmingLandList = (data: {farmingTypeId?: string; dictValue?: string; memberId?: number; landType?: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/farmingLandVoList",
+    data,
+  });
+};
+
+/**
+ * 农事地图-查询未分配农事地块列表
+ */
+export const unallocatedFarmingLandList = (data: {id: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/unassignedLandFarmingList",
+    data,
+  });
+};
+
+/**
+ * 农事地图-查询农事环节地块列表
+ */
+
+export const farmingScienceLandList = (data: {id: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/farmingLandList",
     data,
   });
 };

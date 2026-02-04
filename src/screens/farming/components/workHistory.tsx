@@ -1,7 +1,8 @@
+import FarmingTimePicker from "@/components/common/FarmingTimePicker";
 import {FarmStackParamList} from "@/types/navigation";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
-import React from "react";
+import React, {useState} from "react";
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Image} from "react-native";
 
 // 模拟作业数据
@@ -39,10 +40,25 @@ const operationData = {
 
 const workHistory = () => {
   const navigation = useNavigation<StackNavigationProp<FarmStackParamList>>();
+  const [showDateFilterPopup, setShowDateFilterPopup] = useState(false);
+
   // 打开日期筛选弹窗
   const openDateFilterPopup = () => {
     console.log("打开日期筛选弹窗");
+    setShowDateFilterPopup(true);
   };
+
+  // 关闭日期筛选弹窗
+  const closeDateFilterPopup = () => {
+    setShowDateFilterPopup(false);
+  };
+
+  // 确认日期筛选
+  const confirmDateFilter = (startTime: string, endTime: string) => {
+    console.log("确认日期筛选：", startTime, endTime);
+    setShowDateFilterPopup(false);
+  };
+
   // 查看作业历史详情
   const viewHistoryDetail = () => {
     navigation.navigate("HistoryWorkDetail", {farmingId: ""});
@@ -105,6 +121,7 @@ const workHistory = () => {
           </View>
         ))}
       </ScrollView>
+      <FarmingTimePicker visible={showDateFilterPopup} onClose={closeDateFilterPopup} onConfirm={confirmDateFilter} />
     </View>
   );
 };

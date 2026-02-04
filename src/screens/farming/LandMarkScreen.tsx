@@ -28,6 +28,7 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import LandMarkScreenPopup from "./components/LandMarkScreenPopup";
 import Popup from "@/components/common/Popup";
 import {Global} from "@/styles/global";
+import {farmingLandList} from "@/services/farming";
 
 type LandMarkScreenParams = {
   farmingId: string;
@@ -76,7 +77,7 @@ const LandMarkScreen = observer(() => {
 
   // 获取已圈地地块数据
   useEffect(() => {
-    getEnclosureLandData();
+    getFarmingLandData();
   }, []);
 
   // 当WebView准备好时
@@ -391,8 +392,9 @@ const LandMarkScreen = observer(() => {
   };
 
   // 获取已圈地地块数据
-  const getEnclosureLandData = async () => {
-    const {data} = await getLandListData({quitStatus: "0"});
+  const getFarmingLandData = async () => {
+    const {data} = await farmingLandList({farmingTypeId: farmingId});
+    console.log("已圈地地块数据:", data);
     webViewRef.current?.postMessage(
       JSON.stringify({
         type: "DRAW_MARK_ENCLOSURE_LAND",

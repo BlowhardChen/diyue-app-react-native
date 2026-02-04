@@ -28,6 +28,7 @@ import MechanicalTaskBottomPopup from "./components/MechanicalTaskBottomPopup";
 
 type FarmingDetailParams = {
   id: string;
+  workStatus: string;
   navTitle: string;
 };
 
@@ -36,7 +37,7 @@ type FarmingDetailRouteProp = RouteProp<Record<string, FarmingDetailParams>, str
 const MechanicalTaskDetailScreen = observer(() => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<FarmingDetailRouteProp>();
-  const {id, navTitle} = route.params;
+  const {id, workStatus, navTitle} = route.params;
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const webViewRef = useRef<WebView>(null);
@@ -50,6 +51,7 @@ const MechanicalTaskDetailScreen = observer(() => {
   const isFirstSocketLocationRef = useRef(true);
   const locationLngLatRef = useRef<{longitude: number; latitude: number} | null>(null);
   const [showManagePopup, setShowManagePopup] = useState(false);
+  const [showPopupTips, setShowPopupTips] = useState(true);
   const [popupTips, setPopupTips] = useState("暂无设备，已启用GPS记录轨迹");
   const [popupTipsStyle, setPopupTipsStyle] = useState({backgroundColor: "#EBFFE4", color: "#08AE3C"});
 
@@ -372,6 +374,11 @@ const MechanicalTaskDetailScreen = observer(() => {
     }
   };
 
+  // 关闭提示框
+  const closePopupTips = () => {
+    setShowPopupTips(false);
+  };
+
   // 农事管理
   const onManagePress = () => {
     setShowManagePopup(true);
@@ -510,13 +517,17 @@ const MechanicalTaskDetailScreen = observer(() => {
       />
       {/* 地图 */}
       <View style={MechanicalTaskDetailScreenStyles.mapBox}>
-        <View style={[MechanicalTaskDetailScreenStyles.popupTips, popupTipsStyle]}>
-          <Text style={[MechanicalTaskDetailScreenStyles.popupTipsText, popupTipsStyle]}>{popupTips}</Text>
-          <Image
-            source={require("@/assets/images/farming/icon-close-transparent.png")}
-            style={MechanicalTaskDetailScreenStyles.iconClose}
-          />
-        </View>
+        {showPopupTips && (
+          <View style={[MechanicalTaskDetailScreenStyles.popupTips, popupTipsStyle]}>
+            <Text style={[MechanicalTaskDetailScreenStyles.popupTipsText, popupTipsStyle]}>{popupTips}</Text>
+            <TouchableOpacity style={MechanicalTaskDetailScreenStyles.iconClose} onPress={closePopupTips}>
+              <Image
+                source={require("@/assets/images/farming/icon-close-transparent.png")}
+                style={MechanicalTaskDetailScreenStyles.iconClose}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
         <View style={MechanicalTaskDetailScreenStyles.map} collapsable={false}>
           <WebView
             ref={webViewRef}

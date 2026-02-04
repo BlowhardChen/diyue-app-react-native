@@ -54,7 +54,12 @@ export type LandMapStackParamList = {
   OcrCardScanner: {type: string};
   LandDetail: {landId: string};
   QuitLand: undefined;
-  SelectLand: {type: string; onSelectLandResult: (result: LandListData[]) => void};
+  SelectLand: {
+    type: string;
+    farmingTypeId?: string;
+    lands?: LandListData[] | [];
+    onSelectLandResult: (result: LandListData[]) => void;
+  };
   MergeLand: {landId: string};
   FindLandDetail: {landId: string};
   FindPoint: {point: {lat: number; lon: number}};
@@ -62,17 +67,17 @@ export type LandMapStackParamList = {
 
 // 农事管理相关
 export type FarmStackParamList = {
-  AddFarming: {id?: string};
+  AddFarming: {id?: string; farmingId?: string};
   FarmingMap: undefined;
   MechanicalTask: undefined;
   PatrolFieldManage: undefined;
-  FarmingDetail: {id: string; navTitle: string};
+  FarmingDetail: {farmingId: string; id: string; workStatus: string; navTitle: string};
   AllocateFarming: {farmingId: string};
   TransferFarming: {farmingId: string};
   FarmingWorkData: {farmingId: string};
   HistoryWorkDetail: {farmingId: string};
   LandMark: {farmingId: string};
-  MechanicalTaskDetail: {id: string; navTitle: string};
+  MechanicalTaskDetail: {id: string; workStatus: string; navTitle: string};
 };
 
 // 合同管理相关
