@@ -21,7 +21,13 @@ interface DictData {
 }
 
 type FarmingStackParamList = {
-  SelectLand: {type: string; farmingTypeId?: string; lands: LandListData[]; onSelectLandResult: (result: LandListData[]) => void};
+  SelectLand: {
+    type: string;
+    farmingTypeId?: string;
+    lands: LandListData[];
+    landRequest: () => Promise<LandListData[]>;
+    onSelectLandResult: (result: LandListData[]) => void;
+  };
   FarmingMap: undefined;
 };
 
@@ -97,6 +103,7 @@ const AddFarmingScreen = ({route}: {route: {params: {farmingId?: string}}}) => {
     navigation.navigate("SelectLand", {
       type: "farming",
       farmingTypeId: route.params?.farmingId || "",
+      landRequest: (): Promise<LandListData[]> => farmingLandList({}).then(res => res.data),
       lands: selectedLand?.length ? selectedLand : [],
       onSelectLandResult: result => {
         handleSelectLandResult(result);
@@ -145,7 +152,7 @@ const AddFarmingScreen = ({route}: {route: {params: {farmingId?: string}}}) => {
         showCustomToast("success", "新建农事成功");
       } else {
         await editFarming({farmingId: route.params?.farmingId || "", ...params});
-        updateStore.setIsUpdateFarming(true);
+        updateStore.triggerFarmingRefresh();
         showCustomToast("success", "编辑农事成功");
         navigation.reset({
           index: 0,

@@ -159,7 +159,11 @@
                 break;
               // 绘制农事标注地块
               case "DRAW_FARMING_MARK_LAND":
-                  PolygonModule?.drawFarmingMarkLandPolygon(map, data.data);
+                  PolygonModule?.drawFarmingMarkLandListPolygon(map, data.data);
+                break;
+              // 更新农事地块状态
+              case "UPDATE_FARMING_LAND_STATUS":
+                  PolygonModule?.updateFarmingMarkLandStatus(data.id, data.landStatus);
                 break;
               default:
                   WebBridge.postMessage("未处理的消息类型:" + data.type);

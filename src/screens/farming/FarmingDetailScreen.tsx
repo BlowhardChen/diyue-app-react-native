@@ -26,7 +26,6 @@ import CustomFarmingHeader from "@/components/common/CustomFarmingHeader";
 import FarmingTaskBottomPopup from "./components/FarmingTaskBottomPopup";
 import FarmingManagePopup from "./components/FarmingMangePopup";
 import {farmingDetailInfo} from "@/services/farming";
-import {update} from "lodash";
 import {updateStore} from "@/stores/updateStore";
 
 type FarmingDetailParams = {
@@ -80,7 +79,7 @@ const FarmingDetailScreen = observer(() => {
   useEffect(() => {
     setLoading(true);
     getFarmingDetailData();
-  }, [updateStore.isUpdateFarming]);
+  }, [updateStore.farmingRefreshId]);
 
   // 当WebView准备好时
   useEffect(() => {
@@ -388,7 +387,7 @@ const FarmingDetailScreen = observer(() => {
 
   // 标注地块
   const onMarkPress = () => {
-    navigation.navigate("LandMark", {farmingId: id});
+    navigation.navigate("LandMark", {farmingId: farmingDetailData.farmingJoinTypeId});
   };
 
   // 关闭农事管理弹窗
@@ -403,7 +402,7 @@ const FarmingDetailScreen = observer(() => {
   // 获取农事详情数据
   const getFarmingDetailData = async () => {
     try {
-      const {data} = await farmingDetailInfo({farmingJoinTypeId: id});
+      const {data} = await farmingDetailInfo({farmingJoinTypeId: id, type: "1"});
       console.log("农事详情数据：", data);
       webViewRef.current?.postMessage(
         JSON.stringify({
@@ -413,7 +412,7 @@ const FarmingDetailScreen = observer(() => {
       );
       setLoading(false);
       setFarmingDetailData(data);
-      updateStore.setIsUpdateFarming(false);
+      updateStore.triggerFarmingRefresh();
     } catch (error) {
       showCustomToast("error", "获取农事详情失败，请稍后重试");
     } finally {
@@ -575,10 +574,7 @@ const FarmingDetailScreen = observer(() => {
 
         {/* 农事管理弹窗 */}
         {showManagePopup && (
-          <FarmingManagePopup
-            farmingInfo={{...farmingDetailData, farmingId: farmingId, workStatus: workStatus}}
-            onClosePopup={onCloseManagePopup}
-          />
+          <FarmingManagePopup farmingInfo={{...farmingDetailData, farmingId: farmingId}} onClosePopup={onCloseManagePopup} />
         )}
       </View>
     </View>

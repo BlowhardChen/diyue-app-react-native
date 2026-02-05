@@ -58,6 +58,7 @@ export type LandMapStackParamList = {
     type: string;
     farmingTypeId?: string;
     lands?: LandListData[] | [];
+    landRequest?: () => Promise<LandListData[]>;
     onSelectLandResult: (result: LandListData[]) => void;
   };
   MergeLand: {landId: string};

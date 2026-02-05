@@ -7,8 +7,9 @@ import {AllocateFarmingScreenStyles} from "./styles/AllocateFarmingScreen";
 import {useEffect, useState} from "react";
 import {showCustomToast} from "@/components/common/CustomToast";
 import {LandListData} from "@/types/land";
-import {farmingDetailInfo} from "@/services/farming";
+import {allocateFarming, farmingDetailInfo, unallocatedFarmingLandList} from "@/services/farming";
 import {debounce} from "lodash";
+import {updateStore} from "@/stores/updateStore";
 
 type OperatorItem = {
   id: string;
@@ -17,7 +18,12 @@ type OperatorItem = {
 };
 
 type AllocateFarmingStackParamList = {
-  SelectLand: {type: string; lands?: LandListData[]; onSelectLandResult: (result: LandListData[]) => void};
+  SelectLand: {
+    type: string;
+    lands?: LandListData[];
+    landRequest: () => Promise<LandListData[]>;
+    onSelectLandResult: (result: LandListData[]) => void;
+  };
 };
 
 const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) => {
@@ -26,7 +32,7 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
   const [isFarmParComplete, setIsFarmParComplete] = useState(false);
   const [farmingLands, setFarmingLands] = useState<LandListData[]>([]);
   const [isShowPopup, setIsShowPopup] = useState(false);
-  const [remainingLands, setRemainingLands] = useState<number>(0);
+  const [remainingLands, setRemainingLands] = useState<LandListData[]>([]);
   const [remainingArea, setRemainingArea] = useState<number>(0);
   const [farmingDetailData, setFarmingDetailData] = useState<any>({});
   const allAllocatedLands = operators.flatMap(item => item.selectedLands);
@@ -45,35 +51,55 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
     setIsFarmParComplete(allModuleComplete && noRepeatAllocate && hasAtLeastOneOperator);
   }, [operators]);
 
-  // 计算剩余未分配地块和面积（总地块 - 已分配所有地块）
+  // 计算剩余未分配地块和面积
   useEffect(() => {
-    // 已分配的唯一地块（避免重复计算）
     const uniqueAllocatedLandIds = new Set(allAllocatedLands.map(land => land.id));
     const allocatedLands = farmingLands.filter(land => uniqueAllocatedLandIds.has(land.id));
+    const unAllocatedLands = farmingLands.filter(land => !uniqueAllocatedLandIds.has(land.id));
 
-    const remaining = farmingLands.length - allocatedLands.length;
     const totalArea = calculateTotalArea(farmingLands);
     const allocatedArea = calculateTotalArea(allocatedLands);
     const remainingAreaVal = Number((totalArea - allocatedArea).toFixed(2));
 
     setRemainingArea(remainingAreaVal);
-    setRemainingLands(remaining);
+    setRemainingLands(unAllocatedLands);
   }, [operators, farmingLands]);
 
-  // 获取农事详情数据）
+  // 获取农事详情数据
   const getFarmingDetailData = async (id: string) => {
     try {
-      const {data} = await farmingDetailInfo({farmingJoinTypeId: id});
+      const {data} = await farmingDetailInfo({farmingJoinTypeId: id, type: "1"});
+      await getUnallocatedLands();
       setFarmingDetailData(data);
-      setFarmingLands(data.lands || []);
-      const initialOperator: OperatorItem = {
-        id: Date.now().toString(), // 用时间戳做唯一id
-        account: "",
-        selectedLands: data.lands || [],
-      };
-      setOperators([initialOperator]);
     } catch (error) {
       showCustomToast("error", "获取农事详情失败，请稍后重试");
+    }
+  };
+
+  // 获取未分配农事地块
+  const getUnallocatedLands = async () => {
+    try {
+      let initialOperator: OperatorItem;
+      const {data} = await unallocatedFarmingLandList({id: route.params.farmingId});
+      console.log("未分配农事地块", data);
+      if (data.length) {
+        initialOperator = {
+          id: Date.now().toString(), // 用时间戳做唯一id
+          account: "",
+          selectedLands: data || [],
+        };
+        setFarmingLands(data || []);
+      } else {
+        initialOperator = {
+          id: Date.now().toString(), // 用时间戳做唯一id
+          account: "",
+          selectedLands: farmingDetailData.lands || [],
+        };
+        setFarmingLands(farmingDetailData.lands || []);
+      }
+      setOperators([initialOperator]);
+    } catch (error) {
+      showCustomToast("error", "获取未分配农事地块失败，请稍后重试");
     }
   };
 
@@ -82,10 +108,10 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
     // 找到当前模块已选中的地块
     const currentOperator = operators.find(item => item.id === operatorId);
     if (!currentOperator) return;
-
     navigation.navigate("SelectLand", {
       type: "farming",
-      lands: farmingLands,
+      lands: remainingLands.length > 0 ? remainingLands : farmingLands,
+      landRequest: (): Promise<LandListData[]> => unallocatedFarmingLandList({id: route.params.farmingId}).then(res => res.data),
       onSelectLandResult: result => {
         handleSelectLandResult(operatorId, result);
       },
@@ -127,24 +153,22 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
     setIsShowPopup(false);
   };
 
-  // 确认操作（适配多机手参数）
+  // 确认操作
   const popupConfirm = async () => {
     try {
-      // 构造多机手提交参数：每个机手对应账号+选中地块
-      const submitParams = {
+      const farmingJoinTypeLandParams = operators.map(item => ({
         farmingJoinTypeId: route.params.farmingId,
-        operatorList: operators.map(item => ({
-          assignMobile: item.account,
-          lands: item.selectedLands.map(land => ({landId: land.id})),
-        })),
-      };
-      console.log("多机手提交参数：", submitParams);
-      // 替换为实际接口：await allocateFarming(submitParams);
+        assignMobile: item.account.trim(),
+        lands: item.selectedLands.map(land => ({landId: land.id})),
+      }));
+
+      await allocateFarming({farmingJoinTypeLandParams});
       setIsShowPopup(false);
-      showCustomToast("success", "分配农事保存成功");
+      showCustomToast("success", "分配农事成功");
+      updateStore.triggerFarmingRefresh();
       navigation.goBack();
-    } catch (error) {
-      showCustomToast("error", "保存失败，请稍后重试");
+    } catch (error: any) {
+      showCustomToast("error", error.data.message ? error.data.message : "分配农事失败，请稍后重试");
       setIsShowPopup(false);
     }
   };
@@ -153,10 +177,10 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
     <View style={AllocateFarmingScreenStyles.container}>
       {/* 自定义状态栏 */}
       <CustomStatusBar navTitle={"分配农事"} onBack={() => navigation.goBack()} />
-      {remainingLands > 0 && (
+      {remainingLands?.length > 0 && (
         <View style={AllocateFarmingScreenStyles.popupTips}>
           <Text style={AllocateFarmingScreenStyles.popupTipsText}>
-            剩余<Text style={AllocateFarmingScreenStyles.popupTipsActiveText}>{remainingLands}个</Text>地块，共
+            剩余<Text style={AllocateFarmingScreenStyles.popupTipsActiveText}>{remainingLands?.length}个</Text>地块，共
             <Text style={AllocateFarmingScreenStyles.popupTipsActiveText}>{remainingArea}亩</Text>待分配
           </Text>
         </View>
@@ -210,9 +234,9 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
           <TouchableOpacity
             style={[
               AllocateFarmingScreenStyles.addAllocateFarming,
-              remainingLands === 0 && AllocateFarmingScreenStyles.btnDisabled,
+              remainingLands?.length === 0 && AllocateFarmingScreenStyles.btnDisabled,
             ]}
-            disabled={remainingLands === 0}
+            disabled={remainingLands?.length === 0}
             onPress={addOperatorAccount}>
             <Image
               source={require("@/assets/images/farming/icon-add.png")}
@@ -244,9 +268,9 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
                 </View>
               </View>
               <View style={AllocateFarmingScreenStyles.msg}>
-                {remainingLands > 0 ? (
+                {remainingLands?.length > 0 ? (
                   <Text style={AllocateFarmingScreenStyles.msgText}>
-                    剩余<Text style={{color: "#FF3D3B"}}>{remainingLands}个</Text>地块，共
+                    剩余<Text style={{color: "#FF3D3B"}}>{remainingLands?.length}个</Text>地块，共
                     <Text style={{color: "#FF3D3B"}}>{remainingArea}亩</Text>
                     待分配，是否继续保存？
                   </Text>

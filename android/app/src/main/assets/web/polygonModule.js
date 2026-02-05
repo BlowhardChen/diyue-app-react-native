@@ -116,7 +116,7 @@ window.PolygonModule = (function () {
     }
 
     /**
-     * 绘制地块多边型（修改后：支持绘制时直接渲染选中状态）
+     * 绘制地块多边型
      */
     function drawLandPolygon(map, data) {
         if (!data || !Array.isArray(data.gpsList) || data.gpsList.length < 3) {
@@ -1001,13 +1001,129 @@ window.PolygonModule = (function () {
     }
 
     /**
+     * 绘制农事标注地块列表
+     */
+    function drawFarmingMarkLandListPolygon(map, data) {
+        if (data.length) {
+            removeLandPolygon(map);
+            data.forEach(item => {
+                drawFarmingMarkLandPolygon(map, item);
+            });
+            selectPolygonClickEvent(map);
+        }
+    }
+
+    /**
      * 绘制农事标注地块
+     * @param {*} map 地图对象
+     * @param {*} data 地块数据
      */
     function drawFarmingMarkLandPolygon(map, data) {
         if (!data || !Array.isArray(data.gpsList) || data.gpsList.length < 3) {
             return null;
         }
+
+        // 将坐标转换为OpenLayers可以接受的格式
+        let path3857 = data.gpsList.map((item) => {
+            return ol.proj.transform([item.lng, item.lat], 'EPSG:4326', 'EPSG:3857')
+        });
+
+        // 创建多边形几何对象（自动闭合，OpenLayers要求）
+        const closedPath3857 = [...path3857, path3857[0]];
+        let polygon = new ol.geom.Polygon([closedPath3857]);
+
+        // 创建特性并添加到源
+        let landPolygonFeature = new ol.Feature({
+            geometry: polygon,
+            id: data.id,
+            landType: data.landType,
+            landName: data.landName,
+            actualAcreNum: data.actualAcreNum,
+            landStatus: data.landStatus,
+        });
+
+        const textMsg = `${data.landName}\n${data.actualAcreNum}亩`;
+        // 基础颜色（根据地块类型）
+        const completedColor = '#37DC6B'; // 已完成
+        const unfinishedColor = '#FF4E4C'; // 未完成
+
+        // 设置地块样式：区分已完成/未完成
+        landPolygonFeature.setStyle(
+            new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: data.landStatus ==='1' ? completedColor : unfinishedColor,
+                    width: 2,
+                }),
+                fill: new ol.style.Fill({
+                    color: data.landStatus ==='1' ? 'rgba(55, 220, 107, 0.20)' : 'rgba(255, 78, 76, 0.20)',
+                }),
+                text: new ol.style.Text({
+                    text: textMsg,
+                    font: '16px Arial', 
+                    fill: new ol.style.Fill({ color: data.landStatus ==='1' ? '#37DC6B' : '#FF4E4C' }),
+                    stroke: new ol.style.Stroke({color: '#000',width: 2}),
+                }),
+            })
+        );
+
+        // 创建多边形向量图层并添加到地图
+        let polygonVectorLayer = new ol.layer.Vector({
+            source: new ol.source.Vector({
+                features: [landPolygonFeature],
+            }),
+            zIndex: 99,
+        });
+        map.addLayer(polygonVectorLayer);
+        polygonFeatureList.push({
+            layer: polygonVectorLayer,
+            feature: landPolygonFeature,
+        });
+        return { layer: polygonVectorLayer, feature: landPolygonFeature };
+
     }  
+
+    /**
+     * 更新农事标注地块状态
+     * @param {string|number} id 地块数据
+     * @param {'1'|'0'} status 地块状态
+     */
+    function updateFarmingMarkLandStatus(id, status) {
+        // 根据 ID 在 polygonFeatureList 中查找对应的 feature 对象
+        const targetFeatureInfo = polygonFeatureList.find(item => item.feature.values_.id === id);
+
+        // 如果没有找到，直接返回
+        if (!targetFeatureInfo) {
+            return;
+        }
+
+        // 从找到的对象中获取 feature 和它所在的 layer
+        const feature = targetFeatureInfo.feature;
+        // 基础颜色（根据地块类型）
+        const completedColor = '#37DC6B'; // 已完成
+        const unfinishedColor = '#FF4E4C'; // 未完成
+
+        // 文本消息
+        const textMsg = `${feature.values_.landName}\n${feature.values_.actualAcreNum}亩`;
+
+        // 更新样式
+        feature.setStyle(
+            new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: status ==='1' ? completedColor : unfinishedColor,
+                    width: 2
+                }),
+                fill: new ol.style.Fill({
+                    color: status === '1' ? 'rgba(55, 220, 107, 0.20)' : 'rgba(255, 78, 76, 0.20)'
+                }),
+                text: new ol.style.Text({
+                    text: textMsg,
+                    font: '16px Arial',
+                    fill: new ol.style.Fill({ color: status === '1' ? '#37DC6B' : '#FF4E4C' }),
+                    stroke: new ol.style.Stroke({ color: '#000', width: 2 }),
+                })
+            })
+        );
+     }
 
     return {
         drawEnclosurePolygon,
@@ -1030,6 +1146,8 @@ window.PolygonModule = (function () {
         drawFindLandPolygon,
         drawMarkEnclosureLandPolygon,
         getPolygonFeatureList,
-        drawFarmingMarkLandPolygon
+        drawFarmingMarkLandPolygon,
+        drawFarmingMarkLandListPolygon,
+        updateFarmingMarkLandStatus
     };
 })();

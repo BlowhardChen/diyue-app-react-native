@@ -1,4 +1,5 @@
 import {AddFarmingParams, FarmingListInfoData, FarmScientceListItem, FarmTypeListItem} from "@/types/farming";
+import {LandListData} from "@/types/land";
 import {http} from "@/utils/http";
 
 /**
@@ -65,7 +66,7 @@ export const getFarmingList = (data: {
 /**
  * 农事地图-农事详情
  */
-export const farmingDetailInfo = (data: {farmingJoinTypeId: string}) => {
+export const farmingDetailInfo = (data: {farmingJoinTypeId: string; type: string}) => {
   return http<any>({
     method: "POST",
     url: "/app/farming/queryFarming",
@@ -74,23 +75,47 @@ export const farmingDetailInfo = (data: {farmingJoinTypeId: string}) => {
 };
 
 /**
- * 农事详情-完成农事
+ * 农事详情-分配农事
  */
-export const completeFarming = (data: {farmingId: string}) => {
+export const allocateFarming = (data: {
+  farmingJoinTypeLandParams: {farmingJoinTypeId: string; assignMobile: string; lands: {landId: string}[]}[];
+}) => {
   return http<any>({
     method: "POST",
-    url: "/app/farming/farmingWorkStatus",
+    url: "/app/farming/allotFarming",
     data,
   });
 };
 
 /**
- * 农事详情-分配农事
+ * 农事详情-转移农事
  */
-export const allocateFarming = (data: {farmingJoinTypeId: string; assignMobiles: string[]; lands: {landId: string}[]}) => {
+export const transferFarming = (data: {farmingJoinTypeId: string; assignMobile: string; lands: {landId: string}[]}) => {
   return http<any>({
     method: "POST",
-    url: "/app/farming/allotFarming",
+    url: "/app/farming/shiftFarmingLand",
+    data,
+  });
+};
+
+/**
+ * 农事详情-完成农事
+ */
+export const completeFarming = (data: {id: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/farmingLinkWorkStatus",
+    data,
+  });
+};
+
+/**
+ * 农事详情-标注农事地块
+ */
+export const markFarmingLand = (data: {farmingJoinTypeId: string; lands: {landId: string}[]}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/markFarmingLand",
     data,
   });
 };

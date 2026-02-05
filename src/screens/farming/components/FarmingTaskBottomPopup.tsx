@@ -1,10 +1,10 @@
 import ExpandButton from "@/screens/land/components/ExpandButton";
 import {FarmingMapDetailInfoData} from "@/types/farming";
 import React, {useState} from "react";
-import {View, Text, StyleSheet, TouchableOpacity, GestureResponderEvent} from "react-native";
+import {View, Text, StyleSheet, TouchableOpacity} from "react-native";
 
 type FarmingTaskBottomPopupProps = {
-  farmingDetailInfo: FarmingMapDetailInfoData & {userVos: {userName: string}[]; lands: any[]; status: number; workStatus: string};
+  farmingDetailInfo: FarmingMapDetailInfoData;
   onManagePress: () => void;
   onViewWorkPress: () => void;
   onMarkPress: () => void;
@@ -16,8 +16,7 @@ const FarmingTaskBottomPopup = ({
   onViewWorkPress,
   onMarkPress,
 }: FarmingTaskBottomPopupProps) => {
-  const {farmingJoinTypeId, farmingTypeName, landCount, lands, status, totalArea, userVos, workArea, workStatus} =
-    farmingDetailInfo || {};
+  const {farmingTypeName, totalLandCount, workLandCount, status, totalArea, userVos, workArea} = farmingDetailInfo || {};
 
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -30,13 +29,13 @@ const FarmingTaskBottomPopup = ({
           <View style={styles.headerRow}>
             <View style={styles.farmingDetailInfoWrapper}>
               <Text style={styles.farmingTypeNameText}>{farmingTypeName}</Text>
-              <Text style={[styles.workStatusText, {backgroundColor: workStatus === "1" ? "#F58700" : "#08AE3C"}]}>
-                {workStatus === "1" ? "作业中" : "已完成"}
+              <Text style={[styles.workStatusText, {backgroundColor: status === "0" ? "#F58700" : "#08AE3C"}]}>
+                {status === "0" ? "作业中" : "已完成"}
               </Text>
             </View>
-            <Text style={[styles.areaText, {color: workStatus === "1" ? "#F58700" : "#08AE3C"}]}>
+            <Text style={[styles.areaText, {color: status === "0" ? "#F58700" : "#08AE3C"}]}>
               {totalArea}
-              <Text style={[styles.unitText, {color: workStatus === "1" ? "#F58700" : "#08AE3C"}]}>亩</Text>
+              <Text style={[styles.unitText, {color: status === "0" ? "#F58700" : "#08AE3C"}]}>亩</Text>
             </Text>
           </View>
 
@@ -44,23 +43,21 @@ const FarmingTaskBottomPopup = ({
           <View style={styles.operatorWrapper}>
             <Text style={styles.operatorText}>
               作业人：
-              {farmingDetailInfo?.userVos?.length > 0
-                ? farmingDetailInfo.userVos.map(item => item.userName).join("、")
-                : "暂无作业人"}
+              {userVos?.length > 0 ? userVos.map(item => (item.userName ? item.userName : item.mobile)).join("、") : "暂无作业人"}
             </Text>
           </View>
 
           {/* 进度区域 */}
           <View style={styles.progressRow}>
-            <View style={[styles.progressWrapper, {backgroundColor: workStatus === "1" ? "#FFF2E2" : "#EBFBF0"}]}>
+            <View style={[styles.progressWrapper, {backgroundColor: status === "0" ? "#FFF2E2" : "#EBFBF0"}]}>
               <Text style={styles.progressText}>
                 已作业
-                <Text style={{fontSize: 18, fontWeight: "500", color: workStatus === "1" ? "#F58700" : "#08AE3C"}}>
+                <Text style={{fontSize: 18, fontWeight: "500", color: status === "0" ? "#F58700" : "#08AE3C"}}>
                   {workArea ?? "0"}
                 </Text>
                 亩，完成地块
-                <Text style={{fontSize: 18, fontWeight: "500", color: workStatus === "1" ? "#F58700" : "#08AE3C"}}>
-                  {landCount ?? "0"}/{lands?.length}
+                <Text style={{fontSize: 18, fontWeight: "500", color: status === "0" ? "#F58700" : "#08AE3C"}}>
+                  {workLandCount ?? "0"}/{totalLandCount}
                 </Text>
                 个
               </Text>
@@ -69,15 +66,21 @@ const FarmingTaskBottomPopup = ({
 
           {/* 按钮栏 */}
           <View style={styles.buttonRow}>
-            <TouchableOpacity style={[styles.buttonItem, styles.firstButton]} onPress={onManagePress}>
-              <Text style={styles.buttonText}>农事管理</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.buttonItem, styles.middleButton]} onPress={onViewWorkPress}>
+            {status === "0" && (
+              <TouchableOpacity style={[styles.buttonItem, styles.firstButton]} onPress={onManagePress}>
+                <Text style={styles.buttonText}>农事管理</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.buttonItem, styles.middleButton, {backgroundColor: status === "0" ? "#F58700" : "#08AE3C"}]}
+              onPress={onViewWorkPress}>
               <Text style={styles.buttonText}>作业数据</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.buttonItem, styles.lastButton]} onPress={onMarkPress}>
-              <Text style={styles.buttonText}>标注地块</Text>
-            </TouchableOpacity>
+            {status === "0" && (
+              <TouchableOpacity style={[styles.buttonItem, styles.lastButton]} onPress={onMarkPress}>
+                <Text style={styles.buttonText}>标注地块</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       )}

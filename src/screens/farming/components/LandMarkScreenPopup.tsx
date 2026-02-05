@@ -1,48 +1,63 @@
 import {Global} from "@/styles/global";
+import {FarmingLandListItem} from "@/types/farming";
+import {useEffect, useState} from "react";
 import {View, Text, StyleSheet, Image} from "react-native";
 
-const OperationStatusCards = () => {
+export type LandMarkProps = {
+  farmingData: FarmingLandListItem[];
+};
+const LandMarkScreenPopup: React.FC<LandMarkProps> = ({farmingData}) => {
   const workIcon = require("@/assets/images/farming/icon-complete.png");
   const waitIcon = require("@/assets/images/farming/icon-wait.png");
-  const statusData = [
-    {
-      id: 1,
-      status: "已作业",
-      statusColor: Global.colors.primary,
-      bgColor: "#E9FCEF",
-      icon: workIcon,
-      plots: "16",
-      acreage: "2000",
-    },
-    {
-      id: 2,
-      status: "未作业",
-      statusColor: "#FF4E4C",
-      bgColor: "#FFF2F2",
-      icon: waitIcon,
-      plots: "16",
-      acreage: "2000",
-    },
-  ];
+  const [completedFarmingLands, setCompletedFarmingLands] = useState<FarmingLandListItem[]>([]);
+  const [waitingFarmingLands, setWaitingFarmingLands] = useState<FarmingLandListItem[]>([]);
+
+  useEffect(() => {
+    console.log("LandMarkScreenPopup:farmingData", farmingData);
+    const completed = farmingData.filter(item => item.landStatus === "1");
+    const waiting = farmingData.filter(item => item.landStatus !== "1");
+    setCompletedFarmingLands(completed);
+    setWaitingFarmingLands(waiting);
+  }, [farmingData]);
+
+  // 计算地块亩数之和
+  const calculateTotalArea = (land: FarmingLandListItem[]) => {
+    return Number(land.reduce((total, item) => total + Number(item.actualAcreNum || 0), 0).toFixed(2));
+  };
+
   return (
     <View style={styles.popupContainer}>
       <View style={styles.container}>
-        {statusData.map(item => (
-          <View key={item.id} style={[styles.statusCard, {backgroundColor: item.bgColor}]}>
-            {/* 状态标签 */}
-            <View style={[styles.statusBadge, {backgroundColor: item.statusColor}]}>
-              <View style={styles.iconContainer}>
-                <Image source={item.icon} style={styles.icon} />
-                <Text style={styles.statusText}>{item.status}</Text>
-              </View>
+        <View style={[styles.statusCard, {backgroundColor: "#E9FCEF"}]}>
+          {/* 状态标签 */}
+          <View style={[styles.statusBadge, {backgroundColor: Global.colors.primary}]}>
+            <View style={styles.iconContainer}>
+              <Image source={workIcon} style={styles.icon} />
+              <Text style={styles.statusText}>已作业</Text>
             </View>
-            {/* 统计信息 */}
-            <Text style={styles.statText}>
-              <Text style={{color: item.statusColor, fontWeight: "500"}}>{item.plots}</Text> 个地块，共{" "}
-              <Text style={[styles.acreageText, {color: item.statusColor}]}>{item.acreage} 亩</Text>
-            </Text>
           </View>
-        ))}
+          {/* 统计信息 */}
+          <Text style={styles.statText}>
+            <Text style={{color: Global.colors.primary, fontWeight: "500"}}>{completedFarmingLands.length}</Text> 个地块，共{" "}
+            <Text style={[styles.acreageText, {color: Global.colors.primary}]}>
+              {calculateTotalArea(completedFarmingLands)} 亩
+            </Text>
+          </Text>
+        </View>
+        <View style={[styles.statusCard, {backgroundColor: "#FFF2F2"}]}>
+          {/* 状态标签 */}
+          <View style={[styles.statusBadge, {backgroundColor: "#FF4E4C"}]}>
+            <View style={styles.iconContainer}>
+              <Image source={waitIcon} style={styles.icon} />
+              <Text style={styles.statusText}>未作业</Text>
+            </View>
+          </View>
+          {/* 统计信息 */}
+          <Text style={styles.statText}>
+            <Text style={{color: "#FF4E4C", fontWeight: "500"}}>{waitingFarmingLands.length}</Text> 个地块，共{" "}
+            <Text style={[styles.acreageText, {color: "#FF4E4C"}]}>{calculateTotalArea(waitingFarmingLands)} 亩</Text>
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -106,4 +121,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OperationStatusCards;
+export default LandMarkScreenPopup;

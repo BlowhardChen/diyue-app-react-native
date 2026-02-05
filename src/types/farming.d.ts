@@ -102,10 +102,22 @@ export interface FarmingMapDetailInfoData {
   farmingJoinTypeId: string;
   farmingName: string;
   farmingTypeName: string;
-  landCount: number;
+  totalLandCount: number;
   lands: {id: string; landName: string; landType: string; landStatus: string; gpsList: {lat: number; lng: number}[]}[];
   status: string;
   totalArea: number;
-  userVos: {userName: string}[];
+  userVos: {userName: string; mobile: string}[];
   workArea: number;
+  workStatus: string;
+  workLandCount: number;
+}
+
+// 农事地块列表item
+export interface FarmingLandListItem {
+  actualAcreNum: number;
+  gpsList: {lat: number; lng: number}[];
+  id: string;
+  landName: string;
+  landType: string;
+  landStatus: string;
 }

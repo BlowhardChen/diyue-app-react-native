@@ -92,7 +92,7 @@ const FarmingMapScreen: React.FC = () => {
         ...prev,
         [activeTab]: data,
       }));
-      updateStore.setIsUpdateFarming(false);
+      updateStore.triggerFarmingRefresh();
     } catch (error) {
       showCustomToast("error", "获取机耕队列表失败，请稍后重试");
     } finally {

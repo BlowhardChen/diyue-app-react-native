@@ -88,9 +88,9 @@ const FarmingManagePopup: React.FC<LandManageProps> = ({farmingInfo, onClosePopu
   // 确认操作
   const popupConfirm = async () => {
     try {
-      await completeFarming({farmingId: farmingInfo.farmingJoinTypeId});
+      await completeFarming({id: farmingInfo.farmingJoinTypeId});
       setIsShowPopup(false);
-      updateStore.setIsUpdateFarming(true);
+      updateStore.triggerFarmingRefresh();
       onClosePopup("completeFarming");
     } catch (error: any) {
       showCustomToast("error", error.data.message ?? "操作失败，请重试");
