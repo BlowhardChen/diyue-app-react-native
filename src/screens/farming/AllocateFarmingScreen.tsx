@@ -165,7 +165,7 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
       await allocateFarming({farmingJoinTypeLandParams});
       setIsShowPopup(false);
       showCustomToast("success", "分配农事成功");
-      updateStore.triggerFarmingRefresh();
+      updateStore.setIsUpdateFarming(true);
       navigation.goBack();
     } catch (error: any) {
       showCustomToast("error", error.data.message ? error.data.message : "分配农事失败，请稍后重试");

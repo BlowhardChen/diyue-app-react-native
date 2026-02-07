@@ -163,7 +163,7 @@
                 break;
               // 更新农事地块状态
               case "UPDATE_FARMING_LAND_STATUS":
-                  PolygonModule?.updateFarmingMarkLandStatus(data.id, data.landStatus);
+                  PolygonModule?.updateFarmingLandStatus(map, data.id, data.landStatus);
                 break;
               default:
                   WebBridge.postMessage("未处理的消息类型:" + data.type);

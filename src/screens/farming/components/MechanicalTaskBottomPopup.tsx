@@ -1,32 +1,13 @@
+import {FarmingMapDetailInfoData} from "@/types/farming";
 import React, {useState} from "react";
 import {View, Text, StyleSheet, TouchableOpacity, GestureResponderEvent} from "react-native";
 
 type MechanicalTaskBottomPopupProps = {
-  taskInfo: {
-    taskType: string;
-    taskStatus: string;
-    area: string;
-    operator: string;
-    completedArea: string;
-    completedBlocks: number;
-    totalBlocks: number;
-  };
-  onManagePress: () => void;
-  onViewWorkPress: () => void;
-  onMarkPress: () => void;
+  farmingDetailInfo: FarmingMapDetailInfoData;
 };
 
-const MechanicalTaskBottomPopup = ({taskInfo, onManagePress, onViewWorkPress, onMarkPress}: MechanicalTaskBottomPopupProps) => {
-  // 解构对象参数，设置默认值
-  const {
-    taskType = "犁地",
-    taskStatus = "作业中",
-    area = "20.2",
-    operator = "张三",
-    completedArea = "12.5",
-    completedBlocks = 2,
-    totalBlocks = 8,
-  } = taskInfo || {};
+const MechanicalTaskBottomPopup = ({farmingDetailInfo}: MechanicalTaskBottomPopupProps) => {
+  const {farmingTypeName, totalLandCount, workLandCount, status, totalArea, workArea} = farmingDetailInfo || {};
 
   return (
     <View style={styles.popupContainer}>
@@ -34,12 +15,14 @@ const MechanicalTaskBottomPopup = ({taskInfo, onManagePress, onViewWorkPress, on
         {/* 标题行 */}
         <View style={styles.headerRow}>
           <View style={styles.taskInfoWrapper}>
-            <Text style={styles.taskTypeText}>{taskType}</Text>
-            <Text style={styles.taskStatusText}>{taskStatus}</Text>
+            <Text style={styles.taskTypeText}>{farmingTypeName}</Text>
+            <Text style={[styles.taskStatusText, {backgroundColor: status === "0" ? "#F58700" : "#08AE3C"}]}>
+              {status === "0" ? "作业中" : "已完成"}
+            </Text>
           </View>
-          <Text style={styles.areaText}>
-            {area}
-            <Text style={styles.unitText}>亩</Text>
+          <Text style={[styles.areaText, {color: status === "0" ? "#F58700" : "#08AE3C"}]}>
+            {totalArea.toFixed(2)}
+            <Text style={[styles.unitText, {color: status === "0" ? "#F58700" : "#08AE3C"}]}>亩</Text>
           </Text>
         </View>
 
@@ -47,9 +30,13 @@ const MechanicalTaskBottomPopup = ({taskInfo, onManagePress, onViewWorkPress, on
         <View style={styles.progressRow}>
           <View style={styles.progressWrapper}>
             <Text style={styles.progressText}>
-              已作业<Text style={{fontSize: 18, fontWeight: "500", color: "#F58700"}}>{completedArea}</Text>亩，完成地块
-              <Text style={{fontSize: 18, fontWeight: "500", color: "#F58700"}}>
-                {completedBlocks}/{totalBlocks}
+              已作业
+              <Text style={{fontSize: 18, fontWeight: "500", color: status === "0" ? "#F58700" : "#08AE3C"}}>
+                {workArea.toFixed(2) ?? "0"}
+              </Text>
+              亩，完成地块
+              <Text style={{fontSize: 18, fontWeight: "500", color: status === "0" ? "#F58700" : "#08AE3C"}}>
+                {workLandCount ?? "0"}/{totalLandCount}
               </Text>
               个
             </Text>
@@ -57,7 +44,7 @@ const MechanicalTaskBottomPopup = ({taskInfo, onManagePress, onViewWorkPress, on
         </View>
 
         {/* 底部数据指标 */}
-        <View style={styles.metricsRow}>
+        {/* <View style={styles.metricsRow}>
           <View style={styles.metricItem}>
             <Text style={styles.metricLabel}>20-25cm</Text>
             <Text style={styles.metricValue}>深耕深度</Text>
@@ -72,7 +59,7 @@ const MechanicalTaskBottomPopup = ({taskInfo, onManagePress, onViewWorkPress, on
             <Text style={styles.metricLabel}>30斤</Text>
             <Text style={styles.metricValue}>亩种用量</Text>
           </View>
-        </View>
+        </View> */}
       </View>
     </View>
   );

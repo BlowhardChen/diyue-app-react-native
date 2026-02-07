@@ -25,7 +25,7 @@ import {RootStackParamList} from "@/types/navigation";
 import CustomFarmingHeader from "@/components/common/CustomFarmingHeader";
 import FarmingTaskBottomPopup from "./components/FarmingTaskBottomPopup";
 import FarmingManagePopup from "./components/FarmingMangePopup";
-import {farmingDetailInfo} from "@/services/farming";
+import {farmingDetailInfo, farmingScienceLandList} from "@/services/farming";
 import {updateStore} from "@/stores/updateStore";
 
 type FarmingDetailParams = {
@@ -75,11 +75,11 @@ const FarmingDetailScreen = observer(() => {
     initLocationPermission();
   }, []);
 
-  // 获取农事详情
   useEffect(() => {
     setLoading(true);
     getFarmingDetailData();
-  }, [updateStore.farmingRefreshId]);
+    getFarmingLandData();
+  }, [updateStore.isUpdateFarming]);
 
   // 当WebView准备好时
   useEffect(() => {
@@ -382,7 +382,10 @@ const FarmingDetailScreen = observer(() => {
 
   // 查看作业数据
   const onViewWorkPress = () => {
-    navigation.navigate("FarmingWorkData", {farmingId: farmingDetailData.farmingJoinTypeId});
+    navigation.navigate("FarmingWorkData", {
+      farmingId: farmingDetailData.farmingJoinTypeId,
+      workUsers: farmingDetailData.userVos,
+    });
   };
 
   // 标注地块
@@ -404,20 +407,26 @@ const FarmingDetailScreen = observer(() => {
     try {
       const {data} = await farmingDetailInfo({farmingJoinTypeId: id, type: "1"});
       console.log("农事详情数据：", data);
-      webViewRef.current?.postMessage(
-        JSON.stringify({
-          type: "DRAW_MARK_ENCLOSURE_LAND",
-          data: data.lands,
-        }),
-      );
+      if (!data) return;
       setLoading(false);
       setFarmingDetailData(data);
-      updateStore.triggerFarmingRefresh();
+      updateStore.setIsUpdateFarming(false);
     } catch (error) {
       showCustomToast("error", "获取农事详情失败，请稍后重试");
     } finally {
       setLoading(false);
     }
+  };
+
+  // 获取农事地块数据
+  const getFarmingLandData = async () => {
+    const {data} = await farmingScienceLandList({id});
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "DRAW_MARK_ENCLOSURE_LAND",
+        data,
+      }),
+    );
   };
 
   // 初始化WebSocket
@@ -565,12 +574,14 @@ const FarmingDetailScreen = observer(() => {
         />
 
         {/* 作业状态弹窗 */}
-        <FarmingTaskBottomPopup
-          farmingDetailInfo={{...farmingDetailData, workStatus: workStatus}}
-          onManagePress={onManagePress}
-          onViewWorkPress={onViewWorkPress}
-          onMarkPress={onMarkPress}
-        />
+        {farmingDetailData && (
+          <FarmingTaskBottomPopup
+            farmingDetailInfo={{...farmingDetailData, workStatus: workStatus}}
+            onManagePress={onManagePress}
+            onViewWorkPress={onViewWorkPress}
+            onMarkPress={onMarkPress}
+          />
+        )}
 
         {/* 农事管理弹窗 */}
         {showManagePopup && (

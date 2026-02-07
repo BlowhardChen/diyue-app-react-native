@@ -86,7 +86,7 @@ const LandMarkScreen = observer(() => {
   // 获取地块数据
   useEffect(() => {
     getFarmingLandData();
-  }, [updateStore.farmingRefreshId]);
+  }, [updateStore.isUpdateFarming]);
 
   // 当WebView准备好时
   useEffect(() => {
@@ -401,7 +401,7 @@ const LandMarkScreen = observer(() => {
             setMsgText(`请确认是否将地块标注成${item.landStatus === "1" ? "已" : "未"}作业？`);
             setConfirmButtonText(item.landStatus === "1" ? "标记已作业" : "标记未作业");
             setRightBtnStyle({color: item.landStatus === "1" ? Global.colors.primary : "#FF3D3B"});
-            updateStore.triggerFarmingRefresh();
+            updateStore.setIsUpdateFarming(true);
             // 发送消息到WebView更新样式
             webViewRef.current?.postMessage(
               JSON.stringify({
@@ -431,7 +431,7 @@ const LandMarkScreen = observer(() => {
         data,
       }),
     );
-    updateStore.triggerFarmingRefresh();
+    updateStore.setIsUpdateFarming(false);
   };
 
   // 初始化WebSocket

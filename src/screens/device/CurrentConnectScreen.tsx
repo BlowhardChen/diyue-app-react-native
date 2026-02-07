@@ -59,17 +59,25 @@ const CurrentConnectScreen = observer(() => {
 
   // 配置完成
   const completeConfig = async () => {
-    await linkDevice({
-      imei: deviceInfo.device.imei,
-      taskType: deviceInfo?.taskType || "1",
-    });
-    deviceStore.setDeviceImei(deviceInfo.device.imei);
+    if (route.params?.farmingJoinTypeId) {
+      await linkDevice({
+        imei: deviceInfo.device.imei,
+        taskType: route.params?.taskType || "1",
+        farmingJoinTypeId: route.params?.farmingJoinTypeId,
+      });
+      deviceStore.setFarmingDeviceImei(deviceInfo.device.imei);
+    } else {
+      await linkDevice({
+        imei: deviceInfo.device.imei,
+        taskType: deviceInfo?.taskType || "1",
+      });
+      deviceStore.setDeviceImei(deviceInfo.device.imei);
+    }
     await navigateToTargetRoute();
   };
 
   useEffect(() => {
     const imeiValue = route.params?.imei;
-
     getDeviceBaseInfo(imeiValue);
   }, [route.params]);
 

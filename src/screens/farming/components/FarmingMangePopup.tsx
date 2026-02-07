@@ -4,7 +4,7 @@ import {NavigationProp, useNavigation} from "@react-navigation/native";
 import Popup from "@/components/common/Popup";
 import {updateStore} from "@/stores/updateStore";
 import {RootStackParamList} from "@/types/navigation";
-import {completeFarming} from "@/services/farming";
+import {completeFarmingLink} from "@/services/farming";
 import {showCustomToast} from "@/components/common/CustomToast";
 
 const {width: screenWidth} = Dimensions.get("window");
@@ -88,9 +88,9 @@ const FarmingManagePopup: React.FC<LandManageProps> = ({farmingInfo, onClosePopu
   // 确认操作
   const popupConfirm = async () => {
     try {
-      await completeFarming({id: farmingInfo.farmingJoinTypeId});
+      await completeFarmingLink({id: farmingInfo.farmingJoinTypeId});
       setIsShowPopup(false);
-      updateStore.triggerFarmingRefresh();
+      updateStore.setIsUpdateFarming(true);
       onClosePopup("completeFarming");
     } catch (error: any) {
       showCustomToast("error", error.data.message ?? "操作失败，请重试");

@@ -41,47 +41,56 @@ const operationRequirements = {
 const workRequirement = () => {
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.contentContainer} showsVerticalScrollIndicator={false}>
-        <View style={styles.titleRow}>
-          <View style={styles.titleLeft}>
-            <View style={styles.greenBar} />
-            <Text style={styles.mainTitle}>农资用量</Text>
+      {operationRequirements ? (
+        <ScrollView style={styles.contentContainer} showsVerticalScrollIndicator={false}>
+          <View style={styles.titleRow}>
+            <View style={styles.titleLeft}>
+              <View style={styles.greenBar} />
+              <Text style={styles.mainTitle}>农资用量</Text>
+            </View>
+            <TouchableOpacity style={styles.usageBtn}>
+              <Text style={styles.usageBtnText}>用量分布</Text>
+              <Image source={require("@/assets/images/common/icon-right-green.png")} style={styles.iconImage} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.usageBtn}>
-            <Text style={styles.usageBtnText}>用量分布</Text>
-            <Image source={require("@/assets/images/common/icon-right-green.png")} style={styles.iconImage} />
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.tableHorizontalWrapper}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} scrollEnabled={true} decelerationRate="fast">
-            <View style={styles.tableContainer}>
-              <View style={styles.tableHeader}>
-                {operationRequirements.tableHeads.map((head, index) => (
-                  <Text key={index} style={styles.tableHeaderText}>
-                    {head}
-                  </Text>
+          <View style={styles.tableHorizontalWrapper}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} scrollEnabled={true} decelerationRate="fast">
+              <View style={styles.tableContainer}>
+                <View style={styles.tableHeader}>
+                  {operationRequirements.tableHeads.map((head, index) => (
+                    <Text key={index} style={styles.tableHeaderText}>
+                      {head}
+                    </Text>
+                  ))}
+                </View>
+                {operationRequirements.pesticideData.map((item, index) => (
+                  <View key={index} style={styles.tableRow}>
+                    <Text style={styles.tableCellText}>{item.name}</Text>
+                    <Text style={styles.tableCellText}>{item.perAcre}</Text>
+                    <Text style={styles.tableCellText}>{item.taskAcre}</Text>
+                    <Text style={styles.tableCellText}>{item.total}</Text>
+                    <Text style={styles.tableCellText}>{item.time}</Text>
+                    <Text style={styles.tableCellText}>{item.standard}</Text>
+                  </View>
                 ))}
               </View>
-              {operationRequirements.pesticideData.map((item, index) => (
-                <View key={index} style={styles.tableRow}>
-                  <Text style={styles.tableCellText}>{item.name}</Text>
-                  <Text style={styles.tableCellText}>{item.perAcre}</Text>
-                  <Text style={styles.tableCellText}>{item.taskAcre}</Text>
-                  <Text style={styles.tableCellText}>{item.total}</Text>
-                  <Text style={styles.tableCellText}>{item.time}</Text>
-                  <Text style={styles.tableCellText}>{item.standard}</Text>
-                </View>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
+            </ScrollView>
+          </View>
 
-        <View style={styles.otherRequirements}>
-          <View style={styles.greenBar} />
-          <Text style={styles.mainTitle}>其他要求</Text>
+          <View style={styles.otherRequirements}>
+            <View style={{flexDirection: "row", alignItems: "center"}}>
+              <View style={styles.greenBar} />
+              <Text style={styles.mainTitle}>其他要求</Text>
+            </View>
+          </View>
+        </ScrollView>
+      ) : (
+        <View style={styles.noDataContainer}>
+          <Image source={require("@/assets/images/common/contract-empty.png")} style={styles.noDataIcon} resizeMode="contain" />
+          <Text style={styles.noDataText}>暂无数据</Text>
         </View>
-      </ScrollView>
+      )}
     </View>
   );
 };
@@ -170,6 +179,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 10,
+  },
+  noDataContainer: {
+    flex: 1,
+    marginVertical: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noDataIcon: {
+    width: 86,
+    height: 84,
+  },
+  noDataText: {
+    marginTop: 12,
+    fontSize: 18,
+    color: "#000000",
   },
 });
 

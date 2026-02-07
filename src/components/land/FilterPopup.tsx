@@ -26,13 +26,14 @@ type StackParamList = {
 interface Props {
   height?: number;
   marginTop?: number;
+  superRouteName?: string;
   onClose: () => void;
   onQuery: (data: SearchFormInfo) => void;
 }
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
-const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT - 111, marginTop = 0}) => {
+const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT - 111, marginTop = 0, superRouteName = ""}) => {
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const [showProvincePopup, setShowProvincePopup] = useState(false);
@@ -96,7 +97,7 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
 
   // 打开卡片扫描器
   const openCardScan = (type: string) => {
-    saveTargetRoute(route.name);
+    saveTargetRoute(route.name, ["Main", superRouteName], {...route.params});
     navigation.navigate("OcrCardScanner", {
       type,
       onOcrResult: async result => {

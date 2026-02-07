@@ -39,9 +39,9 @@ export type AccountStackParamList = {
 
 // 设备
 export type DeviceStackParamList = {
-  AddDevice: undefined;
-  CurrentConnect: {imei: string};
-  ManualInput: undefined;
+  AddDevice: {farmingJoinTypeId?: string; taskType?: string} | undefined;
+  CurrentConnect: {imei: string; farmingJoinTypeId?: string; taskType?: string};
+  ManualInput: {farmingJoinTypeId?: string; taskType?: string} | undefined;
   BluetoothConnect: undefined;
   DifferentialConfig: {deviceInfo: any};
   DataUpload: {deviceInfo: any};
@@ -75,10 +75,10 @@ export type FarmStackParamList = {
   FarmingDetail: {farmingId: string; id: string; workStatus: string; navTitle: string};
   AllocateFarming: {farmingId: string};
   TransferFarming: {farmingId: string};
-  FarmingWorkData: {farmingId: string};
+  FarmingWorkData: {farmingId: string; workUsers: {userName: string; userId: string}[]};
   HistoryWorkDetail: {farmingId: string};
   LandMark: {farmingId: string};
-  MechanicalTaskDetail: {id: string; workStatus: string; navTitle: string};
+  MechanicalTaskDetail: {id: string; navTitle: string};
 };
 
 // 合同管理相关

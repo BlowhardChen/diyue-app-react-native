@@ -99,9 +99,9 @@ export const transferFarming = (data: {farmingJoinTypeId: string; assignMobile: 
 };
 
 /**
- * 农事详情-完成农事
+ * 农事详情-农事环节完成
  */
-export const completeFarming = (data: {id: string}) => {
+export const completeFarmingLink = (data: {id: string}) => {
   return http<any>({
     method: "POST",
     url: "/app/farming/farmingLinkWorkStatus",

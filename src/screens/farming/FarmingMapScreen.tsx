@@ -39,7 +39,7 @@ const FarmingMapScreen: React.FC = () => {
   useEffect(() => {
     setLoading(true);
     getFarmingListData();
-  }, [activeTab, updateStore.farmingRefreshId]);
+  }, [activeTab, updateStore.isUpdateFarming]);
 
   // 切换标签
   const changeTab = async (tab: {title: string; type: string}) => {
@@ -93,7 +93,7 @@ const FarmingMapScreen: React.FC = () => {
         ...prev,
         [activeTab]: data,
       }));
-      updateStore.triggerFarmingRefresh();
+      updateStore.setIsUpdateFarming(false);
     } catch (error) {
       showCustomToast("error", "获取农事列表失败，请稍后重试");
     } finally {

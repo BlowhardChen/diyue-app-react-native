@@ -9,7 +9,6 @@ import {AuthProvider} from "@/hooks/useAuth";
 import {ActivityIndicator, View} from "react-native";
 import {RootStackParamList} from "@/types/navigation";
 import {RootSiblingParent} from "react-native-root-siblings";
-import {getToken} from "@/utils/tokenUtils";
 import {TabBarProvider} from "@/navigation/TabBarContext";
 
 export default function App() {
@@ -19,15 +18,12 @@ export default function App() {
   useEffect(() => {
     const initApp = async () => {
       const agreed = await AsyncStorage.getItem("userAgreed");
-      const token = await getToken();
-      console.log("token:", token);
       if (agreed !== "true") {
         setInitialRoute("PrivacyPolicy");
         return;
       }
 
       const valid = await isTokenValid();
-      console.log("token 是否有效:", valid);
       setInitialRoute(valid ? "Main" : "Login");
     };
 
@@ -54,7 +50,6 @@ export default function App() {
             const previousRouteName = routeNameRef.current;
             const currentRouteName = getActiveRouteName(state!);
             if (previousRouteName !== currentRouteName) {
-              console.log("路由切换:", previousRouteName, "→", currentRouteName);
               saveLastRoute(currentRouteName);
             }
             routeNameRef.current = currentRouteName;

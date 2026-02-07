@@ -4,7 +4,7 @@ import {http} from "@/utils/http";
 /**
  * 设备-获取设备连接状态
  */
-export const getDeviceConnectStatus = (data: {imei: string; taskType: string}) => {
+export const getDeviceConnectStatus = (data: {imei: string; farmingJoinTypeId?: string; taskType: string}) => {
   return http<any>({
     method: "POST",
     url: "/app/device/queryDeviceStatus",
@@ -48,7 +48,7 @@ export const updateDeviceDifferentialConfig = (data: DeviceDifferentialConfigReq
 /**
  * 当前连接-链接设备
  */
-export const linkDevice = (data: {imei: string; farmingId?: string; taskType: string}) => {
+export const linkDevice = (data: {imei: string; farmingJoinTypeId?: string; taskType: string}) => {
   return http<any>({
     method: "POST",
     url: "/app/device/linkDevice",

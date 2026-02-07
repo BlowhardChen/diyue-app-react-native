@@ -13,7 +13,7 @@ export const MechanicalTaskDetailScreenStyles = StyleSheet.create({
   copyrightText: {fontSize: 8, color: "#fff"},
   rightControl: {
     position: "absolute",
-    top: 135,
+    top: 140,
     right: 16,
   },
   locationControl: {
@@ -44,5 +44,31 @@ export const MechanicalTaskDetailScreenStyles = StyleSheet.create({
     right: 16,
     width: 12,
     height: 12,
+  },
+  farmingType: {
+    position: "absolute",
+    top: 140,
+    left: 16,
+    zIndex: 999,
+    alignItems: "center",
+    justifyContent: "space-around",
+    padding: 12,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 8,
+    elevation: 5,
+  },
+  farmingTypeItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  farmingTypeItemIcon: {
+    width: 28,
+    height: 0,
+    marginRight: 8,
+    borderTopWidth: 2,
+  },
+  farmingTypeText: {
+    fontSize: 18,
+    color: "#fff",
   },
 });

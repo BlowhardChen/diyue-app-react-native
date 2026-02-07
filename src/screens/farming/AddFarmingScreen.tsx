@@ -152,7 +152,7 @@ const AddFarmingScreen = ({route}: {route: {params: {farmingId?: string}}}) => {
         showCustomToast("success", "新建农事成功");
       } else {
         await editFarming({farmingId: route.params?.farmingId || "", ...params});
-        updateStore.triggerFarmingRefresh();
+        updateStore.setIsUpdateFarming(true);
         showCustomToast("success", "编辑农事成功");
         navigation.reset({
           index: 0,

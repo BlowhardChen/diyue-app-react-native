@@ -21,7 +21,6 @@ import {deviceStore} from "@/stores/deviceStore";
 import React from "react";
 import {EnclosureScreenStyles} from "../land/styles/EnclosureScreen";
 import {patrolTaskEnd, patrolTaskStart} from "@/services/farming";
-import LinearGradient from "react-native-linear-gradient";
 import {PatrolManageScreenStyles} from "./styles/PatrolManageScreen";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {StackNavigationProp} from "@react-navigation/stack";

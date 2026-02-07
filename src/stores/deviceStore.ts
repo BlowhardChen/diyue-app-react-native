@@ -4,11 +4,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export type DeviceState = {
   status: string; // 1 在线，2 离线
   deviceImei: string;
+  farmingDeviceImei: string;
 };
 
 class DeviceStore {
   status: string = "2"; // 初始为离线
   deviceImei: string = "";
+  farmingDeviceImei: string = "";
 
   constructor() {
     makeAutoObservable(this);
@@ -24,6 +26,12 @@ class DeviceStore {
   // 设置 IMEI
   setDeviceImei(imei: string) {
     this.deviceImei = imei;
+    this.persist();
+  }
+
+  // 设置农事设备 IMEI
+  setFarmingDeviceImei(imei: string) {
+    this.farmingDeviceImei = imei;
     this.persist();
   }
 

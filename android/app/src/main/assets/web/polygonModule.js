@@ -1015,8 +1015,6 @@ window.PolygonModule = (function () {
 
     /**
      * 绘制农事标注地块
-     * @param {*} map 地图对象
-     * @param {*} data 地块数据
      */
     function drawFarmingMarkLandPolygon(map, data) {
         if (!data || !Array.isArray(data.gpsList) || data.gpsList.length < 3) {
@@ -1051,17 +1049,20 @@ window.PolygonModule = (function () {
         landPolygonFeature.setStyle(
             new ol.style.Style({
                 stroke: new ol.style.Stroke({
-                    color: data.landStatus ==='1' ? completedColor : unfinishedColor,
+                    color: data.landStatus ==='0' ? unfinishedColor : completedColor,
                     width: 2,
                 }),
                 fill: new ol.style.Fill({
-                    color: data.landStatus ==='1' ? 'rgba(55, 220, 107, 0.20)' : 'rgba(255, 78, 76, 0.20)',
+                    color: data.landStatus ==='0' ? '#FF4E4C' : '#37DC6B',
                 }),
                 text: new ol.style.Text({
                     text: textMsg,
                     font: '16px Arial', 
-                    fill: new ol.style.Fill({ color: data.landStatus ==='1' ? '#37DC6B' : '#FF4E4C' }),
-                    stroke: new ol.style.Stroke({color: '#000',width: 2}),
+                    fill: new ol.style.Fill({ color: data.landStatus ==='0' ? '#FF4E4C' : '#37DC6B' }),
+                    stroke: new ol.style.Stroke({
+                        color: '#fff',
+                        width: 2,
+                    }),
                 }),
             })
         );
@@ -1081,49 +1082,6 @@ window.PolygonModule = (function () {
         return { layer: polygonVectorLayer, feature: landPolygonFeature };
 
     }  
-
-    /**
-     * 更新农事标注地块状态
-     * @param {string|number} id 地块数据
-     * @param {'1'|'0'} status 地块状态
-     */
-    function updateFarmingMarkLandStatus(id, status) {
-        // 根据 ID 在 polygonFeatureList 中查找对应的 feature 对象
-        const targetFeatureInfo = polygonFeatureList.find(item => item.feature.values_.id === id);
-
-        // 如果没有找到，直接返回
-        if (!targetFeatureInfo) {
-            return;
-        }
-
-        // 从找到的对象中获取 feature 和它所在的 layer
-        const feature = targetFeatureInfo.feature;
-        // 基础颜色（根据地块类型）
-        const completedColor = '#37DC6B'; // 已完成
-        const unfinishedColor = '#FF4E4C'; // 未完成
-
-        // 文本消息
-        const textMsg = `${feature.values_.landName}\n${feature.values_.actualAcreNum}亩`;
-
-        // 更新样式
-        feature.setStyle(
-            new ol.style.Style({
-                stroke: new ol.style.Stroke({
-                    color: status ==='1' ? completedColor : unfinishedColor,
-                    width: 2
-                }),
-                fill: new ol.style.Fill({
-                    color: status === '1' ? 'rgba(55, 220, 107, 0.20)' : 'rgba(255, 78, 76, 0.20)'
-                }),
-                text: new ol.style.Text({
-                    text: textMsg,
-                    font: '16px Arial',
-                    fill: new ol.style.Fill({ color: status === '1' ? '#37DC6B' : '#FF4E4C' }),
-                    stroke: new ol.style.Stroke({ color: '#000', width: 2 }),
-                })
-            })
-        );
-     }
 
     return {
         drawEnclosurePolygon,
@@ -1147,7 +1105,6 @@ window.PolygonModule = (function () {
         drawMarkEnclosureLandPolygon,
         getPolygonFeatureList,
         drawFarmingMarkLandPolygon,
-        drawFarmingMarkLandListPolygon,
-        updateFarmingMarkLandStatus
+        drawFarmingMarkLandListPolygon
     };
 })();

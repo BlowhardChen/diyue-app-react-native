@@ -139,7 +139,15 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <Stack.Screen name="ServiceAgreement" component={ServiceAgreementScreen} />
       <Stack.Screen name="PrivacyPolicyDetail" component={PrivacyPolicyDetailScreen} />
-      <Stack.Screen name="Main" component={BottomTabNavigator} />
+      <Stack.Screen
+        name="Main"
+        component={BottomTabNavigator}
+        options={{
+          headerShown: false,
+          // 允许嵌套导航的跳转
+          cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+        }}
+      />
     </Stack.Navigator>
   );
 };

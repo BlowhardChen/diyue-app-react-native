@@ -2,7 +2,7 @@
 import React, {useEffect, useRef, useState} from "react";
 import {View, Text, Image, TouchableOpacity, Vibration} from "react-native";
 import {Camera, useCameraPermission} from "react-native-vision-camera";
-import {useNavigation} from "@react-navigation/native";
+import {RouteProp, useNavigation, useRoute} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {AddDeviceScreenStyles} from "./styles/AddDeviceScreen";
 import {SafeAreaView} from "react-native-safe-area-context";
@@ -16,13 +16,21 @@ import CustomLoading from "@/components/common/CustomLoading";
 import {useOCR} from "@/utils/uploadImg";
 
 type AddDeviceStackParamList = {
-  CurrentConnect: {imei: string};
-  ManualInput: undefined;
+  CurrentConnect: {imei: string; farmingJoinTypeId?: string; taskType?: string};
+  ManualInput: {farmingJoinTypeId?: string; taskType?: string} | undefined;
   BluetoothConnect: undefined;
 };
 
+type AddDeviceParams = {
+  farmingJoinTypeId: string;
+  taskType?: string;
+};
+
+type AddDeviceRouteProp = RouteProp<Record<string, AddDeviceParams>, string>;
+
 const AddDeviceScreen = () => {
   const navigation = useNavigation<StackNavigationProp<AddDeviceStackParamList>>();
+  const route = useRoute<AddDeviceRouteProp>();
   const {hasPermission, requestPermission} = useCameraPermission();
   const camera = useRef<Camera>(null);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
@@ -70,6 +78,18 @@ const AddDeviceScreen = () => {
     return <FullscreenCamera cameraRef={camera} />;
   };
 
+  // 手动输入
+  const handleManualInput = () => {
+    if (route.params?.farmingJoinTypeId) {
+      navigation.navigate("ManualInput", {
+        farmingJoinTypeId: route.params?.farmingJoinTypeId,
+        taskType: route.params?.taskType || "1",
+      });
+    } else {
+      navigation.navigate("ManualInput");
+    }
+  };
+
   // 拍照
   const snapshot = async () => {
     if (!hasPermission) {
@@ -101,7 +121,15 @@ const AddDeviceScreen = () => {
   const getDeviceBaseInfo = async (imei: string) => {
     try {
       const {data} = await getDeviceInfo(imei);
-      navigation.navigate("CurrentConnect", {imei: data.device.imei});
+      if (route.params?.farmingJoinTypeId) {
+        navigation.navigate("CurrentConnect", {
+          imei: data.device.imei,
+          farmingJoinTypeId: route.params?.farmingJoinTypeId,
+          taskType: route.params?.taskType || "1",
+        });
+      } else {
+        navigation.navigate("CurrentConnect", {imei: data.device.imei});
+      }
     } catch (error) {
       showCustomToast("error", "RTK设备暂未添加，请联系管理员添加设备再扫码使用");
     }
@@ -156,9 +184,7 @@ const AddDeviceScreen = () => {
           </View>
 
           {/* 手动输入按钮：可点击 */}
-          <TouchableOpacity
-            style={[AddDeviceScreenStyles.button, AddDeviceScreenStyles.hand]}
-            onPress={() => navigation.navigate("ManualInput")}>
+          <TouchableOpacity style={[AddDeviceScreenStyles.button, AddDeviceScreenStyles.hand]} onPress={handleManualInput}>
             <Text style={AddDeviceScreenStyles.btnText}>手动输入</Text>
           </TouchableOpacity>
 

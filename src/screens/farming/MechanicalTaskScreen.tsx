@@ -75,7 +75,6 @@ const FarmingMapScreen: React.FC = () => {
     console.log("查看机耕队任务详情：", item);
     navigation.navigate("MechanicalTaskDetail", {
       id: item.farmingJoinTypeId,
-      workStatus: activeTab,
       navTitle: item.farmingTypeName,
     });
   };
@@ -92,7 +91,7 @@ const FarmingMapScreen: React.FC = () => {
         ...prev,
         [activeTab]: data,
       }));
-      updateStore.triggerFarmingRefresh();
+      updateStore.setIsUpdateFarming(false);
     } catch (error) {
       showCustomToast("error", "获取机耕队列表失败，请稍后重试");
     } finally {
@@ -106,6 +105,7 @@ const FarmingMapScreen: React.FC = () => {
       <TouchableOpacity
         style={FarmingMapScreenStyles.farmingTypeItem}
         activeOpacity={0.8}
+        key={item.farmingJoinTypeId}
         onPress={() => viewMechanicalTaskDetail(item)}>
         <Text style={FarmingMapScreenStyles.farmingTypeName}>{item.farmingTypeName}</Text>
         <View style={FarmingMapScreenStyles.farmingTypeRight}>
