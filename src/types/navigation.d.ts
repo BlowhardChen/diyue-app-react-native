@@ -72,13 +72,13 @@ export type FarmStackParamList = {
   FarmingMap: undefined;
   MechanicalTask: undefined;
   PatrolFieldManage: undefined;
-  FarmingDetail: {farmingId: string; id: string; workStatus: string; navTitle: string};
-  AllocateFarming: {farmingId: string};
-  TransferFarming: {farmingId: string};
-  FarmingWorkData: {farmingId: string; workUsers: {userName: string; userId: string}[]};
-  HistoryWorkDetail: {farmingId: string};
-  LandMark: {farmingId: string};
-  MechanicalTaskDetail: {id: string; navTitle: string};
+  FarmingDetail: {farmingId: string; farmingJoinTypeId: string; workStatus: string; navTitle: string};
+  AllocateFarming: {farmingJoinTypeId: string};
+  TransferFarming: {farmingJoinTypeId: string};
+  FarmingWorkData: {farmingJoinTypeId: string; workUsers: {userName: string; userId: string}[]};
+  HistoryWorkDetail: {farmingJoinTypeId: string};
+  LandMark: {farmingJoinTypeId: string};
+  MechanicalTaskDetail: {farmingId?: string; farmingJoinTypeId: string; navTitle: string};
 };
 
 // 合同管理相关

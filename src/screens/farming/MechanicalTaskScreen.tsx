@@ -21,7 +21,7 @@ interface DictData {
   icon?: string;
 }
 
-const FarmingMapScreen: React.FC = () => {
+const MechanicalTaskScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<FarmStackParamList>>();
   const [activeTab, setActiveTab] = useState<string>("1");
   const [loading, setLoading] = useState<boolean>(false);
@@ -64,7 +64,7 @@ const FarmingMapScreen: React.FC = () => {
       getMechanicalTaskListData();
     } else {
       getMechanicalTaskListData({
-        dictValue: filters.cropType.dictValue,
+        dictValue: filters.cropType?.dictValue,
         farmingScienceTypelds: filters.farmingTypes.map(type => type.farmingTypeId),
       });
     }
@@ -74,7 +74,8 @@ const FarmingMapScreen: React.FC = () => {
   const viewMechanicalTaskDetail = (item: any) => {
     console.log("查看机耕队任务详情：", item);
     navigation.navigate("MechanicalTaskDetail", {
-      id: item.farmingJoinTypeId,
+      farmingId: item.farmingId,
+      farmingJoinTypeId: item.farmingJoinTypeId,
       navTitle: item.farmingTypeName,
     });
   };
@@ -94,6 +95,7 @@ const FarmingMapScreen: React.FC = () => {
       updateStore.setIsUpdateFarming(false);
     } catch (error) {
       showCustomToast("error", "获取机耕队列表失败，请稍后重试");
+      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -105,12 +107,12 @@ const FarmingMapScreen: React.FC = () => {
       <TouchableOpacity
         style={FarmingMapScreenStyles.farmingTypeItem}
         activeOpacity={0.8}
-        key={item.farmingJoinTypeId}
+        key={item.farmingJoinTypeId} // 唯一key
         onPress={() => viewMechanicalTaskDetail(item)}>
         <Text style={FarmingMapScreenStyles.farmingTypeName}>{item.farmingTypeName}</Text>
         <View style={FarmingMapScreenStyles.farmingTypeRight}>
           <Text style={activeTab === "1" ? FarmingMapScreenStyles.farmingAreaText : FarmingMapScreenStyles.farmingAreaTextActive}>
-            {item.totalArea.toFixed(2)}亩
+            {item.totalArea?.toFixed(2) || 0}亩
           </Text>
           <Image
             source={require("@/assets/images/common/icon-right.png")}
@@ -125,22 +127,17 @@ const FarmingMapScreen: React.FC = () => {
   // 渲染农事列表项（作物分类卡片）
   const renderListItem = (item: any) => {
     return (
-      <View style={FarmingMapScreenStyles.farmingCard} key={item.id}>
-        {/* 作物标题栏 */}
+      <View style={FarmingMapScreenStyles.farmingCard} key={item.farmingId}>
         <View style={FarmingMapScreenStyles.cropHeader}>
           <Image source={{uri: item.imgUrl}} style={FarmingMapScreenStyles.cropIcon} resizeMode="contain" />
           <Text style={FarmingMapScreenStyles.cropNameText}>{item.farmingName}</Text>
         </View>
         {/* 农事类型列表 */}
         <View style={FarmingMapScreenStyles.farmingTypesContainer}>
-          {item.farmingJoinTypeVoList.map((typeItem: any) => (
+          {item.farmingJoinTypeVoList.map((typeItem: any, idx: number) => (
             <React.Fragment key={typeItem.farmingJoinTypeId}>
               {renderFarmingTypeItem(typeItem)}
-              {/* 最后一项不加分割线 */}
-              {typeItem.farmingJoinTypeId !==
-                item.farmingJoinTypeVoList[item.farmingJoinTypeVoList.length - 1].farmingJoinTypeId && (
-                <View style={FarmingMapScreenStyles.typeItemDivider} />
-              )}
+              {idx !== item.farmingJoinTypeVoList.length - 1 && <View style={FarmingMapScreenStyles.typeItemDivider} />}
             </React.Fragment>
           ))}
         </View>
@@ -185,13 +182,17 @@ const FarmingMapScreen: React.FC = () => {
   return (
     <View style={FarmingMapScreenStyles.container}>
       {/* 自定义状态栏 */}
-      <CustomStatusBar navTitle={"农事地图"} onBack={() => navigation.goBack()} />
+      <CustomStatusBar navTitle={"机耕队任务"} onBack={() => navigation.goBack()} />
 
       {/* 标签导航 */}
       <View style={FarmingMapScreenStyles.navbar}>
         <View style={FarmingMapScreenStyles.tabsContainer}>
-          {tabs.map((tab, index) => (
-            <TouchableOpacity key={index} style={FarmingMapScreenStyles.tabItem} activeOpacity={1} onPress={() => changeTab(tab)}>
+          {tabs.map(tab => (
+            <TouchableOpacity
+              key={tab.type}
+              style={FarmingMapScreenStyles.tabItem}
+              activeOpacity={1}
+              onPress={() => changeTab(tab)}>
               <Text style={[FarmingMapScreenStyles.tabText, activeTab === tab.type && FarmingMapScreenStyles.activeTabText]}>
                 {tab.title}
               </Text>
@@ -228,4 +229,4 @@ const FarmingMapScreen: React.FC = () => {
   );
 };
 
-export default FarmingMapScreen;
+export default MechanicalTaskScreen;

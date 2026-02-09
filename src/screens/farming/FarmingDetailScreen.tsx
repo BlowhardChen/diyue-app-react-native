@@ -25,11 +25,11 @@ import {RootStackParamList} from "@/types/navigation";
 import CustomFarmingHeader from "@/components/common/CustomFarmingHeader";
 import FarmingTaskBottomPopup from "./components/FarmingTaskBottomPopup";
 import FarmingManagePopup from "./components/FarmingMangePopup";
-import {farmingDetailInfo, farmingScienceLandList} from "@/services/farming";
+import {farmingDetailInfo, farmingScienceLandList, farmingTaskLocusList} from "@/services/farming";
 import {updateStore} from "@/stores/updateStore";
 
 type FarmingDetailParams = {
-  id: string;
+  farmingJoinTypeId: string;
   farmingId?: string;
   workStatus: string;
   navTitle: string;
@@ -40,7 +40,7 @@ type FarmingDetailRouteProp = RouteProp<Record<string, FarmingDetailParams>, str
 const FarmingDetailScreen = observer(() => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<FarmingDetailRouteProp>();
-  const {id, farmingId, workStatus, navTitle} = route.params;
+  const {farmingId, farmingJoinTypeId, workStatus, navTitle} = route.params;
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const webViewRef = useRef<WebView>(null);
@@ -79,6 +79,7 @@ const FarmingDetailScreen = observer(() => {
     setLoading(true);
     getFarmingDetailData();
     getFarmingLandData();
+    getFarmingLocusList();
   }, [updateStore.isUpdateFarming]);
 
   // 当WebView准备好时
@@ -382,21 +383,29 @@ const FarmingDetailScreen = observer(() => {
 
   // 查看作业数据
   const onViewWorkPress = () => {
+    if (!farmingDetailData.userVos?.length) {
+      showCustomToast("error", "请先分配农事作业人");
+      return;
+    }
     navigation.navigate("FarmingWorkData", {
-      farmingId: farmingDetailData.farmingJoinTypeId,
+      farmingJoinTypeId: farmingDetailData.farmingJoinTypeId,
       workUsers: farmingDetailData.userVos,
     });
   };
 
   // 标注地块
   const onMarkPress = () => {
-    navigation.navigate("LandMark", {farmingId: farmingDetailData.farmingJoinTypeId});
+    if (!farmingDetailData.userVos?.length) {
+      showCustomToast("error", "请先分配农事作业人");
+      return;
+    }
+    navigation.navigate("LandMark", {farmingJoinTypeId: farmingDetailData.farmingJoinTypeId});
   };
 
   // 关闭农事管理弹窗
   const onCloseManagePopup = (action?: string) => {
     setShowManagePopup(false);
-    if (action === "completeFarming" && id) {
+    if (action === "completeFarming" && farmingJoinTypeId) {
       setShowManagePopup(false);
       showCustomToast("success", "农事完成成功");
     }
@@ -405,7 +414,7 @@ const FarmingDetailScreen = observer(() => {
   // 获取农事详情数据
   const getFarmingDetailData = async () => {
     try {
-      const {data} = await farmingDetailInfo({farmingJoinTypeId: id, type: "1"});
+      const {data} = await farmingDetailInfo({farmingJoinTypeId: farmingJoinTypeId, type: "1"});
       console.log("农事详情数据：", data);
       if (!data) return;
       setLoading(false);
@@ -418,9 +427,31 @@ const FarmingDetailScreen = observer(() => {
     }
   };
 
+  // 获取农事轨迹列表
+  const getFarmingLocusList = async () => {
+    try {
+      const {data} = await farmingTaskLocusList({
+        farmingJoinTypeId: farmingJoinTypeId,
+      });
+      console.log("农事轨迹列表数据：", data);
+      if (!data?.length) return;
+      webViewRef.current?.postMessage(
+        JSON.stringify({
+          type: "DRAW_FARMING_LOCUS_List",
+          data,
+        }),
+      );
+      if (!data) return;
+    } catch (error) {
+      showCustomToast("error", "获取农事轨迹列表失败，请稍后重试");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 获取农事地块数据
   const getFarmingLandData = async () => {
-    const {data} = await farmingScienceLandList({id});
+    const {data} = await farmingScienceLandList({id: farmingJoinTypeId});
     webViewRef.current?.postMessage(
       JSON.stringify({
         type: "DRAW_MARK_ENCLOSURE_LAND",
@@ -585,7 +616,7 @@ const FarmingDetailScreen = observer(() => {
 
         {/* 农事管理弹窗 */}
         {showManagePopup && (
-          <FarmingManagePopup farmingInfo={{...farmingDetailData, farmingId: farmingId}} onClosePopup={onCloseManagePopup} />
+          <FarmingManagePopup farmingInfo={{...farmingDetailData, farmingJoinTypeId}} onClosePopup={onCloseManagePopup} />
         )}
       </View>
     </View>

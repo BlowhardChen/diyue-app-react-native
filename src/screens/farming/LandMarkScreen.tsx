@@ -33,7 +33,7 @@ import {update} from "lodash";
 import {updateStore} from "@/stores/updateStore";
 
 type LandMarkScreenParams = {
-  farmingId: string;
+  farmingJoinTypeId: string;
 };
 
 type LandMarkScreenRouteProp = RouteProp<Record<string, LandMarkScreenParams>, string>;
@@ -42,7 +42,7 @@ const LandMarkScreen = observer(() => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<LandMarkScreenRouteProp>();
-  const {farmingId} = route.params;
+  const {farmingJoinTypeId} = route.params;
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const webViewRef = useRef<WebView>(null);
@@ -63,7 +63,7 @@ const LandMarkScreen = observer(() => {
   const [confirmButtonText, setConfirmButtonText] = useState<string>("标记已作业");
   const [rightBtnStyle, setRightBtnStyle] = useState({color: Global.colors.primary});
 
-  console.log("HistoryWorkDetailScreen", farmingId);
+  console.log("HistoryWorkDetailScreen", farmingJoinTypeId);
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -86,6 +86,7 @@ const LandMarkScreen = observer(() => {
   // 获取地块数据
   useEffect(() => {
     getFarmingLandData();
+    updateStore.setIsUpdateFarming(false);
   }, [updateStore.isUpdateFarming]);
 
   // 当WebView准备好时
@@ -393,8 +394,10 @@ const LandMarkScreen = observer(() => {
   // 确认操作
   const popupConfirm = async () => {
     try {
+      setIsShowPopup(false);
       // 切换地块状态
       setFarmingData(prevData => {
+        console.log("切换地块状态", prevData);
         const updatedData = prevData.map(item => {
           if (item.id === selectedLandId) {
             const newStatus = item.landStatus === "1" ? "0" : "1";
@@ -416,14 +419,14 @@ const LandMarkScreen = observer(() => {
         });
         return updatedData;
       });
-      await markFarmingLand({farmingJoinTypeId: farmingId, lands: [{landId: selectedLandId}]});
-      setIsShowPopup(false);
+      await markFarmingLand({farmingJoinTypeId: farmingJoinTypeId, lands: [{landId: selectedLandId}], status: "1"});
     } catch (error) {}
   };
 
   // 获取农事地块数据
   const getFarmingLandData = async () => {
-    const {data} = await farmingScienceLandList({id: farmingId});
+    const {data} = await farmingScienceLandList({id: farmingJoinTypeId});
+    console.log("获取农事地块数据", data);
     setFarmingData(data);
     webViewRef.current?.postMessage(
       JSON.stringify({
@@ -431,7 +434,6 @@ const LandMarkScreen = observer(() => {
         data,
       }),
     );
-    updateStore.setIsUpdateFarming(false);
   };
 
   // 初始化WebSocket

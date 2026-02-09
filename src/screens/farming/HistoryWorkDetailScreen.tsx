@@ -28,7 +28,7 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import HistoryWorkDetailPopup from "./components/HistoryWorkDetailPopup";
 
 type HistoryWorkDetailParams = {
-  farmingId: string;
+  farmingJoinTypeId: string;
 };
 
 type HistoryWorkDetailRouteProp = RouteProp<Record<string, HistoryWorkDetailParams>, string>;
@@ -37,7 +37,7 @@ const HistoryWorkDetailScreen = observer(() => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<HistoryWorkDetailRouteProp>();
-  const {farmingId} = route.params;
+  const {farmingJoinTypeId} = route.params;
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const webViewRef = useRef<WebView>(null);
@@ -51,8 +51,6 @@ const HistoryWorkDetailScreen = observer(() => {
   const isFirstSocketLocationRef = useRef(true);
   const locationLngLatRef = useRef<{longitude: number; latitude: number} | null>(null);
   const [showManagePopup, setShowManagePopup] = useState(false);
-
-  console.log("HistoryWorkDetailScreen", farmingId);
 
   // 启用屏幕常亮
   useEffect(() => {

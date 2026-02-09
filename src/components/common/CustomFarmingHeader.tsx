@@ -23,7 +23,6 @@ const CustomFarmingHeader: React.FC<Props> = observer(
   ({navTitle = "", showRightIcon = true, deviceStatus = "0", onBackView, handleConnectDeviceFun}) => {
     const insets = useSafeAreaInsets();
     const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-    const route = useRoute();
 
     const handleBack = useCallback(() => {
       onBackView?.() ?? navigation.goBack();
@@ -77,8 +76,10 @@ const styles = StyleSheet.create({
     height: Platform.OS === "ios" ? 44 : 56,
   },
   title: {
+    maxWidth: 200,
     fontSize: 20,
     color: "#fff",
+    textAlign: "center",
   },
   iconWrapper: {
     width: 38,

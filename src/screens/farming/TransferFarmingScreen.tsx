@@ -21,7 +21,7 @@ type AllocateFarmingStackParamList = {
   };
 };
 
-const TransferFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) => {
+const TransferFarmingScreen = ({route}: {route: {params: {farmingJoinTypeId: string}}}) => {
   const navigation = useNavigation<StackNavigationProp<AllocateFarmingStackParamList>>();
   const [isFarmParComplete, setIsFarmParComplete] = useState(false);
   const [farmingLands, setFarmingLands] = useState<LandListData[]>([]);
@@ -48,7 +48,8 @@ const TransferFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
     navigation.navigate("SelectLand", {
       type: "farming",
       lands: selectedLand.length > 0 ? selectedLand : farmingLands,
-      landRequest: (): Promise<LandListData[]> => farmingScienceLandList({id: route.params.farmingId}).then(res => res.data),
+      landRequest: (): Promise<LandListData[]> =>
+        farmingScienceLandList({id: route.params.farmingJoinTypeId}).then(res => res.data),
       onSelectLandResult: result => {
         handleSelectLandResult(result);
       },
@@ -79,7 +80,7 @@ const TransferFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
   const popupConfirm = async () => {
     try {
       const submitParams = {
-        farmingJoinTypeId: route.params.farmingId,
+        farmingJoinTypeId: route.params.farmingJoinTypeId,
         assignMobile: newOperatorAccount.trim(),
         lands: selectedLand.map(land => ({landId: land.id})),
       };
@@ -96,7 +97,8 @@ const TransferFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
   // 获取农事详情数据
   const getFarmingDetailData = async () => {
     try {
-      const {data} = await farmingDetailInfo({farmingJoinTypeId: route.params.farmingId, type: "1"});
+      const {data} = await farmingDetailInfo({farmingJoinTypeId: route.params.farmingJoinTypeId, type: "1"});
+      console.log("farmingInfo", data);
       setFarmingInfo(data);
     } catch (error) {
       showCustomToast("error", "获取农事详情失败，请稍后重试");
@@ -106,7 +108,7 @@ const TransferFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
   // 获取当前用户地块数据
   const getUserFarmingLands = async () => {
     try {
-      const {data} = await farmingScienceLandList({id: route.params.farmingId});
+      const {data} = await farmingScienceLandList({id: route.params.farmingJoinTypeId});
       setFarmingLands(data || []);
     } catch (error: any) {
       showCustomToast("error", error.data.message ?? "获取地块数据失败，请重试");
@@ -130,23 +132,36 @@ const TransferFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
           </View>
 
           {/* 机手列表 */}
-          {farmingInfo?.userVos.map((user: {mobile: string; userName: string}) => (
-            <TouchableOpacity
-              key={user.mobile}
-              style={[
-                TransferFarmingScreenStyles.operatorItem,
-                selectedOperator === user.mobile && TransferFarmingScreenStyles.operatorItemActive,
-              ]}
-              onPress={() => setSelectedOperator(user.mobile)}>
-              <Text
-                style={[
-                  TransferFarmingScreenStyles.operatorText,
-                  selectedOperator === user.mobile && TransferFarmingScreenStyles.operatorTextActive,
-                ]}>
-                {user.userName} {user.mobile}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {farmingInfo?.userVos?.length > 0 ? (
+            <>
+              {farmingInfo?.userVos.map((user: {mobile: string; userName: string}) => (
+                <TouchableOpacity
+                  key={user.mobile}
+                  style={[
+                    TransferFarmingScreenStyles.operatorItem,
+                    selectedOperator === user.mobile && TransferFarmingScreenStyles.operatorItemActive,
+                  ]}
+                  onPress={() => setSelectedOperator(user.mobile)}>
+                  <Text
+                    style={[
+                      TransferFarmingScreenStyles.operatorText,
+                      selectedOperator === user.mobile && TransferFarmingScreenStyles.operatorTextActive,
+                    ]}>
+                    {user.userName} {user.mobile}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </>
+          ) : (
+            <View style={TransferFarmingScreenStyles.noDataContainer}>
+              <Image
+                source={require("@/assets/images/common/contract-empty.png")}
+                style={TransferFarmingScreenStyles.noDataIcon}
+                resizeMode="contain"
+              />
+              <Text style={TransferFarmingScreenStyles.noDataText}>暂无机手数据，请先分配农事</Text>
+            </View>
+          )}
         </View>
 
         {/* 选择地块 */}

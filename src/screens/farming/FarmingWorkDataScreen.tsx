@@ -29,7 +29,7 @@ import WorkDataManagePopup from "./components/WorkDataManagePopup";
 import {farmingScienceLandList} from "@/services/farming";
 
 type FarmingWorkDataRouteProp = RouteProp<
-  Record<string, {farmingId: string; workUsers: {userName: string; userId: string}[]}>,
+  Record<string, {farmingJoinTypeId: string; workUsers: {userName: string; mobile: string}[]}>,
   string
 >;
 
@@ -37,7 +37,7 @@ const FarmingWorkDataScreen = observer(() => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<StackNavigationProp<FarmStackParamList>>();
   const route = useRoute<FarmingWorkDataRouteProp>();
-  const {farmingId, workUsers} = route.params;
+  const {farmingJoinTypeId, workUsers} = route.params;
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const webViewRef = useRef<WebView>(null);
@@ -51,8 +51,7 @@ const FarmingWorkDataScreen = observer(() => {
   const isFirstSocketLocationRef = useRef(true);
   const locationLngLatRef = useRef<{longitude: number; latitude: number} | null>(null);
   const [showSelectWorkerPopup, setSelectWorkerPopup] = useState(false);
-
-  console.log("FarmingWorkDataScreen", farmingId);
+  const [selectedWorker, setSelectedWorker] = useState<{userName: string; mobile: string}>(workUsers[0]);
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -72,7 +71,6 @@ const FarmingWorkDataScreen = observer(() => {
     initLocationPermission();
   }, []);
 
-  // 获取已圈地地块数据
   useEffect(() => {
     getFarmingLandData();
   }, []);
@@ -377,14 +375,15 @@ const FarmingWorkDataScreen = observer(() => {
   };
 
   // 选择作业人
-  const handleSelectWorker = (item: {userName: string; userId: string}) => {
-    console.log("选择作业人:", item);
+  const handleSelectWorker = (item: {userName: string; mobile: string}) => {
+    setSelectedWorker(item);
+    setSelectWorkerPopup(false);
   };
 
   // 关闭作业人弹窗
   const onCloseSelectWorkerPopup = (action?: string) => {
     setSelectWorkerPopup(false);
-    if (action === "completeFarming" && farmingId) {
+    if (action === "completeFarming" && farmingJoinTypeId) {
       setSelectWorkerPopup(false);
       showCustomToast("success", "农事完成成功");
     }
@@ -392,7 +391,7 @@ const FarmingWorkDataScreen = observer(() => {
 
   // 获取农事地块数据
   const getFarmingLandData = async () => {
-    const {data} = await farmingScienceLandList({id: farmingId});
+    const {data} = await farmingScienceLandList({id: farmingJoinTypeId});
     webViewRef.current?.postMessage(
       JSON.stringify({
         type: "DRAW_MARK_ENCLOSURE_LAND",
@@ -510,7 +509,9 @@ const FarmingWorkDataScreen = observer(() => {
           </TouchableOpacity>
 
           <TouchableOpacity style={FarmingWorkDataScreenStyles.titleContainer} onPress={openSelectWorkerPopup}>
-            <Text style={FarmingWorkDataScreenStyles.title}>{workUsers[0]?.userName || "未知作业人"}</Text>
+            <Text style={FarmingWorkDataScreenStyles.title}>
+              {selectedWorker.userName ? selectedWorker.userName : "无作业人"}
+            </Text>
             <Image
               source={require("@/assets/images/farming/icon-down-white.png")}
               style={FarmingWorkDataScreenStyles.iconImage}
@@ -568,12 +569,13 @@ const FarmingWorkDataScreen = observer(() => {
         />
 
         {/* 作业状态弹窗 */}
-        <WorkDataManagePopup farmingId={farmingId} />
+        <WorkDataManagePopup farmingId={farmingJoinTypeId} />
 
         {/* 作业人弹窗 */}
-        {showSelectWorkerPopup && (
+        {showSelectWorkerPopup && workUsers?.length > 0 && (
           <SelectWorkerPopup
-            farmingInfo={{farmingId, workUsers}}
+            farmingInfo={{farmingJoinTypeId, workUsers}}
+            currentWorker={selectedWorker}
             onSelectWorker={handleSelectWorker}
             onClosePopup={onCloseSelectWorkerPopup}
           />

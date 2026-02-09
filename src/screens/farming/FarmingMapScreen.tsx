@@ -58,13 +58,12 @@ const FarmingMapScreen: React.FC = () => {
 
   // 筛选确认回调
   const handleFilterConfirm = (filters: {cropType: DictData; farmingTypes: FarmingTypeListItem[]}) => {
-    console.log("选中的筛选条件：", filters);
     setFilterModalVisible(false);
     if (!filters.cropType && filters.farmingTypes.length === 0) {
       getFarmingListData();
     } else {
       getFarmingListData({
-        dictValue: filters.cropType.dictValue,
+        dictValue: filters.cropType?.dictValue,
         farmingScienceTypelds: filters.farmingTypes.map(type => type.farmingTypeId),
       });
     }
@@ -75,7 +74,7 @@ const FarmingMapScreen: React.FC = () => {
     console.log("查看农事详情：", item);
     navigation.navigate("FarmingDetail", {
       farmingId: item.farmingId,
-      id: item.farmingJoinTypeId,
+      farmingJoinTypeId: item.farmingJoinTypeId,
       workStatus: activeTab,
       navTitle: item.farmingTypeName,
     });
@@ -84,9 +83,9 @@ const FarmingMapScreen: React.FC = () => {
   // 获取农事列表数据
   const getFarmingListData = async (filters?: any) => {
     try {
+      setLoading(true);
       const {data} = await getFarmingList({type: "1", workStatus: activeTab, ...filters});
       console.log("农事列表数据：", data);
-      setLoading(false);
       setFarmingList(data);
       // 更新缓存
       setTabDataCache(prev => ({
@@ -112,7 +111,7 @@ const FarmingMapScreen: React.FC = () => {
         <Text style={FarmingMapScreenStyles.farmingTypeName}>{item.farmingTypeName}</Text>
         <View style={FarmingMapScreenStyles.farmingTypeRight}>
           <Text style={activeTab === "1" ? FarmingMapScreenStyles.farmingAreaText : FarmingMapScreenStyles.farmingAreaTextActive}>
-            {item.totalArea.toFixed(2)}亩
+            {item?.totalArea ? item?.totalArea.toFixed(2) : "0"}亩
           </Text>
           <Image
             source={require("@/assets/images/common/icon-right.png")}
@@ -135,8 +134,8 @@ const FarmingMapScreen: React.FC = () => {
         </View>
         {/* 农事类型列表 */}
         <View style={FarmingMapScreenStyles.farmingTypesContainer}>
-          {item.farmingJoinTypeVoList.map((typeItem: any) => (
-            <React.Fragment key={typeItem.farmingJoinTypeId}>
+          {item.farmingJoinTypeVoList.map((typeItem: any, index: number) => (
+            <React.Fragment key={typeItem.farmingJoinTypeId || `type-item-${index}`}>
               {renderFarmingTypeItem(typeItem, item.farmingId)}
               {/* 最后一项不加分割线 */}
               {typeItem.farmingJoinTypeId !==
@@ -193,7 +192,11 @@ const FarmingMapScreen: React.FC = () => {
       <View style={FarmingMapScreenStyles.navbar}>
         <View style={FarmingMapScreenStyles.tabsContainer}>
           {tabs.map((tab, index) => (
-            <TouchableOpacity key={index} style={FarmingMapScreenStyles.tabItem} activeOpacity={1} onPress={() => changeTab(tab)}>
+            <TouchableOpacity
+              key={tab.type}
+              style={FarmingMapScreenStyles.tabItem}
+              activeOpacity={1}
+              onPress={() => changeTab(tab)}>
               <Text style={[FarmingMapScreenStyles.tabText, activeTab === tab.type && FarmingMapScreenStyles.activeTabText]}>
                 {tab.title}
               </Text>

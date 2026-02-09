@@ -26,7 +26,7 @@ type AllocateFarmingStackParamList = {
   };
 };
 
-const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) => {
+const AllocateFarmingScreen = ({route}: {route: {params: {farmingJoinTypeId: string}}}) => {
   const navigation = useNavigation<StackNavigationProp<AllocateFarmingStackParamList>>();
   const [operators, setOperators] = useState<OperatorItem[]>([]);
   const [isFarmParComplete, setIsFarmParComplete] = useState(false);
@@ -38,7 +38,7 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
   const allAllocatedLands = operators.flatMap(item => item.selectedLands);
 
   useEffect(() => {
-    getFarmingDetailData(route.params.farmingId);
+    getFarmingDetailData(route.params.farmingJoinTypeId);
   }, []);
 
   // 监听表单：所有模块有账号+有选中地块，且总选中地块不重复
@@ -80,7 +80,7 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
   const getUnallocatedLands = async () => {
     try {
       let initialOperator: OperatorItem;
-      const {data} = await unallocatedFarmingLandList({id: route.params.farmingId});
+      const {data} = await unallocatedFarmingLandList({id: route.params.farmingJoinTypeId});
       console.log("未分配农事地块", data);
       if (data.length) {
         initialOperator = {
@@ -111,7 +111,8 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
     navigation.navigate("SelectLand", {
       type: "farming",
       lands: remainingLands.length > 0 ? remainingLands : farmingLands,
-      landRequest: (): Promise<LandListData[]> => unallocatedFarmingLandList({id: route.params.farmingId}).then(res => res.data),
+      landRequest: (): Promise<LandListData[]> =>
+        unallocatedFarmingLandList({id: route.params.farmingJoinTypeId}).then(res => res.data),
       onSelectLandResult: result => {
         handleSelectLandResult(operatorId, result);
       },
@@ -157,7 +158,7 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
   const popupConfirm = async () => {
     try {
       const farmingJoinTypeLandParams = operators.map(item => ({
-        farmingJoinTypeId: route.params.farmingId,
+        farmingJoinTypeId: route.params.farmingJoinTypeId,
         assignMobile: item.account.trim(),
         lands: item.selectedLands.map(land => ({landId: land.id})),
       }));
@@ -229,7 +230,7 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
           </View>
         ))}
 
-        {/* 添加机手账号按钮：所有地块分配完成后禁用（保持原有逻辑） */}
+        {/* 添加机手账号按钮 */}
         <View style={AllocateFarmingScreenStyles.addAllocateFarmingContainer}>
           <TouchableOpacity
             style={[
@@ -247,7 +248,7 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
         </View>
       </ScrollView>
 
-      {/* 保存按钮：表单完整时可点击 */}
+      {/* 保存按钮 */}
       <View style={AllocateFarmingScreenStyles.btnSave}>
         <TouchableOpacity
           style={[AllocateFarmingScreenStyles.btn, !isFarmParComplete && AllocateFarmingScreenStyles.btnDisabled]}
@@ -257,7 +258,7 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingId: string}}}) 
         </TouchableOpacity>
       </View>
 
-      {/* 确认弹窗：适配多机手剩余地块提示 */}
+      {/* 确认弹窗 */}
       {isShowPopup && (
         <View style={AllocateFarmingScreenStyles.mask}>
           <View style={AllocateFarmingScreenStyles.popupBox}>

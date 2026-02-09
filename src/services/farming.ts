@@ -112,7 +112,7 @@ export const completeFarmingLink = (data: {id: string}) => {
 /**
  * 农事详情-标注农事地块
  */
-export const markFarmingLand = (data: {farmingJoinTypeId: string; lands: {landId: string}[]}) => {
+export const markFarmingLand = (data: {farmingJoinTypeId: string; lands: {landId: string}[]; status: string}) => {
   return http<any>({
     method: "POST",
     url: "/app/farming/markFarmingLand",
@@ -145,11 +145,56 @@ export const unallocatedFarmingLandList = (data: {id: string}) => {
 /**
  * 农事地图-查询农事环节地块列表
  */
-
 export const farmingScienceLandList = (data: {id: string}) => {
   return http<any>({
     method: "POST",
     url: "/app/farming/farmingLandList",
+    data,
+  });
+};
+
+/**
+ * 农事地图-查询农事轨迹状态
+ */
+export const farmingTaskLocusStatus = (data: {farmingJoinTypeId: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/locus/queryFarmingLocusType",
+    data,
+  });
+};
+
+/**
+ * 农事地图-查询农事轨迹列表
+ */
+export const farmingTaskLocusList = (data: {farmingJoinTypeId: string; locusType?: string; imei?: string; status?: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/locus/farmingLocusList",
+    data,
+  });
+};
+
+/**
+ * 机耕队任务-查询上级机耕队农事轨迹列表
+ */
+
+export const mechanicalParentFarmingLocusList = (data: {farmingJoinTypeId: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/locus/managerTeamFarmingLocusList",
+    data,
+  });
+};
+
+/**
+ * 机耕队任务-查询机耕队农事轨迹列表
+ */
+
+export const mechanicalTaskDetailLocusList = (data: {imei: string; status: string; farmingJoinTypeId: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/locus/teamFarmingLocusList",
     data,
   });
 };

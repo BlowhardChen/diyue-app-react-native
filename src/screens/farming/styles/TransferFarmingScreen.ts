@@ -107,6 +107,21 @@ export const TransferFarmingScreenStyles = StyleSheet.create({
     fontWeight: "500",
     color: "#08AE3C",
   },
+  noDataContainer: {
+    flex: 1,
+    marginBottom: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noDataIcon: {
+    width: 66,
+    height: 64,
+  },
+  noDataText: {
+    marginTop: 12,
+    fontSize: 18,
+    color: "#000000",
+  },
   selectLandButton: {
     height: 52,
     flexDirection: "row",

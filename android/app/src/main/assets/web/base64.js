@@ -15,6 +15,6 @@ window.Base64Images = (function () {
         dotMarkerJS,
         locationMarkerJS,
         commonDotMarkerJS,
-        markPointMarkerJS
+        markPointMarkerJS,
     }
 })()

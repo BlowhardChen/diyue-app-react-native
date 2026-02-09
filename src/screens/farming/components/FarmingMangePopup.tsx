@@ -60,15 +60,24 @@ const FarmingManagePopup: React.FC<LandManageProps> = ({farmingInfo, onClosePopu
         navigation.navigate("AddFarming", {id: farmingInfo.farmingJoinTypeId, farmingId: farmingInfo.farmingId});
         break;
       case "allocateFarming":
-        navigation.navigate("AllocateFarming", {farmingId: farmingInfo.farmingJoinTypeId});
+        navigation.navigate("AllocateFarming", {farmingJoinTypeId: farmingInfo.farmingJoinTypeId});
         break;
       case "transferFarming":
-        navigation.navigate("TransferFarming", {farmingId: farmingInfo.farmingJoinTypeId});
+        if (!farmingInfo.userVos?.length) {
+          showCustomToast("error", "请先分配农事作业人");
+          return;
+        }
+        navigation.navigate("TransferFarming", {farmingJoinTypeId: farmingInfo.farmingJoinTypeId});
         break;
       case "completeFarming":
         setIsShowPopup(true);
-        setMsgText("确认完成农事吗？");
         setRightBtnText("完成");
+        if (!farmingInfo.userVos?.length) {
+          setMsgText("当前农事未分配作业人确定完成农事吗？");
+          return;
+        } else {
+          setMsgText("确认完成农事吗？");
+        }
         break;
       default:
         break;

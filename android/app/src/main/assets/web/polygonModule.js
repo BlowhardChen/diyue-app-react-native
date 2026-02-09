@@ -1049,16 +1049,16 @@ window.PolygonModule = (function () {
         landPolygonFeature.setStyle(
             new ol.style.Style({
                 stroke: new ol.style.Stroke({
-                    color: data.landStatus ==='0' ? unfinishedColor : completedColor,
+                    color: data.landStatus ==='0' ? unfinishedColor : data.landStatus ==='1' ? completedColor : '#fff',
                     width: 2,
                 }),
                 fill: new ol.style.Fill({
-                    color: data.landStatus ==='0' ? '#FF4E4C' : '#37DC6B',
+                    color: data.landStatus ==='0' ? 'rgba(255, 78, 76, 0.20)' : data.landStatus ==='1'?'rgba(55, 220, 107, 0.20)':'rgba(0, 0, 0, 0.3)',
                 }),
                 text: new ol.style.Text({
                     text: textMsg,
                     font: '16px Arial', 
-                    fill: new ol.style.Fill({ color: data.landStatus ==='0' ? '#FF4E4C' : '#37DC6B' }),
+                    fill: new ol.style.Fill({ color: data.landStatus ==='0' ? '#FF4E4C' : data.landStatus ==='1'? '#37DC6B' : '#fff' }),
                     stroke: new ol.style.Stroke({
                         color: '#fff',
                         width: 2,
@@ -1083,6 +1083,61 @@ window.PolygonModule = (function () {
 
     }  
 
+    /**
+     * 更新农事地块状态样式
+     * @param {ol.Map} map - 地图实例
+     * @param {string|number} id - 地块ID
+     * @param {string} landStatus - 0:未完成 1:已完成
+     */
+    function updateFarmingLandStatus(map, id, landStatus) {
+        // 1. 查找目标地块Feature
+        const targetFeatureInfo = polygonFeatureList.find(item => item.feature.values_.id === id);
+        if (!targetFeatureInfo) {
+            WebBridge.postError(`未找到ID为${id}的地块`);
+            return;
+        }
+
+        const feature = targetFeatureInfo.feature;
+        const layer = targetFeatureInfo.layer;
+        
+        // 2. 定义状态对应的样式
+        const completedColor = '#37DC6B'; // 已完成
+        const unfinishedColor = '#FF4E4C'; // 未完成
+        const textMsg = `${feature.values_.landName}\n${feature.values_.actualAcreNum}亩`;
+
+        // 3. 更新Feature样式
+        feature.setStyle(
+            new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: landStatus === '0' ? unfinishedColor : landStatus === '1' ? completedColor : '#fff',
+                    width: 2,
+                }),
+                fill: new ol.style.Fill({
+                    color: landStatus === '0' ? 'rgba(255, 78, 76, 0.20)' : 'rgba(55, 220, 107, 0.20)',
+                }),
+                text: new ol.style.Text({
+                    text: textMsg,
+                    font: '16px Arial', 
+                    fill: new ol.style.Fill({ color: landStatus === '0' ? '#FF4E4C' : '#37DC6B' }),
+                    stroke: new ol.style.Stroke({
+                        color: '#fff',
+                        width: 2,
+                    }),
+                }),
+            })
+        );
+
+        // 4. 更新Feature的landStatus属性（同步数据）
+        feature.set('landStatus', landStatus);
+        
+        // 5. 通知RN端更新成功
+        WebBridge.postMessage({
+            type: "FARMING_LAND_STATUS_UPDATED",
+            id: id,
+            landStatus: landStatus
+        });
+    }
+
     return {
         drawEnclosurePolygon,
         removeEnclosurePolygon,
@@ -1105,6 +1160,7 @@ window.PolygonModule = (function () {
         drawMarkEnclosureLandPolygon,
         getPolygonFeatureList,
         drawFarmingMarkLandPolygon,
+        updateFarmingLandStatus,
         drawFarmingMarkLandListPolygon
     };
 })();

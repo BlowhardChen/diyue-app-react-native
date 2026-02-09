@@ -623,11 +623,8 @@ const LandManagementScreen = observer(() => {
       },
       onMessage: (data: any) => {
         const socketData = JSON.parse(JSON.stringify(data));
-        if (socketData.taskType !== "1") {
-          return;
-        }
         // 过滤无效坐标（避免0,0坐标）
-        if (socketData.lng && socketData.lat && socketData.lng !== 0 && socketData.lat !== 0) {
+        if (socketData.taskType === "1" && socketData.lng && socketData.lat && socketData.lng !== 0 && socketData.lat !== 0) {
           const newLocation = {lon: socketData.lng, lat: socketData.lat};
           setRtkLocation(newLocation); // 更新状态
           console.log("WebSocket 接收定位数据:", newLocation);

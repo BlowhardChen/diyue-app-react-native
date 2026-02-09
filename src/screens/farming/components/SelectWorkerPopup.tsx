@@ -5,29 +5,26 @@ import {Global} from "@/styles/global";
 const {width: screenWidth} = Dimensions.get("window");
 
 interface LandManageProps {
-  farmingInfo: {farmingId: string; workUsers: {userName: string; userId: string}[]};
-  onSelectWorker: (item: {userName: string; userId: string}) => void;
+  farmingInfo: {
+    farmingJoinTypeId: string;
+    workUsers: {userName: string; mobile: string}[];
+  };
+  currentWorker: {userName: string; mobile: string};
+  onSelectWorker: (item: {userName: string; mobile: string}) => void;
   onClosePopup: () => void;
 }
 
-const FarmingManagePopup: React.FC<LandManageProps> = ({farmingInfo, onClosePopup, onSelectWorker}) => {
-  const {farmingId, workUsers} = farmingInfo;
-  const [selectedWorker, setSelectedWorker] = useState<string>("");
-
-  useEffect(() => {
-    setSelectedWorker(workUsers[0]?.userId);
-  }, [workUsers]);
+const SelectWorkerPopup: React.FC<LandManageProps> = ({farmingInfo, currentWorker, onClosePopup, onSelectWorker}) => {
+  const {farmingJoinTypeId, workUsers} = farmingInfo;
 
   // 处理选择作业人
-  const handleSelectWorker = (item: {userName: string; userId: string}) => {
-    setSelectedWorker(item.userId);
+  const handleSelectWorker = (item: {userName: string; mobile: string}) => {
     onSelectWorker(item);
   };
 
   // 关闭弹窗
   const closePopup = () => {
     onClosePopup();
-    setSelectedWorker("");
   };
 
   return (
@@ -47,12 +44,12 @@ const FarmingManagePopup: React.FC<LandManageProps> = ({farmingInfo, onClosePopu
 
         {/* 内容区 */}
         <ScrollView style={styles.manageBox}>
-          {workUsers &&
-            workUsers?.map((item, index) => {
-              const isSelected = selectedWorker === item.userId;
+          {workUsers?.length > 0 &&
+            workUsers?.map(item => {
+              const isSelected = currentWorker.mobile === item.mobile;
               return (
                 <TouchableOpacity
-                  key={index}
+                  key={item.mobile}
                   style={styles.manageItem}
                   onPress={() => handleSelectWorker(item)}
                   activeOpacity={0.8}>
@@ -152,4 +149,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FarmingManagePopup;
+export default SelectWorkerPopup;

@@ -2,6 +2,7 @@ import ExpandButton from "@/screens/land/components/ExpandButton";
 import {FarmingMapDetailInfoData} from "@/types/farming";
 import React, {useState} from "react";
 import {View, Text, StyleSheet, TouchableOpacity} from "react-native";
+import {text} from "react-native-communications";
 
 type FarmingTaskBottomPopupProps = {
   farmingDetailInfo: FarmingMapDetailInfoData;
@@ -16,7 +17,7 @@ const FarmingTaskBottomPopup = ({
   onViewWorkPress,
   onMarkPress,
 }: FarmingTaskBottomPopupProps) => {
-  const {farmingTypeName, totalLandCount, workLandCount, status, totalArea, userVos, workArea} = farmingDetailInfo || {};
+  const {farmingTypeName, totalLandCount, workLandCount, status, userVos, totalArea, workArea} = farmingDetailInfo || {};
 
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -34,7 +35,7 @@ const FarmingTaskBottomPopup = ({
               </Text>
             </View>
             <Text style={[styles.areaText, {color: status === "0" ? "#F58700" : "#08AE3C"}]}>
-              {totalArea}
+              {totalArea ? totalArea.toFixed(2) : "0"}
               <Text style={[styles.unitText, {color: status === "0" ? "#F58700" : "#08AE3C"}]}>亩</Text>
             </Text>
           </View>
@@ -115,6 +116,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   farmingTypeNameText: {
+    maxWidth: 150,
     fontSize: 20,
     fontWeight: "500",
     color: "#000",
@@ -127,8 +129,10 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   areaText: {
+    maxWidth: 120,
     fontSize: 20,
     fontWeight: "500",
+    textAlign: "right",
   },
   unitText: {
     fontSize: 14,
