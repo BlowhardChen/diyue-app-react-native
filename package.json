@@ -13,7 +13,10 @@
     "lint": "yarn lint:eslint && yarn lint:prettier",
     "lint:fix": "yarn lint:eslint --fix && yarn lint:prettier",
     "commit": "git-cz && git push",
-    "test": "jest"
+    "test": "jest",
+    "android:build:debug": "cd android && ./gradlew assembleDebug",
+    "android:build:release": "cd android && ./gradlew assembleRelease",
+    "android:build:release:arm64": "cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [

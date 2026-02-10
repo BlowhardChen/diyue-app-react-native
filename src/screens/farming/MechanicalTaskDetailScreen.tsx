@@ -409,7 +409,13 @@ const MechanicalTaskDetailScreen = observer(() => {
         const {latitude, longitude} = pos.coords;
         locationLngLatRef.current = {longitude, latitude};
 
-        // 核心修复：GPS轨迹更新不依赖farmingDetailData，仅排除已完成状态
+        webViewRef.current?.postMessage(
+          JSON.stringify({
+            type: "UPDATE_ICON_LOCATION",
+            location: {lng: longitude, lat: latitude},
+          }),
+        );
+
         const isTaskNotFinished = farmingDetailData?.status !== "1";
         if (isTaskNotFinished || farmingDetailData === null) {
           // GPS轨迹更新（无设备/设备离线必执行）
@@ -422,7 +428,7 @@ const MechanicalTaskDetailScreen = observer(() => {
           );
         }
 
-        // 解耦：WebSocket上报逻辑单独处理（仅设备在线时执行）
+        // WebSocket上报逻辑单独处理（仅设备在线时执行）
         if (isTaskNotFinished && webSocketRef.current && locationLngLatRef.current) {
           webSocketRef.current.socketTask?.send({
             data: JSON.stringify([
@@ -813,12 +819,12 @@ const MechanicalTaskDetailScreen = observer(() => {
           </View>
         </View>
 
-        {/* 右侧图层控制按钮（调用Hook方法） */}
+        {/* 右侧图层控制按钮 */}
         <View style={MechanicalTaskDetailScreenStyles.rightControl}>
           <MapControlButton iconUrl={require("@/assets/images/home/icon-layer.png")} iconName="图层" onPress={onToggleMapLayer} />
         </View>
 
-        {/* 定位按钮（调用Hook方法） */}
+        {/* 定位按钮 */}
         <View style={MechanicalTaskDetailScreenStyles.locationControl}>
           <MapControlButton
             iconUrl={require("@/assets/images/home/icon-location.png")}
@@ -844,10 +850,10 @@ const MechanicalTaskDetailScreen = observer(() => {
           )}
         </View>
 
-        {/* 图层切换弹窗（使用Hook状态/方法） */}
+        {/* 图层切换弹窗 */}
         {showMapSwitcher && <MapSwitcher onClose={() => setShowMapSwitcher(false)} onSelectMap={handleSelectMap} />}
 
-        {/* 定位权限弹窗（使用Hook状态/方法） */}
+        {/* 定位权限弹窗 */}
         <PermissionPopup
           visible={showPermissionPopup}
           onAccept={handleAcceptPermission}

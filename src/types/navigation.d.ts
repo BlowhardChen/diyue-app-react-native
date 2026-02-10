@@ -64,6 +64,7 @@ export type LandMapStackParamList = {
   MergeLand: {landId: string};
   FindLandDetail: {landId: string};
   FindPoint: {point: {lat: number; lon: number}};
+  CustomLayer: undefined;
 };
 
 // 农事管理相关

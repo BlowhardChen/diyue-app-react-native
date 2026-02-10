@@ -4,7 +4,6 @@ import {StyleSheet, Dimensions} from "react-native";
 const {width} = Dimensions.get("window");
 
 export const MapSwitcherstyles = StyleSheet.create({
-  // 新增遮罩层样式
   overlay: {
     position: "absolute",
     top: 0,
@@ -12,26 +11,20 @@ export const MapSwitcherstyles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    zIndex: 1998, // 确保遮罩在内容下方
+    zIndex: 1998,
   },
   container: {
     position: "absolute",
     bottom: 0,
     left: 0,
     width,
-    height: 220,
     backgroundColor: "#fff",
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
-    zIndex: 1999, // 内容在遮罩上方
-    shadowColor: "#000",
-    shadowOffset: {width: 0, height: -4},
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
+    zIndex: 1999,
+    elevation: 1,
     paddingTop: 8,
   },
-  // 其他原有样式保持不变...
   header: {
     alignItems: "center",
     justifyContent: "center",
@@ -45,70 +38,69 @@ export const MapSwitcherstyles = StyleSheet.create({
   headerClose: {
     position: "absolute",
     top: 9,
-    right: 12,
+    right: 16,
   },
   closeIcon: {
     width: 26,
     height: 26,
   },
-  mapContent: {
+  customLayerManage: {
+    height: 52,
     flexDirection: "row",
-    justifyContent: "space-around",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    justifyContent: "space-between",
+  },
+  customLayerManageText: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: "#000",
+  },
+  mapContentContainer: {
+    marginTop: 12,
+    paddingTop: 8,
+    minHeight: 420,
+    backgroundColor: "#F5F6F8",
+  },
+  mapItemContainer: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
   },
   mapItem: {
-    alignItems: "center",
-    width: 108,
-  },
-  mapImage: {
-    width: 108,
-    height: 88,
-    marginBottom: 12,
-    resizeMode: "contain",
-  },
-  mapTitle: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: Global.colors.textDark,
-  },
-  active: {
-    color: Global.colors.primary,
-  },
-  editTip: {
-    marginTop: 4,
-    fontSize: 14,
-    color: "#999",
-    textAlign: "center",
-  },
-  customLayerBox: {
-    flex: 1,
-    paddingHorizontal: 20,
-    justifyContent: "center",
-  },
-  inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EFF2F3",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    height: 48,
+    justifyContent: "space-between",
+    width: "100%",
+    paddingVertical: 17,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E5E5",
   },
-  input: {
-    flex: 1,
-    height: 48,
-    fontSize: 16,
+  mapItemText: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: "#000",
   },
-  clearIcon: {
-    width: 20,
-    height: 20,
-    marginLeft: 8,
+  mapItemIcon: {
+    width: 26,
+    height: 26,
   },
-  buttonWrapper: {
-    marginTop: 24,
-    alignItems: "center",
+  active: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: Global.colors.primary,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    justifyContent: "space-between",
+    padding: 16,
+    backgroundColor: "#fff",
   },
   saveButton: {
+    flex: 1,
     backgroundColor: Global.colors.primary,
-    width: width - 64,
     height: 52,
     borderRadius: 12,
     justifyContent: "center",
@@ -117,6 +109,6 @@ export const MapSwitcherstyles = StyleSheet.create({
   saveText: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "500",
   },
 });

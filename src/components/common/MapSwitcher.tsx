@@ -1,19 +1,11 @@
 // 地图切换器组件
 import React, {useState, useEffect} from "react";
-import {View, Text, Image, TextInput, TouchableOpacity, Modal, StyleSheet, Dimensions} from "react-native";
+import {View, Text, Image, TouchableOpacity, Modal, ScrollView} from "react-native";
 import {observer} from "mobx-react-lite";
 import {mapStore} from "@/stores/mapStore";
 import {MapSwitcherstyles} from "./styles/MapSwitcher";
-
-const {width} = Dimensions.get("window");
-const clonseIconUrl = require("@/assets/images/home/icon-close.png");
-const normMapImg = require("@/assets/images/home/map-norm.png");
-const normMapImgActive = require("@/assets/images/home/map-norm-active.png");
-const satelliteMapImg = require("@/assets/images/home/map-satellite.png");
-const satelliteMapImgActive = require("@/assets/images/home/map-satellite-active.png");
-const divMapImg = require("@/assets/images/home/map-diy.png");
-const divMapImgActive = require("@/assets/images/home/map-diy-active.png");
-const closeInputIcon = require("@/assets/images/farming/icon-close.png");
+import {showCustomToast} from "./CustomToast";
+import CustomLayerPopup from "./CustomLayerPopup";
 
 interface Props {
   onClose: () => void;
@@ -21,28 +13,66 @@ interface Props {
 }
 
 const MapSwitcher: React.FC<Props> = observer(({onClose, onSelectMap}) => {
-  const [isShowDiyMapLayer, setIsShowDiyMapLayer] = useState(false);
-  const [mapDivLayer, setMapDivLayer] = useState("");
+  const [mapCustomLayer, setMapCustomLayer] = useState("");
+  const [customMapLayerList, setCustomMapLayerList] = useState<{layerName: string; layerUrl: string}[]>([
+    {
+      layerName: "自定义图层1",
+      layerUrl: "https://yangge.life/maps/vt?lyrs=s&x={x}&y={y}&z={z}",
+    },
+    {
+      layerName: "自定义图层2",
+      layerUrl: "https://tugemap.site/maps/vt?lyrs=s&x={x}&y={y}&z={z}&src=app&scale=2&from=app",
+    },
+    {
+      layerName: "自定义图层3",
+      layerUrl: "https://map.tugemap.site/maps/vt?lyrs=s&x={x}&y={y}&z={z}&src=app&scale=2&from=app",
+    },
+  ]);
+  const [showCustomLayerPopup, setShowCustomLayerPopup] = useState(false);
 
   useEffect(() => {
-    setMapDivLayer(mapStore.customMapLayer);
+    setMapCustomLayer(mapStore.customMapLayer);
+    // getCustomLayersList();
   }, []);
 
-  const handleSelectMap = (type: string) => {
+  // 选择地图
+  const handleSelectMap = (type: string, layerUrl: string) => {
     if (type === "自定义") {
-      onSelectMap({type, layerUrl: mapDivLayer});
+      onSelectMap({type, layerUrl});
       mapStore.setMapType("自定义");
-      mapStore.setCustomMapType(mapDivLayer);
+      mapStore.setCustomMapType(layerUrl);
     } else {
       onSelectMap({type, layerUrl: ""});
       mapStore.setMapType(type);
     }
   };
 
-  const saveCustomLayer = () => {
-    if (!mapDivLayer) return;
-    setIsShowDiyMapLayer(false);
-    handleSelectMap("自定义");
+  // 自定义图层管理
+  const handleCustomLayerManage = () => {};
+
+  // 手动添加自定义图层
+  const handleAddCustomLayer = () => {
+    setShowCustomLayerPopup(true);
+  };
+
+  // 扫码添加自定义图层
+  const handleScanCustomLayer = () => {};
+
+  // 关闭自定义图层弹窗
+  const onCloseCustomLayerPopup = () => {
+    setShowCustomLayerPopup(false);
+  };
+
+  // 获取自定义图层列表
+  const getCustomLayersList = async () => {
+    try {
+      // const { data } = await customLayersList();
+      // if (data?.length) {
+      //   setCustomMapLayerList(data);
+      // }
+    } catch (error: any) {
+      showCustomToast("error", error?.data?.message || "获取自定义图层列表失败");
+    }
   };
 
   return (
@@ -53,76 +83,74 @@ const MapSwitcher: React.FC<Props> = observer(({onClose, onSelectMap}) => {
       <View style={MapSwitcherstyles.container}>
         {/* Header */}
         <View style={MapSwitcherstyles.header}>
-          <Text style={MapSwitcherstyles.headerTitle}>{isShowDiyMapLayer ? "自定义图层" : "图层"}</Text>
+          <Text style={MapSwitcherstyles.headerTitle}>图层</Text>
           <TouchableOpacity style={MapSwitcherstyles.headerClose} onPress={onClose}>
-            <Image source={clonseIconUrl} style={MapSwitcherstyles.closeIcon} />
+            <Image source={require("@/assets/images/home/icon-close.png")} style={MapSwitcherstyles.closeIcon} />
           </TouchableOpacity>
         </View>
+        <TouchableOpacity style={MapSwitcherstyles.customLayerManage} onPress={handleCustomLayerManage}>
+          <Text style={MapSwitcherstyles.customLayerManageText}>自定义图层管理</Text>
+          <Image source={require("@/assets/images/common/icon-right.png")} style={MapSwitcherstyles.closeIcon} />
+        </TouchableOpacity>
 
-        {/* 地图类型选择 */}
-        {!isShowDiyMapLayer ? (
-          <View style={MapSwitcherstyles.mapContent}>
-            {/* 标准地图 */}
-            <TouchableOpacity style={MapSwitcherstyles.mapItem} onPress={() => handleSelectMap("标准地图")}>
-              <Image
-                source={mapStore.mapType === "标准地图" ? normMapImgActive : normMapImg}
-                style={MapSwitcherstyles.mapImage}
-              />
-              <Text style={[MapSwitcherstyles.mapTitle, mapStore.mapType === "标准地图" && MapSwitcherstyles.active]}>
+        <ScrollView style={MapSwitcherstyles.mapContentContainer}>
+          <View style={MapSwitcherstyles.mapItemContainer}>
+            <TouchableOpacity style={MapSwitcherstyles.mapItem} onPress={() => handleSelectMap("标准地图", "")}>
+              <Text style={[MapSwitcherstyles.mapItemText, mapStore.mapType === "标准地图" && MapSwitcherstyles.active]}>
                 标准地图
               </Text>
+              {mapStore.mapType === "标准地图" && (
+                <Image source={require("@/assets/images/common/icon-city-checked.png")} style={MapSwitcherstyles.mapItemIcon} />
+              )}
             </TouchableOpacity>
-
-            {/* 卫星地图 */}
-            <TouchableOpacity style={MapSwitcherstyles.mapItem} onPress={() => handleSelectMap("卫星地图")}>
-              <Image
-                source={mapStore.mapType === "卫星地图" ? satelliteMapImgActive : satelliteMapImg}
-                style={MapSwitcherstyles.mapImage}
-              />
-              <Text style={[MapSwitcherstyles.mapTitle, mapStore.mapType === "卫星地图" && MapSwitcherstyles.active]}>
+            <TouchableOpacity style={MapSwitcherstyles.mapItem} onPress={() => handleSelectMap("卫星地图", "")}>
+              <Text style={[MapSwitcherstyles.mapItemText, mapStore.mapType === "卫星地图" && MapSwitcherstyles.active]}>
                 卫星地图
               </Text>
-            </TouchableOpacity>
-
-            {/* 自定义地图 */}
-            <TouchableOpacity style={MapSwitcherstyles.mapItem} onPress={() => handleSelectMap("自定义")}>
-              <Image source={mapStore.mapType === "自定义" ? divMapImgActive : divMapImg} style={MapSwitcherstyles.mapImage} />
-              <View style={{alignItems: "center"}}>
-                <Text style={[MapSwitcherstyles.mapTitle, mapStore.mapType === "自定义" && MapSwitcherstyles.active]}>
-                  自定义地图
-                </Text>
-                <TouchableOpacity onPress={() => setIsShowDiyMapLayer(true)}>
-                  <Text style={MapSwitcherstyles.editTip}>点击编辑地图源</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={MapSwitcherstyles.customLayerBox}>
-            <View style={MapSwitcherstyles.inputWrapper}>
-              <TextInput
-                style={MapSwitcherstyles.input}
-                value={mapDivLayer}
-                onChangeText={setMapDivLayer}
-                placeholder="请输入自定义地图地址"
-              />
-              {mapDivLayer.length > 0 && (
-                <TouchableOpacity onPress={() => setMapDivLayer("")}>
-                  <Image source={closeInputIcon} style={MapSwitcherstyles.clearIcon} />
-                </TouchableOpacity>
+              {mapStore.mapType === "卫星地图" && (
+                <Image source={require("@/assets/images/common/icon-city-checked.png")} style={MapSwitcherstyles.mapItemIcon} />
               )}
-            </View>
-            <View style={MapSwitcherstyles.buttonWrapper}>
-              <TouchableOpacity
-                style={[MapSwitcherstyles.saveButton, {opacity: mapDivLayer ? 1 : 0.5}]}
-                disabled={!mapDivLayer}
-                onPress={saveCustomLayer}>
-                <Text style={MapSwitcherstyles.saveText}>保存</Text>
-              </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           </View>
-        )}
+          {customMapLayerList?.length > 0 && (
+            <View>
+              {customMapLayerList?.map(item => (
+                <View style={MapSwitcherstyles.mapItemContainer}>
+                  <TouchableOpacity
+                    style={MapSwitcherstyles.mapItem}
+                    key={item.layerUrl}
+                    onPress={() => handleSelectMap("自定义", item.layerUrl)}>
+                    <Text style={[MapSwitcherstyles.mapItemText, mapCustomLayer === item.layerUrl && MapSwitcherstyles.active]}>
+                      {item.layerName}
+                    </Text>
+                    {mapStore.mapType === "自定义" && mapCustomLayer === item.layerUrl && (
+                      <Image
+                        source={require("@/assets/images/common/icon-city-checked.png")}
+                        style={MapSwitcherstyles.mapItemIcon}
+                      />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+        <View style={MapSwitcherstyles.buttonContainer}>
+          <TouchableOpacity
+            style={[MapSwitcherstyles.saveButton, {marginRight: 8, backgroundColor: "#F58700"}]}
+            onPress={handleAddCustomLayer}>
+            <Text style={MapSwitcherstyles.saveText}>手动添加</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={MapSwitcherstyles.saveButton} onPress={handleScanCustomLayer}>
+            <Text style={MapSwitcherstyles.saveText}>扫码添加</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* 自定义图层弹窗 */}
+      {showCustomLayerPopup && (
+        <CustomLayerPopup rightBtnText="添加" onLeftBtn={onCloseCustomLayerPopup} onRightBtn={handleAddCustomLayer} />
+      )}
     </Modal>
   );
 });

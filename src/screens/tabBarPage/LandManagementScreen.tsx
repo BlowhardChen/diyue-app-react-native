@@ -43,7 +43,7 @@ type LandStackParamList = {
 
 const LandManagementScreen = observer(() => {
   const navigation = useNavigation<StackNavigationProp<LandStackParamList>>();
-  const [showMapSwitcher, setShowMapSwitcher] = useState(false);
+  const [showMapSwitcher, setShowMapSwitcher] = useState(true);
   const webViewRef = useRef<WebView>(null);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
