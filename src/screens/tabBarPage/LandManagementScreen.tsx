@@ -43,7 +43,7 @@ type LandStackParamList = {
 
 const LandManagementScreen = observer(() => {
   const navigation = useNavigation<StackNavigationProp<LandStackParamList>>();
-  const [showMapSwitcher, setShowMapSwitcher] = useState(true);
+  const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const webViewRef = useRef<WebView>(null);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
@@ -179,7 +179,7 @@ const LandManagementScreen = observer(() => {
       return;
     }
 
-    // 未绑定设备：走手机GPS逻辑（需要定位权限）
+    // 走手机GPS逻辑（需要定位权限）
     setUseLocationFromSocket(false);
     if (hasLocationPermission) {
       startPositionWatch();

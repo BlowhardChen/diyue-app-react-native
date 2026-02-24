@@ -1,9 +1,13 @@
+// 自定义图层
+import CustomLayerPopup from "@/components/common/CustomLayerPopup";
 import CustomStatusBar from "@/components/common/CustomStatusBar";
+import {showCustomToast} from "@/components/common/CustomToast";
 import Popup from "@/components/common/Popup";
-import {useAuth} from "@/hooks/useAuth";
-import {userStore} from "@/stores/userStore";
+import {deleteCustomLayer, getCustomLayersList} from "@/services/land";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
+import {debounce} from "lodash";
+import React, {useEffect} from "react";
 import {useState} from "react";
 import {StyleSheet} from "react-native";
 import {View, Text, Image, TouchableOpacity} from "react-native";
@@ -18,37 +22,104 @@ type RootStackParamList = {
 
 const CustomLayerScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const {logout} = useAuth();
   const [isShowPopup, setShowPopup] = useState(false);
+  const [showCustomLayerPopup, setShowCustomLayerPopup] = useState(false);
+  const [customMapLayerList, setCustomMapLayerList] = useState<{name: string; url: string}[]>([]);
+  const [selectedLayer, setSelectedLayer] = useState<{name: string; url: string}>({
+    name: "",
+    url: "",
+  });
+  const [layerId, setLayerId] = useState("");
 
-  // 个人信息
-  const viewPersonalInfo = () => {
-    navigation.navigate("PersonalInfo");
-  };
+  useEffect(() => {
+    getCustomLayersListData();
+  }, []);
 
-  // 修改密码
-  const editPassword = () => {
-    navigation.navigate("EditPassword", {mobile: userStore.userInfo?.userName as unknown as string});
-  };
-
-  // 退出登录
-  const loginOut = () => {
-    setShowPopup(true);
-  };
-
-  // 关闭弹窗
+  // 关闭提示弹窗
   const closePopup = () => {
     setShowPopup(false);
   };
 
-  // 确定退出
-  const confirmLoginOut = () => {
-    setShowPopup(false);
-    logout();
-    navigation.reset({
-      index: 0,
-      routes: [{name: "Login"}],
-    });
+  // 确认提示弹窗
+  const confirmPopup = debounce(async () => {
+    try {
+      await deleteCustomLayer(layerId);
+      showCustomToast("success", "自定义图层删除成功");
+      getCustomLayersListData();
+      setShowPopup(false);
+    } catch (error: any) {
+      showCustomToast("error", error?.data?.message || "自定义图层删除失败");
+    }
+  }, 300);
+
+  // 编辑图层
+  const editLayer = (item: {id: string; name: string; url: string}) => {
+    console.log("编辑图层", item);
+    if ([15, 16, 17].includes(Number(item.id))) {
+      showCustomToast("error", "默认自定义图层不允许编辑");
+      return;
+    }
+    setSelectedLayer(item);
+    setShowCustomLayerPopup(true);
+  };
+
+  // 删除图层
+  const deleteLayer = (item: any) => {
+    if ([15, 16, 17].includes(Number(item.id))) {
+      showCustomToast("error", "默认自定义图层不允许删除");
+      return;
+    }
+    setLayerId(item.id);
+    setShowPopup(true);
+  };
+
+  // 关闭自定义图层弹窗
+  const onCloseCustomLayerPopup = () => {
+    setShowCustomLayerPopup(false);
+  };
+
+  // 自定义图层确认
+  const handleConfirmCustomLayer = debounce(async () => {
+    try {
+      showCustomToast("success", "自定义图层修改成功");
+      setShowCustomLayerPopup(false);
+      getCustomLayersListData();
+    } catch (error: any) {
+      showCustomToast("error", error?.data?.message || "自定义图层修改失败");
+    } finally {
+      setShowCustomLayerPopup(false);
+    }
+  }, 300);
+
+  // 获取自定义图层列表
+  const getCustomLayersListData = async () => {
+    try {
+      const {data} = await getCustomLayersList({});
+      console.log("自定义图层列表", data);
+      setCustomMapLayerList(data || []);
+    } catch (error: any) {
+      showCustomToast("error", error?.data?.message || "获取自定义图层列表失败");
+    }
+  };
+
+  // 渲染自定义图层列表项
+  const renderLayerListItem = (item: any, index: number) => {
+    return (
+      <View style={styles.settingListItemContent} key={`item_${index}`}>
+        <View style={styles.settingListItem}>
+          <Text style={styles.itemText}>{item.name}</Text>
+          <View style={styles.arrowIconContainer}>
+            <TouchableOpacity onPress={() => editLayer(item)}>
+              <Image source={require("@/assets/images/common/icon-edit-grey.png")} style={styles.arrowIcon} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => deleteLayer(item)}>
+              <Image source={require("@/assets/images/common/icon-delete.png")} style={[styles.arrowIcon, {marginLeft: 12}]} />
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View style={styles.typeItemDivider} />
+      </View>
+    );
   };
 
   return (
@@ -56,32 +127,32 @@ const CustomLayerScreen = () => {
       <Popup
         visible={isShowPopup}
         title="提示"
-        msgText="确认要退出登录吗？"
+        msgText="请确认是否删除该图层"
         leftBtnText="取消"
-        rightBtnText="退出登录"
+        rightBtnText="删除"
         rightBtnStyle={{color: "#FF3D3B"}}
         onLeftBtn={closePopup}
-        onRightBtn={confirmLoginOut}
+        onRightBtn={confirmPopup}
       />
-      <CustomStatusBar navTitle="设置" onBack={() => navigation.goBack()} />
-      <View style={styles.settingList}>
-        <TouchableOpacity style={styles.settingListItem} onPress={viewPersonalInfo}>
-          <Text style={styles.itemText}>个人信息</Text>
-          <Image source={require("@/assets/images/my/icon-right.png")} style={styles.arrowIcon} />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.settingListItem} onPress={editPassword}>
-          <Text style={styles.itemText}>修改密码</Text>
-          <Image source={require("@/assets/images/my/icon-right.png")} style={styles.arrowIcon} />
-        </TouchableOpacity>
-
-        <View style={styles.settingListItem}>
-          <Text style={styles.itemText}>版本号：{"1234543"}</Text>
+      {/* 自定义图层弹窗 */}
+      {showCustomLayerPopup && (
+        <CustomLayerPopup
+          rightBtnText="确定修改"
+          layerNameProp={selectedLayer.name}
+          layerUrlProp={selectedLayer.url}
+          onLeftBtn={onCloseCustomLayerPopup}
+          onRightBtn={handleConfirmCustomLayer}
+        />
+      )}
+      <CustomStatusBar navTitle="自定义图层" onBack={() => navigation.goBack()} />
+      {customMapLayerList.length > 0 ? (
+        <View style={styles.settingList}>{customMapLayerList.map((item, index) => renderLayerListItem(item, index))}</View>
+      ) : (
+        <View style={styles.noDataContainer}>
+          <Image source={require("@/assets/images/common/contract-empty.png")} style={styles.noDataIcon} resizeMode="contain" />
+          <Text style={styles.noDataText}>暂无数据</Text>
         </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={loginOut}>
-          <Text style={styles.logoutText}>退出登录</Text>
-        </TouchableOpacity>
-      </View>
+      )}
     </>
   );
 };
@@ -89,40 +160,56 @@ const CustomLayerScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f7f7f8",
+    backgroundColor: "#F5F5F5",
   },
   settingList: {
     width: "100%",
-    backgroundColor: "#f7f7f8",
+    backgroundColor: "#F5F5F5",
     marginTop: 10,
   },
+  settingListItemContent: {
+    paddingHorizontal: 16,
+    backgroundColor: "#fff",
+  },
   settingListItem: {
+    width: "100%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    height: 58,
-    padding: 16,
-    marginBottom: 8,
+    paddingVertical: 16,
     backgroundColor: "#fff",
   },
   itemText: {
-    fontSize: 22,
+    fontWeight: "500",
+    fontSize: 18,
+    color: "#000000",
+  },
+  arrowIconContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   arrowIcon: {
     width: 26,
     height: 26,
   },
-  logoutButton: {
+  typeItemDivider: {
     width: "100%",
-    height: 58,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "#D6D6D6",
+  },
+  noDataContainer: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
-    marginTop: 10,
   },
-  logoutText: {
-    fontSize: 22,
-    color: "#FF3D3B",
+  noDataIcon: {
+    width: 86,
+    height: 84,
+  },
+  noDataText: {
+    marginTop: 12,
+    fontSize: 18,
+    color: "#000",
   },
 });
 

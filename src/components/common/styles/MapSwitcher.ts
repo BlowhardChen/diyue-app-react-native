@@ -24,6 +24,7 @@ export const MapSwitcherstyles = StyleSheet.create({
     zIndex: 1999,
     elevation: 1,
     paddingTop: 8,
+    paddingBottom: 70,
   },
   header: {
     alignItems: "center",
@@ -59,8 +60,11 @@ export const MapSwitcherstyles = StyleSheet.create({
   mapContentContainer: {
     marginTop: 12,
     paddingTop: 8,
-    minHeight: 420,
+    paddingHorizontal: 0,
+    maxHeight: 360,
+    minHeight: 300,
     backgroundColor: "#F5F6F8",
+    flexGrow: 1,
   },
   mapItemContainer: {
     backgroundColor: "#fff",
@@ -94,9 +98,14 @@ export const MapSwitcherstyles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     left: 0,
+    right: 0,
     justifyContent: "space-between",
     padding: 16,
     backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: {width: 0, height: -2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   saveButton: {
     flex: 1,

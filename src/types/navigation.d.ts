@@ -65,6 +65,7 @@ export type LandMapStackParamList = {
   FindLandDetail: {landId: string};
   FindPoint: {point: {lat: number; lon: number}};
   CustomLayer: undefined;
+  ScanAddCustomLayer: undefined;
 };
 
 // 农事管理相关

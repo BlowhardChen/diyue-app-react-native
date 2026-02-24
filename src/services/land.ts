@@ -166,3 +166,47 @@ export const editLandInfo = (data: EditLandInfoParamsType) => {
     data,
   });
 };
+
+/**
+ * 自定义图层-查询自定义图层列表
+ */
+export const getCustomLayersList = (data?: any) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/layer/layerList",
+    data,
+  });
+};
+
+/**
+ * 自定义图层-添加自定义图层
+ */
+export const addCustomLayer = (data: {name: string; url: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/layer/addLayer",
+    data,
+  });
+};
+
+/**
+ * 自定义图层-编辑自定义图层
+ */
+export const editCustomLayer = (data: {id: string; name: string; url: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/layer/editLayer",
+    data,
+  });
+};
+
+/**
+ * 自定义图层-删除自定义图层
+ */
+export const deleteCustomLayer = (id: string) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/layer/removeLayer",
+    data: {id},
+  });
+};

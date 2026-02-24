@@ -7,7 +7,7 @@ interface CustomLayerPopupProps {
   layerUrlProp?: string;
   rightBtnText?: string;
   onLeftBtn: () => void;
-  onRightBtn: () => void;
+  onRightBtn: (layerName: string, layerUrl: string) => void;
 }
 
 const CustomLayerPopup: React.FC<CustomLayerPopupProps> = ({
@@ -86,7 +86,7 @@ const CustomLayerPopup: React.FC<CustomLayerPopupProps> = ({
             </TouchableOpacity>
             {/* 按钮之间的分割线 */}
             <View style={styles.cross} />
-            <TouchableOpacity style={styles.btnRight} onPress={onRightBtn}>
+            <TouchableOpacity style={styles.btnRight} onPress={() => onRightBtn(layerName, layerUrl)}>
               <Text style={styles.rightText}>{rightBtnText}</Text>
             </TouchableOpacity>
           </View>
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   },
   formItemLabel: {
     fontSize: 18,
-    fontWeight: "400",
+    fontWeight: "500",
     color: "#000",
   },
   formItemContent: {
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     height: 52,
     paddingHorizontal: 14,
     marginBottom: 22,
-    backgroundColor: "#f4f4f6",
+    backgroundColor: "#EFF2F3",
     borderRadius: 8,
   },
   formItemInput: {

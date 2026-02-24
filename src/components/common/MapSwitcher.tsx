@@ -6,6 +6,11 @@ import {mapStore} from "@/stores/mapStore";
 import {MapSwitcherstyles} from "./styles/MapSwitcher";
 import {showCustomToast} from "./CustomToast";
 import CustomLayerPopup from "./CustomLayerPopup";
+import {useNavigation} from "@react-navigation/native";
+import {StackNavigationProp} from "@react-navigation/stack";
+import {RootStackParamList} from "@/types/navigation";
+import {addCustomLayer, getCustomLayersList} from "@/services/land";
+import {debounce} from "lodash";
 
 interface Props {
   onClose: () => void;
@@ -13,50 +18,62 @@ interface Props {
 }
 
 const MapSwitcher: React.FC<Props> = observer(({onClose, onSelectMap}) => {
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [mapCustomLayer, setMapCustomLayer] = useState("");
-  const [customMapLayerList, setCustomMapLayerList] = useState<{layerName: string; layerUrl: string}[]>([
-    {
-      layerName: "自定义图层1",
-      layerUrl: "https://yangge.life/maps/vt?lyrs=s&x={x}&y={y}&z={z}",
-    },
-    {
-      layerName: "自定义图层2",
-      layerUrl: "https://tugemap.site/maps/vt?lyrs=s&x={x}&y={y}&z={z}&src=app&scale=2&from=app",
-    },
-    {
-      layerName: "自定义图层3",
-      layerUrl: "https://map.tugemap.site/maps/vt?lyrs=s&x={x}&y={y}&z={z}&src=app&scale=2&from=app",
-    },
-  ]);
+  const [customMapLayerList, setCustomMapLayerList] = useState<{name: string; url: string}[]>([]);
   const [showCustomLayerPopup, setShowCustomLayerPopup] = useState(false);
 
   useEffect(() => {
     setMapCustomLayer(mapStore.customMapLayer);
-    // getCustomLayersList();
+  }, [mapStore.mapType, mapStore.customMapLayer]);
+
+  useEffect(() => {
+    getCustomLayersListData();
   }, []);
 
   // 选择地图
-  const handleSelectMap = (type: string, layerUrl: string) => {
+  const handleSelectMap = (type: string, url: string) => {
     if (type === "自定义") {
-      onSelectMap({type, layerUrl});
       mapStore.setMapType("自定义");
-      mapStore.setCustomMapType(layerUrl);
+      mapStore.setCustomMapType(url);
+      setMapCustomLayer(url);
+      onClose();
     } else {
-      onSelectMap({type, layerUrl: ""});
       mapStore.setMapType(type);
+      setMapCustomLayer(""); // 重置自定义图层高亮
+      onSelectMap({type, layerUrl: ""});
     }
   };
 
   // 自定义图层管理
-  const handleCustomLayerManage = () => {};
+  const handleCustomLayerManage = () => {
+    onClose();
+    navigation.navigate("CustomLayer");
+  };
 
   // 手动添加自定义图层
   const handleAddCustomLayer = () => {
     setShowCustomLayerPopup(true);
   };
 
+  // 添加自定义图层
+  const addCustomLayerFun = debounce(async (name: string, url: string) => {
+    try {
+      await addCustomLayer({name: name, url: url});
+      setCustomMapLayerList([...customMapLayerList, {name, url}]);
+      setShowCustomLayerPopup(false);
+    } catch (error: any) {
+      showCustomToast("error", error?.data?.message || "添加自定义图层失败");
+    } finally {
+      setShowCustomLayerPopup(false);
+    }
+  }, 300);
+
   // 扫码添加自定义图层
-  const handleScanCustomLayer = () => {};
+  const handleScanCustomLayer = () => {
+    onClose();
+    navigation.navigate("ScanAddCustomLayer");
+  };
 
   // 关闭自定义图层弹窗
   const onCloseCustomLayerPopup = () => {
@@ -64,12 +81,13 @@ const MapSwitcher: React.FC<Props> = observer(({onClose, onSelectMap}) => {
   };
 
   // 获取自定义图层列表
-  const getCustomLayersList = async () => {
+  const getCustomLayersListData = async () => {
     try {
-      // const { data } = await customLayersList();
-      // if (data?.length) {
-      //   setCustomMapLayerList(data);
-      // }
+      const {data} = await getCustomLayersList({});
+      console.log("自定义图层列表", data);
+      if (data?.length) {
+        setCustomMapLayerList([...customMapLayerList, ...data]);
+      }
     } catch (error: any) {
       showCustomToast("error", error?.data?.message || "获取自定义图层列表失败");
     }
@@ -114,16 +132,20 @@ const MapSwitcher: React.FC<Props> = observer(({onClose, onSelectMap}) => {
           </View>
           {customMapLayerList?.length > 0 && (
             <View>
-              {customMapLayerList?.map(item => (
+              {customMapLayerList?.map((item, index) => (
                 <View style={MapSwitcherstyles.mapItemContainer}>
                   <TouchableOpacity
                     style={MapSwitcherstyles.mapItem}
-                    key={item.layerUrl}
-                    onPress={() => handleSelectMap("自定义", item.layerUrl)}>
-                    <Text style={[MapSwitcherstyles.mapItemText, mapCustomLayer === item.layerUrl && MapSwitcherstyles.active]}>
-                      {item.layerName}
+                    key={`customLayer_${index}`}
+                    onPress={() => handleSelectMap("自定义", item.url)}>
+                    <Text
+                      style={[
+                        MapSwitcherstyles.mapItemText,
+                        mapStore.mapType === "自定义" && mapCustomLayer === item.url && MapSwitcherstyles.active,
+                      ]}>
+                      {item.name}
                     </Text>
-                    {mapStore.mapType === "自定义" && mapCustomLayer === item.layerUrl && (
+                    {mapStore.mapType === "自定义" && mapCustomLayer === item.url && (
                       <Image
                         source={require("@/assets/images/common/icon-city-checked.png")}
                         style={MapSwitcherstyles.mapItemIcon}
@@ -149,7 +171,7 @@ const MapSwitcher: React.FC<Props> = observer(({onClose, onSelectMap}) => {
 
       {/* 自定义图层弹窗 */}
       {showCustomLayerPopup && (
-        <CustomLayerPopup rightBtnText="添加" onLeftBtn={onCloseCustomLayerPopup} onRightBtn={handleAddCustomLayer} />
+        <CustomLayerPopup rightBtnText="添加" onLeftBtn={onCloseCustomLayerPopup} onRightBtn={addCustomLayerFun} />
       )}
     </Modal>
   );
