@@ -96,8 +96,8 @@ const OcrCardScannerScreen = () => {
     const token = (await getToken()) as string;
     const {success, ocrInfo} = await uploadImg(filePath, token, type === "身份证" ? "1" : "2");
     if (success) {
-      onOcrResult({type, data: ocrInfo});
       handleGoBack();
+      onOcrResult({type, data: ocrInfo});
     } else {
       setShowPopup(true);
     }

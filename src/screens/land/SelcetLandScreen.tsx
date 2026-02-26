@@ -23,7 +23,6 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import LandOperationPopup from "@/components/land/LandOperationPopup";
 import {Global} from "@/styles/global";
 import {updateStore} from "@/stores/updateStore";
-import {farmingLandList} from "@/services/farming";
 
 interface landListInfoItem extends LandListData {
   isSelect: boolean;
@@ -468,7 +467,6 @@ const SelectLandScreen = observer(({route}: {route: {params: SelectLandRoutePara
   };
 
   // 获取地块数据
-
   const getLandInfoData = async () => {
     try {
       const routeLands = route.params.lands || [];

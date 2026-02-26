@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from "react";
+import React, {useState, useEffect, useRef, use} from "react";
 import {View, Text, TextInput, Image, ScrollView, TouchableOpacity, Alert} from "react-native";
 import {useNavigation} from "@react-navigation/native";
 import debounce from "lodash/debounce";
@@ -9,6 +9,7 @@ import HTMLView from "react-native-htmlview";
 import {LandFormInfo} from "@/types/land";
 import {editLandInfo, getLandDetailsInfo, locationToAddress, searchUserInfo} from "@/services/land";
 import Popup from "@/components/common/Popup";
+import {updateStore} from "@/stores/updateStore";
 
 interface SearchResultItem {
   relename: string;
@@ -68,6 +69,10 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
     administrativeVillage: "",
     detailaddress: "",
   });
+
+  useEffect(() => {
+    updateStore.setIsUpdateLand(false);
+  }, []);
 
   // 返回
   const backView = () => {
@@ -133,14 +138,13 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
 
   // 处理OCR识别结果
   const handleOcrResult = (result: {type: string; data: any}, scanType: string) => {
-    console.log("处理OCR识别结果", result);
     if (!result.data) return;
-    const data = JSON.parse(result.data);
+    const data = JSON.parse(result.data.data);
     if (scanType === "身份证") {
       setLandFormInfo(prev => ({
         ...prev,
         landName: data.name || prev.landName,
-        cardid: data.cardNumber || prev.cardid,
+        cardid: data.idNumber || prev.cardid,
         bankAccount: data.cardNumber || prev.bankAccount,
       }));
       return;
@@ -210,6 +214,7 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
   const savePopupConfirm = debounce(async () => {
     await editLandInfo(landFormInfo);
     setIsShowSavePopup(false);
+    updateStore.setIsUpdateLand(true);
     if (params.navigation === "Enclosure") {
       setIsShowSaveSuccessPopup(true);
     } else {
@@ -242,7 +247,6 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
       latitude: lnglat.lat.toString(),
       longitude: lnglat.lng.toString(),
     });
-
     const {regeocode} = JSON.parse(res.data);
     const {formatted_address, addressComponent} = regeocode;
 
@@ -278,8 +282,9 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
 
   // 生命周期
   useEffect(() => {
-    if (params.queryInfo && params.queryInfo.list && params.queryInfo.list.length > 0) {
-      getLandLocation(params.queryInfo.list[0]);
+    console.log("params.queryInfo", params.queryInfo);
+    if (params.queryInfo && params.queryInfo.gpsList && params.queryInfo.gpsList.length > 0) {
+      getLandLocation(params.queryInfo.gpsList[0]);
     }
     if (params.queryInfo && params.queryInfo.id) {
       getLandDetailInfData(params.queryInfo.id);

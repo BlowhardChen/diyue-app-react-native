@@ -4,6 +4,7 @@ import {LandDetailsPopupStyles} from "./styles/LandDetailsPopup";
 
 interface Props {
   activeTab: string;
+  type?: string;
   landType?: string;
   contractNo?: string;
   onLandManage: () => void;
@@ -14,6 +15,7 @@ interface Props {
 
 const FooterButtons: React.FC<Props> = ({
   activeTab,
+  type,
   landType,
   contractNo,
   onLandManage,
@@ -31,7 +33,7 @@ const FooterButtons: React.FC<Props> = ({
       )}
 
       {/* 信息/合同编辑按钮（仅流转中地块） */}
-      {(activeTab === "基础信息" || contractNo) && (
+      {((activeTab === "基础信息" && type !== "1") || contractNo) && (
         <TouchableOpacity
           style={[LandDetailsPopupStyles.footButtonItem, LandDetailsPopupStyles.blue, {marginLeft: 8}]}
           onPress={onLandInfoEdit}>

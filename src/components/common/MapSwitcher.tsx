@@ -133,11 +133,8 @@ const MapSwitcher: React.FC<Props> = observer(({onClose, onSelectMap}) => {
           {customMapLayerList?.length > 0 && (
             <View>
               {customMapLayerList?.map((item, index) => (
-                <View style={MapSwitcherstyles.mapItemContainer}>
-                  <TouchableOpacity
-                    style={MapSwitcherstyles.mapItem}
-                    key={`customLayer_${index}`}
-                    onPress={() => handleSelectMap("自定义", item.url)}>
+                <View style={MapSwitcherstyles.mapItemContainer} key={`customLayer_${index}`}>
+                  <TouchableOpacity style={MapSwitcherstyles.mapItem} onPress={() => handleSelectMap("自定义", item.url)}>
                     <Text
                       style={[
                         MapSwitcherstyles.mapItemText,

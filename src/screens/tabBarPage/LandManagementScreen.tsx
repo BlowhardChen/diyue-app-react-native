@@ -105,7 +105,9 @@ const LandManagementScreen = observer(() => {
   useEffect(() => {
     if (isWebViewReady) {
       applySavedMapType();
-      // WebView准备好后，根据当前设备状态初始化定位
+      // WebView准备好后，重新获取地块数据并绘制
+      getLandInfoList();
+      // 根据当前设备状态初始化定位
       initLocationByDeviceStatus();
     }
   }, [isWebViewReady, mapStore.mapType, deviceStore.status]);
@@ -258,14 +260,17 @@ const LandManagementScreen = observer(() => {
   // 切换地图图层
   const switchMapLayer = (layerType: string, layerUrl?: string) => {
     if (!isWebViewReady) return;
+
     const message = {
       type: "SWITCH_LAYER",
       layerType,
     };
+
     // 只有自定义图层才添加layerUrl属性
     if (layerType === "CUSTOM" && layerUrl) {
       (message as any).customUrl = layerUrl;
     }
+
     webViewRef.current?.postMessage(JSON.stringify(message));
   };
 
@@ -481,6 +486,14 @@ const LandManagementScreen = observer(() => {
     watchIdRef.current = watchId as any;
   };
 
+  // 停止定位
+  const stopPositionWatch = () => {
+    if (watchIdRef.current != null) {
+      Geolocation.clearWatch(watchIdRef.current as any);
+      watchIdRef.current = null;
+    }
+  };
+
   // 关闭地块详情弹窗
   const closeLandDetailsPopup = () => {
     setShowLandDetailsPopup(false);
@@ -492,14 +505,6 @@ const LandManagementScreen = observer(() => {
         type: "RESET_LAND_ACTIVE_STYLE",
       }),
     );
-  };
-
-  // 停止定位
-  const stopPositionWatch = () => {
-    if (watchIdRef.current != null) {
-      Geolocation.clearWatch(watchIdRef.current as any);
-      watchIdRef.current = null;
-    }
   };
 
   // 地块管理
@@ -554,6 +559,7 @@ const LandManagementScreen = observer(() => {
   // 获取地块信息列表
   const getLandInfoList = async () => {
     const {data} = await getLandListData({quitStatus: "0"});
+    console.log("地块信息列表", data);
     setLandInfoList(data as unknown as LandDetailInfo[]);
     webViewRef.current?.postMessage(
       JSON.stringify({

@@ -73,16 +73,12 @@ const EnclosureScreen = observer(() => {
     initLocationPermission();
   }, []);
 
-  // 获取已圈地地块数据
-  useEffect(() => {
-    getEnclosureLandData();
-    updateStore.setIsUpdateLand(false);
-  }, []);
-
   // 当WebView准备好时
   useEffect(() => {
     if (isWebViewReady) {
       applySavedMapType();
+      updateStore.setIsUpdateLand(false);
+      getEnclosureLandData();
       // WebView准备好后，根据当前设备状态初始化定位
       initLocationByDeviceStatus();
     }
@@ -494,6 +490,8 @@ const EnclosureScreen = observer(() => {
       setIsSaving(false);
       setShowSaveSuccessPopup(true);
       updateStore.setIsUpdateLand(true);
+      // 保存成功后重新获取地块数据，确保新地块被绘制
+      getEnclosureLandData();
     } catch (error) {
       setIsSaving(false);
     }

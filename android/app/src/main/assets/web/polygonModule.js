@@ -228,7 +228,7 @@ window.PolygonModule = (function () {
      * @param {LandDetailInfo[]} data
      */
     function drawLandPolygonList(map, data) {
-        if (data.length) {
+        if (data && data.length > 0) {
             removeLandPolygon(map);
             data.forEach(item => {
                 drawLandPolygon(map, item);
@@ -345,8 +345,16 @@ window.PolygonModule = (function () {
     }
 
     // 继续圈地时仅清除当前多边形，保留已经绘制的多边形
-    function clearCurrentPolygon() {
-        if (polygonLayer) {
+    function clearCurrentPolygon(map) {
+        // 清除当前圈地多边形
+        if (enclosurePolygonLayer && map) {
+            map.removeLayer(enclosurePolygonLayer);
+            enclosurePolygonLayer = null;
+            enclosurePolygonFeature = null;
+        }
+        // 清除当前多边形（用于其他功能）
+        if (polygonLayer && map) {
+            map.removeLayer(polygonLayer);
             polygonLayer = null;
             polygonFeature = null;
             polygonArea = 0;

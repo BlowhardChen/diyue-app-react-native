@@ -63,14 +63,11 @@ const FindLandDetailScreen = observer(({route}: {route: {params: {landId: string
     initLocationPermission();
   }, []);
 
-  useEffect(() => {
-    getFindLandInfoData();
-  }, []);
-
   // 当WebView准备好时
   useEffect(() => {
     if (isWebViewReady) {
       applySavedMapType();
+      getFindLandInfoData();
       // WebView准备好后，根据当前设备状态初始化定位
       initLocationByDeviceStatus();
     }

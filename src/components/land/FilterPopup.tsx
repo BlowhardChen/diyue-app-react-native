@@ -108,9 +108,8 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
 
   // 处理OCR识别结果
   const handleOcrResult = (result: {type: string; data: any}, scanType: string) => {
-    console.log("处理OCR识别结果", result);
     if (!result.data) return;
-    const data = JSON.parse(result.data);
+    const data = JSON.parse(result.data.data);
     if (scanType === "身份证") {
       setSearchFormInfo(prev => ({
         ...prev,

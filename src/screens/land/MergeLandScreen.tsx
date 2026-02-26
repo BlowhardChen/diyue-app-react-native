@@ -34,6 +34,7 @@ const MergeLandScreen = observer(({route}: {route: {params: {landId: string}}}) 
   const [isWebViewReady, setIsWebViewReady] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const [showLandDetailsPopup, setShowLandDetailsPopup] = useState(false);
+  const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [isShowLandManagePopup, setIsShowLandManagePopup] = useState(false);
   const [landInfo, setLandInfo] = useState();
   const [contractDetail, setContractDetail] = useState();
@@ -55,6 +56,16 @@ const MergeLandScreen = observer(({route}: {route: {params: {landId: string}}}) 
     };
   }, []);
 
+  // 初始化定位服务
+  useEffect(() => {
+    getLocationService();
+  }, []);
+
+  // 初始化定位权限
+  useEffect(() => {
+    initLocationPermission();
+  }, []);
+
   // 当页面聚焦且弹窗显示时，重新请求接口
   useEffect(() => {
     if (isFocused) {
@@ -68,6 +79,20 @@ const MergeLandScreen = observer(({route}: {route: {params: {landId: string}}}) 
       applySavedMapType();
     }
   }, [isWebViewReady, mapStore.mapType]);
+
+  // 初始化定位权限和地图图层
+  const initLocationPermission = async () => {
+    const granted = await checkLocationPermission();
+    if (granted) {
+      setHasLocationPermission(true);
+      // 如果 WebView 已经准备好，直接启动
+      if (isWebViewReady) {
+        startPositionWatch();
+      }
+    } else {
+      setShowPermissionPopup(true);
+    }
+  };
 
   // 应用保存的地图类型
   const applySavedMapType = () => {
@@ -143,13 +168,13 @@ const MergeLandScreen = observer(({route}: {route: {params: {landId: string}}}) 
     webViewRef.current?.postMessage(JSON.stringify(message));
   };
 
-  // 定位位置
-  const onLocatePosition = async () => {
+  // 获取定位服务
+  const getLocationService = async () => {
     const hasPermission = await checkLocationPermission();
     if (hasPermission) {
       locateDevicePosition(true);
     } else {
-      setShowPermissionPopup(true);
+      getLocationByIP();
     }
   };
 
@@ -164,6 +189,16 @@ const MergeLandScreen = observer(({route}: {route: {params: {landId: string}}}) 
       }
     } catch (error) {
       showCustomToast("error", "IP定位失败");
+    }
+  };
+
+  // 定位位置
+  const onLocatePosition = async () => {
+    const hasPermission = await checkLocationPermission();
+    if (hasPermission) {
+      locateDevicePosition(true);
+    } else {
+      setShowPermissionPopup(true);
     }
   };
 
@@ -384,6 +419,9 @@ const MergeLandScreen = observer(({route}: {route: {params: {landId: string}}}) 
       // 地图准备完成
       case "WEBVIEW_READY":
         setIsWebViewReady(true);
+        if (hasLocationPermission) {
+          locateDevicePosition(true);
+        }
         break;
       // 点击多边形
       case "POLYGON_CLICK":
