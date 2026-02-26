@@ -77,6 +77,7 @@ const MergeLandScreen = observer(({route}: {route: {params: {landId: string}}}) 
   useEffect(() => {
     if (isWebViewReady) {
       applySavedMapType();
+      getMergeLandListData(route.params.landId);
     }
   }, [isWebViewReady, mapStore.mapType]);
 

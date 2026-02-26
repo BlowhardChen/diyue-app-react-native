@@ -75,6 +75,10 @@
               case 'SHOW_COMMON_DOT':
                   MarkerModule?.drawCommonPointMarker(map,data.data);
                 break
+              // 移除公共点
+              case 'REMOVE_COMMON_DOT':
+                  MarkerModule?.removeCommonPointMarker(map);
+                break
               // 绘制地块详情
               case 'DRAW_LAND_DETAIL':
                   PolygonModule?.drawLandDetailPolygon(map,data.data);

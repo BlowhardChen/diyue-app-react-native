@@ -380,8 +380,6 @@ window.PolygonModule = (function () {
                             lat: wgsCoordinate[1].toFixed(8),
                         }
                     });
-                    MarkerModule.removeCommonPointMarker(map);
-                    resetActivePolygon();
                     event.stopPropagation();
                     return true; // 停止遍历
                 }
@@ -389,66 +387,131 @@ window.PolygonModule = (function () {
 
             if (!clickedMarker) {
                 map.forEachFeatureAtPixel(event.pixel, (feature, layer) => {
-                    // 重置之前激活的多边形样式
-                    resetActivePolygon();
-                    MarkerModule.removeCommonPointMarker(map);
+                    // 检查是否点击的是同一个地块
+                    if (polygonFeature && polygonFeature === feature) {
+                        // 如果是同一个地块，移除公共点并重置样式
+                        MarkerModule.removeCommonPointMarker(map);
+                        // 先重置样式，再清空polygonFeature
+                        if (polygonFeature) {
+                            // 保存原始属性
+                            const landType = polygonFeature.values_.landType;
+                            const landName = polygonFeature.values_.landName;
+                            const actualAcreNum = polygonFeature.values_.actualAcreNum;
+                            const textMsg = `${landName}\n${actualAcreNum}亩`;
 
-                    // 设置当前点击的多边形为激活状态
-                    polygonFeature = feature;
-                    polygonLayer = layer;
-                    
-                    const textMsg = `${feature.values_.landName}\n${feature.values_.actualAcreNum}亩`;
-                    feature.setStyle(
-                        new ol.style.Style({
-                            stroke: new ol.style.Stroke({ color: '#FFFF00', width: 2 }),
-                            fill: new ol.style.Fill({ color: 'rgba(161, 255, 131, 0.1)' }),
-                            text: new ol.style.Text({
-                                text: textMsg,
-                                font: '16px Arial',
-                                fill: new ol.style.Fill({ color: '#FFFF00' }),
-                                stroke: new ol.style.Stroke({ color: '#000', width: 2 }),
-                            })
-                        })
-                    );
+                            polygonFeature.setStyle(
+                                new ol.style.Style({
+                                    stroke: new ol.style.Stroke({
+                                        color: landType === '1' ? '#A1FF83' : landType === '2' ? '#5BF3FF' : '#ffffff',
+                                        width: 2,
+                                    }),
+                                    fill: new ol.style.Fill({
+                                        color: landType === '1' ? 'rgba(161, 255, 131, 0.1)' : landType === '2' ? 'rgba(91, 243, 255, 0.2)' : 'rgba(0, 0, 0, 0.3)',
+                                    }),
+                                    text: new ol.style.Text({
+                                        text: textMsg,
+                                        font: '16px Arial',
+                                        fill: new ol.style.Fill({ color: '#fff' }),
+                                        stroke: new ol.style.Stroke({ color: '#000', width: 2 }),
+                                    }),
+                                })
+                            );
+                        }
+                        // 清除边长标注
+                        clearSideLengthFeatures(layer);
+                        // 清空polygonFeature和polygonLayer
+                        polygonFeature = null;
+                        polygonLayer = null;
+                    } else {
+                        // 如果是不同的地块，重置之前的样式，移除公共点，激活新地块
+                        // 先重置之前的样式
+                        if (polygonFeature) {
+                            const landType = polygonFeature.values_.landType;
+                            const landName = polygonFeature.values_.landName;
+                            const actualAcreNum = polygonFeature.values_.actualAcreNum;
+                            const textMsg = `${landName}\n${actualAcreNum}亩`;
 
-                    // 获取多边形的几何对象
-                    let polygonGeometry = feature.getGeometry();
-                    // 获取多边形的坐标集合（已闭合）
-                    let coordinates = polygonGeometry.getCoordinates()[0];
-                    // 清除可能存在的旧边长标注
-                    clearSideLengthFeatures(layer);
+                            polygonFeature.setStyle(
+                                new ol.style.Style({
+                                    stroke: new ol.style.Stroke({
+                                        color: landType === '1' ? '#A1FF83' : landType === '2' ? '#5BF3FF' : '#ffffff',
+                                        width: 2,
+                                    }),
+                                    fill: new ol.style.Fill({
+                                        color: landType === '1' ? 'rgba(161, 255, 131, 0.1)' : landType === '2' ? 'rgba(91, 243, 255, 0.2)' : 'rgba(0, 0, 0, 0.3)',
+                                    }),
+                                    text: new ol.style.Text({
+                                        text: textMsg,
+                                        font: '16px Arial',
+                                        fill: new ol.style.Fill({ color: '#fff' }),
+                                        stroke: new ol.style.Stroke({ color: '#000', width: 2 }),
+                                    }),
+                                })
+                            );
+                            // 清除之前地块的边长标注
+                            clearSideLengthFeatures(polygonLayer);
+                        }
+                        // 移除公共点
+                        MarkerModule.removeCommonPointMarker(map);
 
-                    // 计算每条边的长度并显示
-                    for (let i = 0; i < coordinates.length - 1; i++) {
-                        let start = coordinates[i];
-                        let end = coordinates[i + 1]; // 不需要模运算，因为最后一个点与第一个点相同
-                        let line = new ol.geom.LineString([start, end]);
-                        let length = ol.sphere.getLength(line);
-                        let lineFeature = new ol.Feature({ geometry: line });
+                        // 设置当前点击的多边形为激活状态
+                        polygonFeature = feature;
+                        polygonLayer = layer;
                         
-                        lineFeature.setStyle(
+                        const textMsg = `${feature.values_.landName}\n${feature.values_.actualAcreNum}亩`;
+                        feature.setStyle(
                             new ol.style.Style({
+                                stroke: new ol.style.Stroke({ color: '#FFFF00', width: 2 }),
+                                fill: new ol.style.Fill({ color: 'rgba(161, 255, 131, 0.1)' }),
                                 text: new ol.style.Text({
-                                    text: length.toFixed(2) + ' m',
+                                    text: textMsg,
                                     font: '16px Arial',
-                                    textAlign: 'center',
-                                    textBaseline: 'middle',
-                                    placement: 'line',
-                                    offsetY: -15,
                                     fill: new ol.style.Fill({ color: '#FFFF00' }),
-                                    stroke: new ol.style.Stroke({ color: '#000000', width: 2 }),
-                                }),
+                                    stroke: new ol.style.Stroke({ color: '#000', width: 2 }),
+                                })
                             })
                         );
-                        
-                        lineFeatureList.push(lineFeature);
-                        layer.getSource().addFeature(lineFeature);
-                    }
 
-                    // 获取多边形的边界框并居中显示
-                    let polygonExtent = feature.getGeometry().getExtent();
-                    let polygonCenter = ol.extent.getCenter(polygonExtent);
-                    map.getView().animate({ center: polygonCenter, zoom: 18, duration: 500 });
+                        // 获取多边形的几何对象
+                        let polygonGeometry = feature.getGeometry();
+                        // 获取多边形的坐标集合（已闭合）
+                        let coordinates = polygonGeometry.getCoordinates()[0];
+                        // 清除可能存在的旧边长标注
+                        clearSideLengthFeatures(layer);
+
+                        // 计算每条边的长度并显示
+                        for (let i = 0; i < coordinates.length - 1; i++) {
+                            let start = coordinates[i];
+                            let end = coordinates[i + 1]; // 不需要模运算，因为最后一个点与第一个点相同
+                            let line = new ol.geom.LineString([start, end]);
+                            let length = ol.sphere.getLength(line);
+                            let lineFeature = new ol.Feature({ geometry: line });
+                            
+                            lineFeature.setStyle(
+                                new ol.style.Style({
+                                    text: new ol.style.Text({
+                                        text: length.toFixed(2) + ' m',
+                                        font: '16px Arial',
+                                        textAlign: 'center',
+                                        textBaseline: 'middle',
+                                        placement: 'line',
+                                        offsetY: -15,
+                                        fill: new ol.style.Fill({ color: '#FFFF00' }),
+                                        stroke: new ol.style.Stroke({ color: '#000000', width: 2 }),
+                                    }),
+                                })
+                            );
+                            
+                            lineFeatureList.push(lineFeature);
+                            layer.getSource().addFeature(lineFeature);
+                        }
+
+                        // 获取多边形的边界框并居中显示
+                        let polygonExtent = feature.getGeometry().getExtent();
+                        let polygonCenter = ol.extent.getCenter(polygonExtent);
+                        map.getView().animate({ center: polygonCenter, zoom: 18, duration: 500 });
+                    }
+                    
                     WebBridge.postMessage({
                         type: 'POLYGON_CLICK',
                         id: feature.values_.id

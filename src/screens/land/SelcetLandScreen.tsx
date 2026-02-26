@@ -120,6 +120,7 @@ const SelectLandScreen = observer(({route}: {route: {params: SelectLandRoutePara
   useEffect(() => {
     if (isWebViewReady) {
       applySavedMapType();
+      getLandInfoData();
     }
   }, [isWebViewReady, mapStore.mapType]);
 
@@ -398,7 +399,6 @@ const SelectLandScreen = observer(({route}: {route: {params: SelectLandRoutePara
   // 地块操作
   const onLandOperation = () => {
     if (!selectedCount) return;
-    console.log("选中地块:", selectedLandInfo);
     switch (route.params.type) {
       case "merge":
         // 移除选中地块
@@ -462,8 +462,29 @@ const SelectLandScreen = observer(({route}: {route: {params: SelectLandRoutePara
 
   // 地块操作失败回调
   const handleOperationError = (type: string) => {
+    console.log("操作失败:", type);
     setOperationVisible(false);
     showCustomToast("error", `${type === "merge" ? "合并" : "转移"}地块失败，请稍后重试`);
+  };
+
+  // 关闭操作弹窗
+  const closeOperationPopup = (type: string) => {
+    setOperationVisible(false);
+    if (type === "merge") {
+      // 移除合并地块
+      webViewRef.current?.postMessage(
+        JSON.stringify({
+          type: "REMOVE_MERGE_LAND",
+        }),
+      );
+      // 重新绘制原始地块
+      webViewRef.current?.postMessage(
+        JSON.stringify({
+          type: "DRAW_LAND_SELECTION",
+          data: landListInfo,
+        }),
+      );
+    }
   };
 
   // 获取地块数据
@@ -540,7 +561,6 @@ const SelectLandScreen = observer(({route}: {route: {params: SelectLandRoutePara
         updateLocalSelectState(selectedLand);
         break;
       case "DRAW_MERGED_LAND_COORDINATES":
-        console.log("DRAW_MERGED_LAND_COORDINATES", data);
         setOperationVisible(true);
         let coordinates: {lat: number; lng: number}[] = [];
         if (data.mergeCoordinates) {
@@ -709,7 +729,7 @@ const SelectLandScreen = observer(({route}: {route: {params: SelectLandRoutePara
             acreageNum={mergeArea}
             onOperationSuccess={handleOperationSuccess}
             onOperationError={handleOperationError}
-            onClose={() => setOperationVisible(false)}
+            onClose={closeOperationPopup}
           />
         )}
       </View>

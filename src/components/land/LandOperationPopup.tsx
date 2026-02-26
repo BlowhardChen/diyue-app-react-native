@@ -17,7 +17,7 @@ interface MergeLandPopupProps {
   coordinates?: {lat: number; lng: number}[];
   onOperationSuccess: (type: string, selectedLands?: landListInfoItem[]) => void;
   onOperationError: (type: string) => void;
-  onClose: () => void;
+  onClose: (type: string) => void;
 }
 
 const LandOperationPopup: React.FC<MergeLandPopupProps> = ({
@@ -156,7 +156,7 @@ const LandOperationPopup: React.FC<MergeLandPopupProps> = ({
           <View style={styles.divider} />
 
           <View style={styles.popupBottom}>
-            <TouchableOpacity style={styles.btnLeft} onPress={onClose}>
+            <TouchableOpacity style={styles.btnLeft} onPress={() => onClose(operationType)}>
               <Text style={styles.leftText}>取消</Text>
             </TouchableOpacity>
             {/* 按钮之间的分割线 */}

@@ -54,6 +54,7 @@ const EnclosureScreen = observer(() => {
   const [useLocationFromSocket, setUseLocationFromSocket] = useState(false);
   const [rtkLocation, setRtkLocation] = useState<{lat: number; lon: number}>({lat: 0, lon: 0});
   const isFirstSocketLocationRef = useRef(true);
+  const [selectedLandId, setSelectedLandId] = useState<string | null>(null);
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -654,12 +655,25 @@ const EnclosureScreen = observer(() => {
         if (enclosureLandData) {
           enclosureLand = enclosureLandData.find(item => item.id === data.id);
         }
-        webViewRef.current?.postMessage(
-          JSON.stringify({
-            type: "SHOW_COMMON_DOT",
-            data: enclosureLand?.gpsList,
-          }),
-        );
+        // 检查是否点击的是同一个地块
+        if (selectedLandId === data.id) {
+          // 如果是同一个地块，发送消息移除公共点
+          webViewRef.current?.postMessage(
+            JSON.stringify({
+              type: "REMOVE_COMMON_DOT",
+            }),
+          );
+          setSelectedLandId(null);
+        } else {
+          // 如果是不同的地块，显示公共点
+          webViewRef.current?.postMessage(
+            JSON.stringify({
+              type: "SHOW_COMMON_DOT",
+              data: enclosureLand?.gpsList,
+            }),
+          );
+          setSelectedLandId(data.id as string);
+        }
         break;
       // 借点成功
       case "WEBVIEW_BORROW_DOT":
