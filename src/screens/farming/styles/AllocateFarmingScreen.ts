@@ -13,7 +13,7 @@ export const AllocateFarmingScreenStyles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 10,
-    paddingBottom: 100,
+    marginBottom: 100,
   },
   popupTips: {
     width: SCREEN_WIDTH,
@@ -39,6 +39,7 @@ export const AllocateFarmingScreenStyles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 8,
     padding: 16,
+    maxHeight: 600,
     marginBottom: 10,
     elevation: 1,
   },

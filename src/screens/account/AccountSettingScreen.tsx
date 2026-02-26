@@ -89,11 +89,11 @@ const AccountSetting = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f7f7f8",
+    backgroundColor: "#F5F6F8",
   },
   settingList: {
     width: "100%",
-    backgroundColor: "#f7f7f8",
+    backgroundColor: "#F5F6F8",
     marginTop: 10,
   },
   settingListItem: {

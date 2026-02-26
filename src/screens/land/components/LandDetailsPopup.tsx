@@ -33,7 +33,6 @@ const LandDetailsPopup: React.FC<Props> = ({landInfo, contractDetail, landOrderL
   const navigation = useNavigation<StackNavigationProp<LandStackParamList>>();
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState("基础信息");
-  console.log("地块详情", landInfo);
   // 当地块信息变化时重置状态
   useEffect(() => {
     setActiveTab("基础信息");
@@ -126,6 +125,7 @@ const LandDetailsPopup: React.FC<Props> = ({landInfo, contractDetail, landOrderL
       {/* 底部操作按钮 */}
       <FooterButtons
         activeTab={activeTab}
+        type={landInfo?.type}
         landType={landInfo?.landType}
         contractNo={contractDetail?.contractNo}
         onLandManage={() => openLandManagePopup(landInfo)}

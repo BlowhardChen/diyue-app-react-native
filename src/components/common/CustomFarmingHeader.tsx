@@ -4,59 +4,59 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {useNavigation, useRoute} from "@react-navigation/native";
 import LinearGradient from "react-native-linear-gradient";
 import {observer} from "mobx-react-lite";
-import {deviceStore} from "@/stores/deviceStore";
-import {saveTargetRoute} from "@/utils/navigationUtils";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {RootStackParamList} from "@/types/navigation";
 
 interface Props {
   navTitle?: string;
   showRightIcon?: boolean;
+  deviceStatus?: string;
   onBackView?: () => void;
+  handleConnectDeviceFun?: () => void;
 }
 
 const deviceConnected = require("@/assets/images/common/icon-device-connect.png");
 const deviceDisconnected = require("@/assets/images/common/icon-device-disconnect.png");
+const deviceOffline = require("@/assets/images/common/icon-device-offline.png");
 
-const CustomFarmingHeader: React.FC<Props> = observer(({navTitle = "", showRightIcon = true, onBackView}) => {
-  const insets = useSafeAreaInsets();
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const route = useRoute();
+const CustomFarmingHeader: React.FC<Props> = observer(
+  ({navTitle = "", showRightIcon = true, deviceStatus = "0", onBackView, handleConnectDeviceFun}) => {
+    const insets = useSafeAreaInsets();
+    const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  const handleBack = useCallback(() => {
-    onBackView?.() ?? navigation.goBack();
-  }, [navigation, onBackView]);
+    const handleBack = useCallback(() => {
+      onBackView?.() ?? navigation.goBack();
+    }, [navigation, onBackView]);
 
-  const handleConnectDevice = useCallback(() => {
-    saveTargetRoute(route.name);
-    navigation.navigate("AddDevice" as any);
-  }, [navigation]);
-
-  return (
-    <LinearGradient
-      style={[styles.container, {paddingTop: insets.top}]}
-      colors={["#41C95B", "#1AB850"]}
-      start={{x: 0.5, y: 0}}
-      end={{x: 0.15, y: 1}}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-      <View style={styles.header}>
-        <TouchableOpacity style={{width: 38, height: 38}} onPress={handleBack}>
-          <Image source={require("@/assets/images/common/icon-back-white.png")} style={styles.iconImage} />
-        </TouchableOpacity>
-
-        <Text style={styles.title}>{navTitle}</Text>
-
-        {showRightIcon ? (
-          <TouchableOpacity style={styles.iconWrapper} onPress={handleConnectDevice}>
-            <Image source={deviceStore.status === "2" ? deviceDisconnected : deviceConnected} style={styles.iconWrapperImage} />
+    return (
+      <LinearGradient
+        style={[styles.container, {paddingTop: insets.top}]}
+        colors={["#41C95B", "#1AB850"]}
+        start={{x: 0.5, y: 0}}
+        end={{x: 0.15, y: 1}}>
+        <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+        <View style={styles.header}>
+          <TouchableOpacity style={{width: 38, height: 38}} onPress={handleBack}>
+            <Image source={require("@/assets/images/common/icon-back-white.png")} style={styles.iconImage} />
           </TouchableOpacity>
-        ) : (
-          <View style={styles.iconWrapper} />
-        )}
-      </View>
-    </LinearGradient>
-  );
-});
+
+          <Text style={styles.title}>{navTitle}</Text>
+
+          {showRightIcon ? (
+            <TouchableOpacity style={styles.iconWrapper} onPress={handleConnectDeviceFun}>
+              <Image
+                source={deviceStatus === "0" ? deviceDisconnected : deviceStatus === "2" ? deviceOffline : deviceConnected}
+                style={styles.iconWrapperImage}
+              />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.iconWrapper} />
+          )}
+        </View>
+      </LinearGradient>
+    );
+  },
+);
 
 export default CustomFarmingHeader;
 
@@ -76,8 +76,10 @@ const styles = StyleSheet.create({
     height: Platform.OS === "ios" ? 44 : 56,
   },
   title: {
+    maxWidth: 200,
     fontSize: 20,
     color: "#fff",
+    textAlign: "center",
   },
   iconWrapper: {
     width: 38,

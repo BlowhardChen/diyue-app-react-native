@@ -49,6 +49,9 @@ import TransferFarmingScreen from "@/screens/farming/TransferFarmingScreen";
 import FarmingWorkDataScreen from "@/screens/farming/FarmingWorkDataScreen";
 import HistoryWorkDetailScreen from "@/screens/farming/HistoryWorkDetailScreen";
 import LandMarkScreen from "@/screens/farming/LandMarkScreen";
+import MechanicalTaskDetailScreen from "@/screens/farming/MechanicalTaskDetailScreen";
+import CustomLayerScreen from "@/screens/land/CustomLayerScreen";
+import ScanAddCustomLayerScreen from "@/screens/land/ScanAddCustomLayerScreen";
 
 type Props = {
   initialRouteName?: keyof RootStackParamList;
@@ -90,6 +93,9 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
           },
         },
       }}>
+      <Stack.Screen name="ScanAddCustomLayer" component={ScanAddCustomLayerScreen} />
+      <Stack.Screen name="CustomLayer" component={CustomLayerScreen} />
+      <Stack.Screen name="MechanicalTaskDetail" component={MechanicalTaskDetailScreen} />
       <Stack.Screen name="LandMark" component={LandMarkScreen} />
       <Stack.Screen name="HistoryWorkDetail" component={HistoryWorkDetailScreen} />
       <Stack.Screen name="FarmingWorkData" component={FarmingWorkDataScreen} />
@@ -137,7 +143,15 @@ const AppNavigator: React.FC<Props> = ({initialRouteName = "Login"}) => {
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <Stack.Screen name="ServiceAgreement" component={ServiceAgreementScreen} />
       <Stack.Screen name="PrivacyPolicyDetail" component={PrivacyPolicyDetailScreen} />
-      <Stack.Screen name="Main" component={BottomTabNavigator} />
+      <Stack.Screen
+        name="Main"
+        component={BottomTabNavigator}
+        options={{
+          headerShown: false,
+          // 允许嵌套导航的跳转
+          cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+        }}
+      />
     </Stack.Navigator>
   );
 };

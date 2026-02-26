@@ -1,4 +1,5 @@
 import {AddFarmingParams, FarmingListInfoData, FarmScientceListItem, FarmTypeListItem} from "@/types/farming";
+import {LandListData} from "@/types/land";
 import {http} from "@/utils/http";
 
 /**
@@ -24,24 +25,13 @@ export const editFarming = (data: any) => {
 };
 
 /**
- * 新建农事-删除农事
+ * 编辑农事-查询编辑农事详情
  */
-export const deleteFarming = (data: {farmingId: string}) => {
+export const getEditFarmingDetail = (id: string) => {
   return http<any>({
     method: "POST",
-    url: "/app/farming/deleteFarming",
-    data,
-  });
-};
-
-/**
- * 新建农事-农事技术方案列表
- */
-export const farmingScientceList = (data: {dictValue: string; farmingTypeId: string}) => {
-  return http<FarmScientceListItem[]>({
-    method: "POST",
-    url: "/app/farming/science/farmingScienceList",
-    data,
+    url: "/app/farming/queryEditFarming",
+    data: {id},
   });
 };
 
@@ -59,11 +49,11 @@ export const farmingTypeList = (data: {dictValue: string}) => {
 /**
  * 农事地图-农事列表
  */
-export const farmingList = (data: {
+export const getFarmingList = (data: {
   type: string;
   farmingName?: string;
   dictValue?: string;
-  farmingScienceTypeId?: string;
+  farmingScienceTypelds?: string[];
   workStatus?: string;
 }) => {
   return http<FarmingListInfoData[]>({
@@ -74,45 +64,137 @@ export const farmingList = (data: {
 };
 
 /**
- * 农事地图-农事列表统计
- */
-export const farmingCount = (data: {
-  type: string;
-  farmingName?: string;
-  dictValue?: string;
-  farmingScienceTypeIds?: string[];
-  workStatus?: string;
-}) => {
-  return http<{farmingCoun: number; totalArea: number}>({
-    method: "POST",
-    url: "/app/farming/queryFarmingCount",
-    data,
-  });
-};
-
-/**
- * 农事地图-农事数据状态统计
- */
-export const farmingStatusCount = (data: {
-  type: string;
-  dictValue: string;
-  farmingScienceTypeIds: string[];
-  taskType: string;
-}) => {
-  return http<{farmingCoun: number; totalArea: number}>({
-    method: "POST",
-    url: "/app/farming/queryFarmingWorkStatusCount",
-    data,
-  });
-};
-
-/**
  * 农事地图-农事详情
  */
-export const farmingDetailInfo = (data: {farmingId: string; userId?: string; isShow?: string}) => {
+export const farmingDetailInfo = (data: {farmingJoinTypeId: string; type: string}) => {
   return http<any>({
     method: "POST",
     url: "/app/farming/queryFarming",
+    data,
+  });
+};
+
+/**
+ * 农事详情-分配农事
+ */
+export const allocateFarming = (data: {
+  farmingJoinTypeLandParams: {farmingJoinTypeId: string; assignMobile: string; lands: {landId: string}[]}[];
+}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/allotFarming",
+    data,
+  });
+};
+
+/**
+ * 农事详情-转移农事
+ */
+export const transferFarming = (data: {farmingJoinTypeId: string; assignMobile: string; lands: {landId: string}[]}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/shiftFarmingLand",
+    data,
+  });
+};
+
+/**
+ * 农事详情-农事环节完成
+ */
+export const completeFarmingLink = (data: {id: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/farmingLinkWorkStatus",
+    data,
+  });
+};
+
+/**
+ * 农事详情-标注农事地块
+ */
+export const markFarmingLand = (data: {farmingJoinTypeId: string; lands: {landId: string}[]; status: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/markFarmingLand",
+    data,
+  });
+};
+
+/**
+ * 农事地图-查询农事地块列表（区域所有地块列表）
+ */
+export const farmingLandList = (data: {farmingTypeId?: string; dictValue?: string; memberId?: number; landType?: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/farmingLandVoList",
+    data,
+  });
+};
+
+/**
+ * 农事地图-查询未分配农事地块列表
+ */
+export const unallocatedFarmingLandList = (data: {id: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/unassignedLandFarmingList",
+    data,
+  });
+};
+
+/**
+ * 农事地图-查询农事环节地块列表
+ */
+export const farmingScienceLandList = (data: {id: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/farmingLandList",
+    data,
+  });
+};
+
+/**
+ * 农事地图-查询农事轨迹状态
+ */
+export const farmingTaskLocusStatus = (data: {farmingJoinTypeId: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/locus/queryFarmingLocusType",
+    data,
+  });
+};
+
+/**
+ * 农事地图-查询农事轨迹列表
+ */
+export const farmingTaskLocusList = (data: {farmingJoinTypeId: string; locusType?: string; imei?: string; status?: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/locus/farmingLocusList",
+    data,
+  });
+};
+
+/**
+ * 机耕队任务-查询上级机耕队农事轨迹列表
+ */
+
+export const mechanicalParentFarmingLocusList = (data: {farmingJoinTypeId: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/locus/managerTeamFarmingLocusList",
+    data,
+  });
+};
+
+/**
+ * 机耕队任务-查询机耕队农事轨迹列表
+ */
+
+export const mechanicalTaskDetailLocusList = (data: {imei: string; status: string; farmingJoinTypeId: string}) => {
+  return http<any>({
+    method: "POST",
+    url: "/app/farming/locus/teamFarmingLocusList",
     data,
   });
 };

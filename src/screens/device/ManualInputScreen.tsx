@@ -1,22 +1,38 @@
 // 手动输入
 import React, {useState} from "react";
 import {View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView} from "react-native";
-import {useNavigation} from "@react-navigation/native";
+import {RouteProp, useNavigation, useRoute} from "@react-navigation/native";
 import CustomStatusBar from "@/components/common/CustomStatusBar";
 import {StackNavigationProp} from "@react-navigation/stack";
 
 type DeviceStackParamList = {
-  CurrentConnect: {imei: string};
+  CurrentConnect: {imei: string; farmingJoinTypeId?: string; taskType?: string};
 };
+
+type AddDeviceParams = {
+  farmingJoinTypeId: string;
+  taskType?: string;
+};
+
+type AddDeviceRouteProp = RouteProp<Record<string, AddDeviceParams>, string>;
 
 const ManualInputScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<DeviceStackParamList>>();
+  const route = useRoute<AddDeviceRouteProp>();
   const [deviceImei, setDeviceImei] = useState("");
 
   // 确定
   const confirm = () => {
     if (!deviceImei) return;
-    navigation.navigate("CurrentConnect", {imei: deviceImei});
+    if (route.params?.farmingJoinTypeId) {
+      navigation.navigate("CurrentConnect", {
+        imei: deviceImei,
+        farmingJoinTypeId: route.params?.farmingJoinTypeId,
+        taskType: route.params?.taskType || "1",
+      });
+    } else {
+      navigation.navigate("CurrentConnect", {imei: deviceImei});
+    }
   };
 
   return (

@@ -1,18 +1,25 @@
 import ExpandButton from "@/screens/land/components/ExpandButton";
 import {Global} from "@/styles/global";
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {View, Text, StyleSheet, TouchableOpacity, Dimensions} from "react-native";
 import RealtimeData from "./RealtimeData";
 import WorkRequirement from "./workRequirement";
 import DeviceParameter from "./DeviceParameter";
 import WorkHistory from "./workHistory";
 
-const WorkDataManagePopup = () => {
+const WorkDataManagePopup = ({farmingId}: {farmingId: string}) => {
   // 标签栏状态管理
   const [activeTab, setActiveTab] = useState("实时数据");
   const [isExpanded, setIsExpanded] = useState(true);
   // 标签列表
   const tabs = ["实时数据", "作业要求", "设备参数", "作业历史"];
+
+  useEffect(() => {
+    getFarmingWorkingData();
+  });
+
+  // 获取农事作业数据
+  const getFarmingWorkingData = async () => {};
 
   return (
     <View style={styles.popupContainer}>

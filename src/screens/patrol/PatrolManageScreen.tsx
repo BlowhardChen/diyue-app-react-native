@@ -21,7 +21,6 @@ import {deviceStore} from "@/stores/deviceStore";
 import React from "react";
 import {EnclosureScreenStyles} from "../land/styles/EnclosureScreen";
 import {patrolTaskEnd, patrolTaskStart} from "@/services/farming";
-import LinearGradient from "react-native-linear-gradient";
 import {PatrolManageScreenStyles} from "./styles/PatrolManageScreen";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {StackNavigationProp} from "@react-navigation/stack";
@@ -43,7 +42,6 @@ const deviceDisconnected = require("@/assets/images/common/icon-device-disconnec
 const PatrolManageScreen = observer(() => {
   const navigation = useNavigation<StackNavigationProp<PatrolParamList>>();
   const route = useRoute<PatrolManageRouteProp>();
-  const insets = useSafeAreaInsets();
   const {id} = route.params;
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
@@ -498,7 +496,7 @@ const PatrolManageScreen = observer(() => {
       },
       onMessage: (data: any) => {
         const socketData = JSON.parse(JSON.stringify(data));
-        if (socketData.taskType === "1" && socketData.lng && socketData.lat && socketData.lng !== 0 && socketData.lat !== 0) {
+        if (socketData.taskType === "3" && socketData.lng && socketData.lat && socketData.lng !== 0 && socketData.lat !== 0) {
           const newLocation = {lon: socketData.lng, lat: socketData.lat};
           setRtkLocation(newLocation);
           console.log("WebSocket 接收定位数据:", newLocation);

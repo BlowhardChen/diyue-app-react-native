@@ -1,7 +1,8 @@
+import FarmingTimePicker from "@/components/common/FarmingTimePicker";
 import {FarmStackParamList} from "@/types/navigation";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
-import React from "react";
+import React, {useState} from "react";
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Image} from "react-native";
 
 // 模拟作业数据
@@ -39,72 +40,97 @@ const operationData = {
 
 const workHistory = () => {
   const navigation = useNavigation<StackNavigationProp<FarmStackParamList>>();
+  const [showDateFilterPopup, setShowDateFilterPopup] = useState(false);
+
   // 打开日期筛选弹窗
   const openDateFilterPopup = () => {
     console.log("打开日期筛选弹窗");
+    setShowDateFilterPopup(true);
   };
+
+  // 关闭日期筛选弹窗
+  const closeDateFilterPopup = () => {
+    setShowDateFilterPopup(false);
+  };
+
+  // 确认日期筛选
+  const confirmDateFilter = (startTime: string, endTime: string) => {
+    console.log("确认日期筛选：", startTime, endTime);
+    setShowDateFilterPopup(false);
+  };
+
   // 查看作业历史详情
   const viewHistoryDetail = () => {
     navigation.navigate("HistoryWorkDetail", {farmingId: ""});
   };
   return (
     <View style={styles.container}>
-      {/* 日期筛选栏 */}
-      <TouchableOpacity style={styles.dateFilterBar} onPress={openDateFilterPopup}>
-        <Text style={styles.dateRangeText}>{operationData.dateRange}</Text>
-        <View style={styles.dropdownBtn}>
-          <Image source={require("@/assets/images/farming/icon-down.png")} style={styles.dropdownIcon} resizeMode="contain" />
-        </View>
-      </TouchableOpacity>
+      {operationData ? (
+        <>
+          {/* 日期筛选栏 */}
+          <TouchableOpacity style={styles.dateFilterBar} onPress={openDateFilterPopup}>
+            <Text style={styles.dateRangeText}>{operationData.dateRange}</Text>
+            <View style={styles.dropdownBtn}>
+              <Image source={require("@/assets/images/farming/icon-down.png")} style={styles.dropdownIcon} resizeMode="contain" />
+            </View>
+          </TouchableOpacity>
 
-      {/* 汇总数据卡片 */}
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>{operationData.summary.acreage}</Text>
-          <Text style={styles.summaryLabel}>作业亩数</Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>{operationData.summary.duration}</Text>
-          <Text style={styles.summaryLabel}>作业时长</Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>{operationData.summary.plots}</Text>
-          <Text style={styles.summaryLabel}>作业地块</Text>
-        </View>
-      </View>
-
-      {/* 历史作业列表 */}
-      <ScrollView style={styles.historyListContainer} showsVerticalScrollIndicator={false}>
-        {operationData.historyList.map((item, index) => (
-          <View key={index} style={styles.historyItem}>
-            {/* 时间轴线圆点 */}
-            <View style={styles.timelineDot} />
-            {/* 轴线竖线（最后一项不显示） */}
-            {index !== operationData.historyList.length - 1 && <View style={styles.timelineLine} />}
-            {/* 作业信息 */}
-            <View style={styles.historyInfo}>
-              <TouchableOpacity style={styles.historyHeader} onPress={viewHistoryDetail}>
-                <Text style={styles.historyDate}>{item.date}</Text>
-                <View style={styles.arrowBtn}>
-                  <Image
-                    source={require("@/assets/images/common/icon-right-gray.png")}
-                    style={styles.arrowIcon}
-                    resizeMode="contain"
-                  />
-                </View>
-              </TouchableOpacity>
-              <View style={styles.historyDetailContainer}>
-                <Text style={styles.historyDetail}>作业时长: </Text>
-                <Text style={styles.historyText}> {item.duration}</Text>
-                <Text style={styles.historyDetail}>作业亩数: </Text>
-                <Text style={styles.historyText}>{item.acreage}</Text>
-                <Text style={styles.historyDetail}>作业地块: </Text>
-                <Text style={styles.historyText}>{item.plots}</Text>
-              </View>
+          {/* 汇总数据卡片 */}
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>{operationData.summary.acreage}</Text>
+              <Text style={styles.summaryLabel}>作业亩数</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>{operationData.summary.duration}</Text>
+              <Text style={styles.summaryLabel}>作业时长</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>{operationData.summary.plots}</Text>
+              <Text style={styles.summaryLabel}>作业地块</Text>
             </View>
           </View>
-        ))}
-      </ScrollView>
+
+          {/* 历史作业列表 */}
+          <ScrollView style={styles.historyListContainer} showsVerticalScrollIndicator={false}>
+            {operationData.historyList.map((item, index) => (
+              <View key={index} style={styles.historyItem}>
+                {/* 时间轴线圆点 */}
+                <View style={styles.timelineDot} />
+                {/* 轴线竖线（最后一项不显示） */}
+                {index !== operationData.historyList.length - 1 && <View style={styles.timelineLine} />}
+                {/* 作业信息 */}
+                <View style={styles.historyInfo}>
+                  <TouchableOpacity style={styles.historyHeader} onPress={viewHistoryDetail}>
+                    <Text style={styles.historyDate}>{item.date}</Text>
+                    <View style={styles.arrowBtn}>
+                      <Image
+                        source={require("@/assets/images/common/icon-right-gray.png")}
+                        style={styles.arrowIcon}
+                        resizeMode="contain"
+                      />
+                    </View>
+                  </TouchableOpacity>
+                  <View style={styles.historyDetailContainer}>
+                    <Text style={styles.historyDetail}>作业时长: </Text>
+                    <Text style={styles.historyText}> {item.duration}</Text>
+                    <Text style={styles.historyDetail}>作业亩数: </Text>
+                    <Text style={styles.historyText}>{item.acreage}</Text>
+                    <Text style={styles.historyDetail}>作业地块: </Text>
+                    <Text style={styles.historyText}>{item.plots}</Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </>
+      ) : (
+        <View style={styles.noDataContainer}>
+          <Image source={require("@/assets/images/common/contract-empty.png")} style={styles.noDataIcon} resizeMode="contain" />
+          <Text style={styles.noDataText}>暂无数据</Text>
+        </View>
+      )}
+      <FarmingTimePicker visible={showDateFilterPopup} onClose={closeDateFilterPopup} onConfirm={confirmDateFilter} />
     </View>
   );
 };
@@ -218,6 +244,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#000",
     fontWeight: "500",
+  },
+  noDataContainer: {
+    flex: 1,
+    marginVertical: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noDataIcon: {
+    width: 86,
+    height: 84,
+  },
+  noDataText: {
+    marginTop: 12,
+    fontSize: 18,
+    color: "#000000",
   },
 });
 

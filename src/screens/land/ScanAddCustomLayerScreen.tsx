@@ -1,9 +1,9 @@
-// 卡片识别页面
+// 扫码添加自定义图层
 import React, {useEffect, useRef, useState} from "react";
 import {View, Text, Image, TouchableOpacity, Vibration} from "react-native";
 import {Camera, useCameraPermission} from "react-native-vision-camera";
-import {RouteProp, useNavigation, useRoute} from "@react-navigation/native";
-import {OcrCardScannerStyles} from "./styles/OcrCardScannerScreen";
+import {useNavigation} from "@react-navigation/native";
+import {ScanAddCustomLayerStyles} from "./styles/ScanAddCustomLayerScreen";
 import {SafeAreaView} from "react-native-safe-area-context";
 import PermissionPopup from "@/components/common/PermissionPopup";
 import OcrPlaceholder from "@/components/land/OcrPlaceholder";
@@ -14,24 +14,18 @@ import CustomLoading from "@/components/common/CustomLoading";
 import {useOCR} from "@/utils/uploadImg";
 import Popup from "../../components/common/Popup";
 import {launchImageLibrary} from "react-native-image-picker";
+import {debounce} from "lodash";
+import {addCustomLayer} from "@/services/land";
 
-type OcrCardScannerParams = {
-  type: "身份证" | "银行卡";
-  onOcrResult: (result: {type: string; data: any}) => void;
-};
-
-type OcrCardScannerRouteProp = RouteProp<Record<string, OcrCardScannerParams>, string>;
-
-const OcrCardScannerScreen = () => {
+const ScanAddCustomLayerScreen = () => {
   const navigation = useNavigation();
-  const route = useRoute<OcrCardScannerRouteProp>();
-  const {type, onOcrResult} = route.params;
   const {hasPermission, requestPermission} = useCameraPermission();
   const camera = useRef<Camera>(null);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const [permissionGranted, setPermissionGranted] = useState(false);
   const {uploadImg, loading} = useOCR();
   const [showPopup, setShowPopup] = useState(false);
+  const [ocrInfo, setOcrInfo] = useState<any | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -94,12 +88,13 @@ const OcrCardScannerScreen = () => {
   // 上传图片并处理结果
   const uploadOCRImg = async (filePath: string) => {
     const token = (await getToken()) as string;
-    const {success, ocrInfo} = await uploadImg(filePath, token, type === "身份证" ? "1" : "2");
+    const {success, ocrInfo} = await uploadImg(filePath, token, "4");
+    setOcrInfo(ocrInfo);
+    console.log("上传二维码结果", success, ocrInfo);
     if (success) {
-      handleGoBack();
-      onOcrResult({type, data: ocrInfo});
-    } else {
       setShowPopup(true);
+    } else {
+      showCustomToast("error", "二维码识别失败");
     }
   };
 
@@ -113,55 +108,65 @@ const OcrCardScannerScreen = () => {
     });
   };
 
-  // 手动输入
-  const handleManualInput = () => {
-    setShowPopup(false);
-    handleGoBack();
-  };
+  // 添加自定义图层
+  const handleAddCustomLayer = debounce(async () => {
+    try {
+      await addCustomLayer({name: ocrInfo?.name || "自定义图层", url: ocrInfo?.data || ""});
+      setShowPopup(false);
+      showCustomToast("success", "添加自定义图层成功");
+      setTimeout(() => {
+        handleGoBack();
+      }, 100);
+    } catch (error: any) {
+      showCustomToast("error", error?.data?.message || "添加自定义图层失败");
+    } finally {
+      setShowPopup(false);
+    }
+  }, 300);
 
   return (
-    <View style={OcrCardScannerStyles.container}>
+    <View style={ScanAddCustomLayerStyles.container}>
       {renderCameraArea()}
-      <SafeAreaView style={OcrCardScannerStyles.headerOverlay} edges={["top"]} pointerEvents="box-none">
-        <View style={OcrCardScannerStyles.header} pointerEvents="auto">
+      <SafeAreaView style={ScanAddCustomLayerStyles.headerOverlay} edges={["top"]} pointerEvents="box-none">
+        <View style={ScanAddCustomLayerStyles.header} pointerEvents="auto">
           <TouchableOpacity
-            style={OcrCardScannerStyles.headerIcon}
+            style={ScanAddCustomLayerStyles.headerIcon}
             onPress={handleGoBack}
             hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}>
             <Image
-              style={OcrCardScannerStyles.icon}
+              style={ScanAddCustomLayerStyles.icon}
               source={require("@/assets/images/common/icon-back-white.png")}
               resizeMode="contain"
             />
           </TouchableOpacity>
-          <Text style={OcrCardScannerStyles.headerTitle} pointerEvents="none">
-            卡片识别
+          <Text style={ScanAddCustomLayerStyles.headerTitle} pointerEvents="none">
+            扫码添加
           </Text>
-          <View style={OcrCardScannerStyles.headerIcon} pointerEvents="none" />
+          <View style={ScanAddCustomLayerStyles.headerIcon} pointerEvents="none" />
         </View>
       </SafeAreaView>
 
-      <View style={OcrCardScannerStyles.overlay} pointerEvents="none">
+      <View style={ScanAddCustomLayerStyles.overlay} pointerEvents="none">
         <OcrPlaceholder />
       </View>
 
-      <View style={OcrCardScannerStyles.bottomOverlay} pointerEvents="box-none">
-        <Text style={OcrCardScannerStyles.tips} pointerEvents="none">
-          请将卡片边缘放入扫描框内以便扫描
+      <View style={ScanAddCustomLayerStyles.bottomOverlay} pointerEvents="box-none">
+        <Text style={ScanAddCustomLayerStyles.tips} pointerEvents="none">
+          请将二维码放入扫描框内以便扫描
         </Text>
 
-        <TouchableOpacity style={[OcrCardScannerStyles.button, OcrCardScannerStyles.shot]} onPress={snapshot}>
-          <Text style={OcrCardScannerStyles.btnText}>点击识别卡片</Text>
+        <TouchableOpacity style={[ScanAddCustomLayerStyles.button, ScanAddCustomLayerStyles.shot]} onPress={snapshot}>
+          <Text style={ScanAddCustomLayerStyles.btnText}>点击识别二维码</Text>
         </TouchableOpacity>
       </View>
-      <View style={OcrCardScannerStyles.photoAlbum}>
-        <TouchableOpacity style={OcrCardScannerStyles.photoAlbumItem} onPress={openPhotoAlbum}>
+      <View style={ScanAddCustomLayerStyles.photoAlbum}>
+        <TouchableOpacity style={ScanAddCustomLayerStyles.photoAlbumItem} onPress={openPhotoAlbum}>
           <Image
-            style={OcrCardScannerStyles.photoIcon}
+            style={ScanAddCustomLayerStyles.photoIcon}
             source={require("@/assets/images/device/icon-photo-album.png")}
             resizeMode="contain"
           />
-          <Text style={OcrCardScannerStyles.photoAlbumText}>相册</Text>
+          <Text style={ScanAddCustomLayerStyles.photoAlbumText}>相册</Text>
         </TouchableOpacity>
       </View>
 
@@ -170,22 +175,23 @@ const OcrCardScannerScreen = () => {
         onAccept={handleAcceptPermission}
         onReject={handleRejectPermission}
         title={"开启相机权限"}
-        message={"开启相机权限将用于识别卡片信息"}
+        message={"开启相机权限将用于识别二维码信息"}
       />
 
-      <CustomLoading visible={loading} text="卡片识别中..." />
+      <CustomLoading visible={loading} text="二维码识别中..." />
 
       <Popup
         visible={showPopup}
-        showTitle={false}
-        msgText="卡片识别失败"
-        leftBtnText="重新识别"
-        rightBtnText="手动输入"
+        title="提示"
+        msgText="是否添加自定义图层？"
+        leftBtnText="取消"
+        rightBtnText="添加"
+        rightBtnStyle={{color: "#08AE3C"}}
         onLeftBtn={() => setShowPopup(false)}
-        onRightBtn={handleManualInput}
+        onRightBtn={handleAddCustomLayer}
       />
     </View>
   );
 };
 
-export default OcrCardScannerScreen;
+export default ScanAddCustomLayerScreen;

@@ -4,6 +4,7 @@ import {http} from "@/utils/http";
 export interface DictDataListItem {
   dictLabel: string;
   dictValue: string;
+  imgUrl: string;
 }
 
 /**

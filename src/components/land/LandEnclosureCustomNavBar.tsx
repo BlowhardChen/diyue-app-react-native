@@ -1,10 +1,11 @@
 import React, {useCallback} from "react";
 import {View, Image, Text, StyleSheet, TouchableOpacity, Platform, StatusBar} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {useNavigation} from "@react-navigation/native";
+import {useNavigation, useRoute} from "@react-navigation/native";
 import LinearGradient from "react-native-linear-gradient";
 import {observer} from "mobx-react-lite";
 import {deviceStore} from "@/stores/deviceStore";
+import {saveTargetRoute} from "@/utils/navigationUtils";
 
 interface Props {
   navTitle?: string;
@@ -18,12 +19,14 @@ const deviceDisconnected = require("@/assets/images/common/icon-device-disconnec
 const LandEnclosureCustomNavBar: React.FC<Props> = observer(({navTitle = "", showRightIcon = true, onBackView}) => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-
+  const route = useRoute();
   const handleBack = useCallback(() => {
     onBackView?.() ?? navigation.goBack();
   }, [navigation, onBackView]);
 
   const handleConnectDevice = useCallback(() => {
+    console.log("当前路由:", route.name);
+    saveTargetRoute(route.name, ["Main", ""], {...route.params});
     navigation.navigate("AddDevice" as never);
   }, [navigation]);
 

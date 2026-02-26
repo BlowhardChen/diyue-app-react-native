@@ -390,9 +390,10 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
 
   // 处理OCR识别结果
   const handleOcrResult = (result: {type: string; data: any}, scanType: string) => {
-    console.log("处理OCR识别结果", result);
     if (!result.data) return;
-    const data = JSON.parse(result.data);
+    setScanType(scanType);
+    const data = JSON.parse(result.data.data);
+    setShowOcrPopup(true);
     setOcrInfo(data);
   };
 
@@ -1045,7 +1046,8 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
           leftBtnText="取消"
           rightBtnText="修改"
           onLeftBtn={positionPopupCancel}
-          onRightBtn={positionPopupConfirm}>
+          onRightBtn={positionPopupConfirm}
+          onClosePopup={() => setIsEditLandPosition(false)}>
           {renderProvinceContent()}
         </PopupInfo>
       </Modal>

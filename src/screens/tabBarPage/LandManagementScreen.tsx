@@ -105,7 +105,9 @@ const LandManagementScreen = observer(() => {
   useEffect(() => {
     if (isWebViewReady) {
       applySavedMapType();
-      // WebView准备好后，根据当前设备状态初始化定位
+      // WebView准备好后，重新获取地块数据并绘制
+      getLandInfoList();
+      // 根据当前设备状态初始化定位
       initLocationByDeviceStatus();
     }
   }, [isWebViewReady, mapStore.mapType, deviceStore.status]);
@@ -113,8 +115,6 @@ const LandManagementScreen = observer(() => {
   // 页面聚焦时：启动WebSocket连接（无论设备状态）
   useFocusEffect(
     React.useCallback(() => {
-      console.log("LandManagementScreen 页面聚焦，初始化WebSocket连接（无论设备状态）");
-
       // 初始化WebSocket（不管设备是否在线）
       initWebSocket();
 
@@ -123,7 +123,6 @@ const LandManagementScreen = observer(() => {
 
       // 页面失焦时：关闭WebSocket + 停止GPS
       return () => {
-        console.log("LandManagementScreen 页面失焦，关闭所有定位相关");
         if (webSocketRef.current) {
           webSocketRef.current.close();
           webSocketRef.current = null;
@@ -175,17 +174,14 @@ const LandManagementScreen = observer(() => {
 
     // 如果有绑定设备但设备离线：使用 GPS（仍需手机定位权限）
     if (deviceStore.deviceImei && deviceStore.status === "2") {
-      console.log("设备离线，切换到GPS定位");
       setUseLocationFromSocket(false);
       if (hasLocationPermission) {
         startPositionWatch();
-      } else {
-        console.log("设备离线但无定位权限，暂不启动GPS定位");
       }
       return;
     }
 
-    // 未绑定设备：走手机GPS逻辑（需要定位权限）
+    // 走手机GPS逻辑（需要定位权限）
     setUseLocationFromSocket(false);
     if (hasLocationPermission) {
       startPositionWatch();
@@ -264,14 +260,17 @@ const LandManagementScreen = observer(() => {
   // 切换地图图层
   const switchMapLayer = (layerType: string, layerUrl?: string) => {
     if (!isWebViewReady) return;
+
     const message = {
       type: "SWITCH_LAYER",
       layerType,
     };
+
     // 只有自定义图层才添加layerUrl属性
     if (layerType === "CUSTOM" && layerUrl) {
       (message as any).customUrl = layerUrl;
     }
+
     webViewRef.current?.postMessage(JSON.stringify(message));
   };
 
@@ -487,6 +486,14 @@ const LandManagementScreen = observer(() => {
     watchIdRef.current = watchId as any;
   };
 
+  // 停止定位
+  const stopPositionWatch = () => {
+    if (watchIdRef.current != null) {
+      Geolocation.clearWatch(watchIdRef.current as any);
+      watchIdRef.current = null;
+    }
+  };
+
   // 关闭地块详情弹窗
   const closeLandDetailsPopup = () => {
     setShowLandDetailsPopup(false);
@@ -498,14 +505,6 @@ const LandManagementScreen = observer(() => {
         type: "RESET_LAND_ACTIVE_STYLE",
       }),
     );
-  };
-
-  // 停止定位
-  const stopPositionWatch = () => {
-    if (watchIdRef.current != null) {
-      Geolocation.clearWatch(watchIdRef.current as any);
-      watchIdRef.current = null;
-    }
   };
 
   // 地块管理
@@ -559,8 +558,8 @@ const LandManagementScreen = observer(() => {
 
   // 获取地块信息列表
   const getLandInfoList = async () => {
-    console.log("获取地块信息列表");
     const {data} = await getLandListData({quitStatus: "0"});
+    console.log("地块信息列表", data);
     setLandInfoList(data as unknown as LandDetailInfo[]);
     webViewRef.current?.postMessage(
       JSON.stringify({
@@ -577,7 +576,6 @@ const LandManagementScreen = observer(() => {
       showCustomToast("error", "地块详情数据为空");
       return;
     }
-    console.log("地块详情数据", data[0]);
     setLandInfo(data[0]);
     setLandName(data[0].landName || "");
     if (data[0].landType === "2") {
@@ -593,7 +591,6 @@ const LandManagementScreen = observer(() => {
   // 获取合同详细信息
   const getContractDetail = async (id: string) => {
     const {data} = await getContractInfoDetail({landId: id});
-    console.log("获取合同详细信息", data);
     setContractDetail(data);
   };
 
@@ -605,7 +602,6 @@ const LandManagementScreen = observer(() => {
 
   // 初始化WebSocket（无论设备状态，都建立连接）
   const initWebSocket = async () => {
-    console.log("初始化WebSocket（无论设备状态）");
     if (!deviceStore.deviceImei) {
       return;
     }
@@ -638,7 +634,6 @@ const LandManagementScreen = observer(() => {
           const newLocation = {lon: socketData.lng, lat: socketData.lat};
           setRtkLocation(newLocation); // 更新状态
           console.log("WebSocket 接收定位数据:", newLocation);
-
           // 首次定位用 SET_ICON_LOCATION（带居中），后续用 UPDATE_ICON_LOCATION（不带居中）
           const messageType = isFirstSocketLocationRef.current ? "SET_ICON_LOCATION" : "UPDATE_ICON_LOCATION";
 
@@ -677,7 +672,6 @@ const LandManagementScreen = observer(() => {
 
   // 接收WebView消息
   const receiveWebviewMessage = (event: any) => {
-    console.log("📬 接收WebView消息:", event.nativeEvent.data);
     let data = event.nativeEvent?.data;
     if (!data) return;
     try {
@@ -702,7 +696,6 @@ const LandManagementScreen = observer(() => {
       case "POLYGON_CLICK":
         // 显示加载弹窗
         setLoading(true);
-        console.log("点击多边形", data.id);
         setLandId(data.id as string);
         await getLandDetailInfoData(data.id as string);
         break;

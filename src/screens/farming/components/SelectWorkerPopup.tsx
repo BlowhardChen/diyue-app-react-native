@@ -1,60 +1,30 @@
 import React, {useEffect, useState} from "react";
 import {View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, ImageSourcePropType, ScrollView} from "react-native";
-import {NavigationProp, useNavigation} from "@react-navigation/native";
-import {updateStore} from "@/stores/updateStore";
-import {RootStackParamList} from "@/types/navigation";
 import {Global} from "@/styles/global";
 
 const {width: screenWidth} = Dimensions.get("window");
 
-interface ManageListType {
-  name: string;
-  type: string;
-  icon: ImageSourcePropType;
-}
-
 interface LandManageProps {
-  farmingInfo?: any;
-  onClosePopup: (action?: string) => void;
+  farmingInfo: {
+    farmingJoinTypeId: string;
+    workUsers: {userName: string; mobile: string}[];
+  };
+  currentWorker: {userName: string; mobile: string};
+  onSelectWorker: (item: {userName: string; mobile: string}) => void;
+  onClosePopup: () => void;
 }
 
-const FarmingManagePopup: React.FC<LandManageProps> = ({farmingInfo, onClosePopup}) => {
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const [isShowPopup, setIsShowPopup] = useState(false);
-  const [msgText, setMsgText] = useState("");
-  const [rightBtnText, setRightBtnText] = useState("");
-  const [selectedType, setSelectedType] = useState<string>("");
+const SelectWorkerPopup: React.FC<LandManageProps> = ({farmingInfo, currentWorker, onClosePopup, onSelectWorker}) => {
+  const {farmingJoinTypeId, workUsers} = farmingInfo;
 
-  useEffect(() => {
-    updateStore.setIsUpdateLand(false);
-  }, []);
-
-  const FarmingManageList: ManageListType[] = [
-    {
-      name: "李四",
-      type: "editFarming",
-      icon: require("@/assets/images/home/icon-edit.png"),
-    },
-    {
-      name: "张三",
-      type: "allocateFarming",
-      icon: require("@/assets/images/home/icon-share.png"),
-    },
-    {
-      name: "王五",
-      type: "transferFarming",
-      icon: require("@/assets/images/home/icon-transfer.png"),
-    },
-  ];
-
-  const handleManage = (item: ManageListType) => {
-    setSelectedType(item.type);
+  // 处理选择作业人
+  const handleSelectWorker = (item: {userName: string; mobile: string}) => {
+    onSelectWorker(item);
   };
 
   // 关闭弹窗
   const closePopup = () => {
     onClosePopup();
-    setSelectedType("");
   };
 
   return (
@@ -74,17 +44,26 @@ const FarmingManagePopup: React.FC<LandManageProps> = ({farmingInfo, onClosePopu
 
         {/* 内容区 */}
         <ScrollView style={styles.manageBox}>
-          {FarmingManageList.map((item, index) => {
-            const isSelected = selectedType === item.type;
-            return (
-              <TouchableOpacity key={index} style={styles.manageItem} onPress={() => handleManage(item)} activeOpacity={0.8}>
-                <Text style={[styles.itemText, isSelected && styles.itemTextSelected]}>{item.name}</Text>
-                {isSelected && (
-                  <Image source={require("@/assets/images/home/icon-select.png")} style={styles.itemIcon} resizeMode="contain" />
-                )}
-              </TouchableOpacity>
-            );
-          })}
+          {workUsers?.length > 0 &&
+            workUsers?.map(item => {
+              const isSelected = currentWorker.mobile === item.mobile;
+              return (
+                <TouchableOpacity
+                  key={item.mobile}
+                  style={styles.manageItem}
+                  onPress={() => handleSelectWorker(item)}
+                  activeOpacity={0.8}>
+                  <Text style={[styles.itemText, isSelected && styles.itemTextSelected]}>{item.userName}</Text>
+                  {isSelected && (
+                    <Image
+                      source={require("@/assets/images/home/icon-select.png")}
+                      style={styles.itemIcon}
+                      resizeMode="contain"
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
         </ScrollView>
       </View>
     </>
@@ -170,4 +149,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FarmingManagePopup;
+export default SelectWorkerPopup;

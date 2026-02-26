@@ -59,6 +59,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 9999,
   },
   toastContainer: {
     backgroundColor: "rgba(17,17,17,0.8)",

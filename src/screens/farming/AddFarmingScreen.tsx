@@ -1,6 +1,5 @@
-// 新建农事
-import {View, Text, TouchableOpacity, ScrollView, TextInput, Image, Pressable} from "react-native";
-import {FarmStackParamList} from "@/types/navigation";
+// 新建&编辑农事
+import {View, Text, TouchableOpacity, ScrollView, TextInput, Image, Pressable, ImageSourcePropType} from "react-native";
 import {useNavigation} from "@react-navigation/native";
 import {StackNavigationProp} from "@react-navigation/stack";
 import CustomStatusBar from "@/components/common/CustomStatusBar";
@@ -8,29 +7,38 @@ import {dictDataList} from "@/services/common";
 import {AddFarmingParams, FarmingTypeListItem} from "@/types/farming";
 import {AddFarmingScreenStyles} from "./styles/AddFarmingScreen";
 import {useEffect, useState} from "react";
-import {farmingTypeList} from "@/services/farming";
+import {addFarming, editFarming, farmingLandList, farmingTypeList, getEditFarmingDetail} from "@/services/farming";
 import {showCustomToast} from "@/components/common/CustomToast";
 import {LandListData} from "@/types/land";
+import {debounce, set} from "lodash";
+import {updateStore} from "@/stores/updateStore";
 
 // 字典数据类型定义
 interface DictData {
   dictLabel: string;
   dictValue: string;
-  icon?: string; // 作物图标可选
+  imgUrl?: string;
 }
 
-type LandStackParamList = {
-  SelectLand: {type: string; onSelectLandResult: (result: LandListData[]) => void};
+type FarmingStackParamList = {
+  SelectLand: {
+    type: string;
+    farmingTypeId?: string;
+    lands: LandListData[];
+    landRequest: () => Promise<LandListData[]>;
+    onSelectLandResult: (result: LandListData[]) => void;
+  };
+  FarmingMap: undefined;
 };
 
-const AddFarmingScreen = ({route}: {route: {params: {id?: string}}}) => {
-  const navigation = useNavigation<StackNavigationProp<LandStackParamList>>();
+const AddFarmingScreen = ({route}: {route: {params: {farmingId?: string}}}) => {
+  const navigation = useNavigation<StackNavigationProp<FarmingStackParamList>>();
   const [farmCropList, setFarmCropList] = useState<DictData[]>([]);
   const [selectedCrop, setSelectedCrop] = useState<DictData | null>(null);
   const [farmingTypeListData, setFarmingTypeListData] = useState<FarmingTypeListItem[]>([]);
   const [showFarmingTypeList, setShowFarmingTypeList] = useState(false);
   const [selectedFarmingTypes, setSelectedFarmingTypes] = useState<FarmingTypeListItem[]>([]);
-  const [selectedLand, setSelectedLand] = useState<string>("");
+  const [selectedLand, setSelectedLand] = useState<LandListData[]>([]);
   const [farmingName, setFarmingName] = useState<string>("");
   const [isFarmParComplete, setIsFarmParComplete] = useState(false);
   const [hostingLand, setHostingLand] = useState<LandListData[]>([]);
@@ -39,7 +47,16 @@ const AddFarmingScreen = ({route}: {route: {params: {id?: string}}}) => {
   // 初始化获取作物列表
   useEffect(() => {
     getFarmCropList();
+    if (route.params?.farmingId) {
+      getFarmingDetailData(route.params.farmingId);
+    }
   }, []);
+
+  useEffect(() => {
+    if (selectedCrop) {
+      getFarmingTypeList(selectedCrop);
+    }
+  }, [selectedCrop]);
 
   // 监听表单完整性，更新保存按钮状态
   useEffect(() => {
@@ -51,7 +68,7 @@ const AddFarmingScreen = ({route}: {route: {params: {id?: string}}}) => {
   useEffect(() => {
     if (selectedCrop && selectedFarmingTypes.length > 0) {
       const year = new Date().getFullYear();
-      const farmingLabels = selectedFarmingTypes.map(item => item.farmingTypeName).join("-");
+      const farmingLabels = selectedFarmingTypes.map(item => item.farmingTypeName).join("");
       setFarmingName(`${year}-${selectedCrop.dictLabel}-${farmingLabels}`);
     }
   }, [selectedCrop, selectedFarmingTypes]);
@@ -69,23 +86,6 @@ const AddFarmingScreen = ({route}: {route: {params: {id?: string}}}) => {
   // 切换作物选择
   const handleCropSelect = async (crop: DictData) => {
     setSelectedCrop(crop);
-    await getFarmingTypeList(crop);
-  };
-
-  // 获取农事类型列表
-  const getFarmingTypeList = async (crop: DictData): Promise<void> => {
-    try {
-      const {data} = await farmingTypeList({dictValue: crop.dictValue || ""});
-      if (!data || data.length === 0) {
-        setShowFarmingTypeList(false);
-        showCustomToast("error", `当前作物${crop.dictLabel}暂无农事`);
-        return;
-      }
-      setShowFarmingTypeList(true);
-      setFarmingTypeListData(data || []);
-    } catch (error) {
-      showCustomToast("error", `获取${crop.dictLabel}农事类型列表失败`);
-    }
   };
 
   // 切换农事操作选择（多选）
@@ -101,7 +101,10 @@ const AddFarmingScreen = ({route}: {route: {params: {id?: string}}}) => {
   // 选择地块
   const handleLandSelect = () => {
     navigation.navigate("SelectLand", {
-      type: "select",
+      type: "farming",
+      farmingTypeId: route.params?.farmingId || "",
+      landRequest: (): Promise<LandListData[]> => farmingLandList({}).then(res => res.data),
+      lands: selectedLand?.length ? selectedLand : [],
       onSelectLandResult: result => {
         handleSelectLandResult(result);
       },
@@ -110,13 +113,17 @@ const AddFarmingScreen = ({route}: {route: {params: {id?: string}}}) => {
 
   // 处理选择地块结果
   const handleSelectLandResult = (result: LandListData[]) => {
-    console.log("处理选择地块结果", result);
-    const circulationLand = result.filter(item => item.landType === "1");
-    const hostingLand = result.filter(item => item.landType === "2");
+    setSelectedLand(result);
+    setLandTypeData(result);
+  };
+
+  // 分类地块类型
+  const setLandTypeData = (landList: LandListData[]) => {
+    if (!landList.length) return;
+    const circulationLand = landList.filter(item => item.landType === "1");
+    const hostingLand = landList.filter(item => item.landType === "2");
     setHostingLand(hostingLand);
     setCirculationLand(circulationLand);
-    console.log("托管地块", hostingLand);
-    console.log("流转地块", circulationLand);
   };
 
   // 计算地块亩数之和
@@ -125,12 +132,73 @@ const AddFarmingScreen = ({route}: {route: {params: {id?: string}}}) => {
   };
 
   // 保存农事
-  const saveAddFarm = async () => {};
+  const saveAddFarm = debounce(async () => {
+    console.log("保存农事", selectedFarmingTypes);
+    const params: AddFarmingParams = {
+      farmingName,
+      dictLabel: selectedCrop?.dictLabel || "",
+      dictValue: selectedCrop?.dictValue || "",
+      totalArea: calculateTotalArea(selectedLand),
+      farmingLands: selectedLand.map(item => ({landType: item.landType, landId: item.id})),
+      farmingJoinTypes: selectedFarmingTypes.map(item => ({
+        farmingTypeId: item.farmingTypeId,
+        farmingTypeName: item.farmingTypeName,
+      })),
+    };
+    console.log("保存农事参数", params);
+    try {
+      if (!route.params?.farmingId) {
+        await addFarming(params);
+        showCustomToast("success", "新建农事成功");
+      } else {
+        await editFarming({farmingId: route.params?.farmingId || "", ...params});
+        updateStore.setIsUpdateFarming(true);
+        showCustomToast("success", "编辑农事成功");
+        navigation.reset({
+          index: 0,
+          routes: [{name: "FarmingMap"}],
+        });
+      }
+    } catch (error) {
+      showCustomToast("error", "保存农事失败");
+    }
+  }, 300);
+
+  // 获取农事类型列表
+  const getFarmingTypeList = async (crop: DictData): Promise<void> => {
+    try {
+      const {data} = await farmingTypeList({dictValue: crop.dictValue || ""});
+      if (!data || data.length === 0) {
+        setShowFarmingTypeList(false);
+        showCustomToast("error", `当前作物${crop.dictLabel}暂无农事类型`);
+        return;
+      }
+      setShowFarmingTypeList(true);
+      setFarmingTypeListData(data || []);
+    } catch (error) {
+      showCustomToast("error", `获取${crop.dictLabel}农事类型列表失败`);
+    }
+  };
+
+  // 获取农事详情数据
+  const getFarmingDetailData = async (id: string) => {
+    try {
+      const {data} = await getEditFarmingDetail(id);
+      console.log("农事详情数据：", data);
+      setSelectedCrop({dictLabel: data.dictLabel, dictValue: data.dictValue, imgUrl: data.imgUrl});
+      setSelectedFarmingTypes(data.farmingJoinTypes || []);
+      setLandTypeData(data.lands || []);
+      setSelectedLand(data.lands || []);
+      setFarmingName(data.farmingName || "");
+    } catch (error) {
+      showCustomToast("error", "获取农事详情失败，请稍后重试");
+    }
+  };
 
   return (
     <View style={AddFarmingScreenStyles.container}>
       {/* 自定义状态栏 */}
-      <CustomStatusBar navTitle={route.params?.id ? "编辑农事" : "新建农事"} onBack={() => navigation.goBack()} />
+      <CustomStatusBar navTitle={route.params?.farmingId ? "编辑农事" : "新建农事"} onBack={() => navigation.goBack()} />
 
       {/* 主内容区 */}
       <ScrollView style={AddFarmingScreenStyles.content} showsVerticalScrollIndicator={false}>
@@ -143,7 +211,7 @@ const AddFarmingScreen = ({route}: {route: {params: {id?: string}}}) => {
             </Text>
           </View>
           <View style={AddFarmingScreenStyles.cropGrid}>
-            {/* {farmCropList.map(item => (
+            {farmCropList.map(item => (
               <Pressable
                 key={item.dictValue}
                 style={[
@@ -151,7 +219,7 @@ const AddFarmingScreen = ({route}: {route: {params: {id?: string}}}) => {
                   selectedCrop?.dictValue === item.dictValue && AddFarmingScreenStyles.cropItemActive,
                 ]}
                 onPress={() => handleCropSelect(item)}>
-                <Image source={{uri: item.icon}} style={AddFarmingScreenStyles.cropIcon} resizeMode="contain" />
+                <Image source={{uri: item.imgUrl}} style={AddFarmingScreenStyles.cropIcon} resizeMode="contain" />
                 <Text
                   style={[
                     AddFarmingScreenStyles.cropText,
@@ -160,83 +228,7 @@ const AddFarmingScreen = ({route}: {route: {params: {id?: string}}}) => {
                   {item.dictLabel}
                 </Text>
               </Pressable>
-            ))} */}
-            <Pressable
-              style={[
-                AddFarmingScreenStyles.cropItem,
-                selectedCrop?.dictValue === "wheat" && AddFarmingScreenStyles.cropItemActive,
-              ]}
-              onPress={() => handleCropSelect({dictValue: "wheat", dictLabel: "小麦"})}>
-              <Image
-                source={require("@/assets/images/farming/icon-wheat.png")}
-                style={AddFarmingScreenStyles.cropIcon}
-                resizeMode="contain"
-              />
-              <Text
-                style={[
-                  AddFarmingScreenStyles.cropText,
-                  selectedCrop?.dictValue === "wheat" && AddFarmingScreenStyles.cropTextActive,
-                ]}>
-                小麦
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                AddFarmingScreenStyles.cropItem,
-                selectedCrop?.dictValue === "corn" && AddFarmingScreenStyles.cropItemActive,
-              ]}
-              onPress={() => handleCropSelect({dictValue: "corn", dictLabel: "玉米"})}>
-              <Image
-                source={require("@/assets/images/farming/icon-corn.png")}
-                style={AddFarmingScreenStyles.cropIcon}
-                resizeMode="contain"
-              />
-              <Text
-                style={[
-                  AddFarmingScreenStyles.cropText,
-                  selectedCrop?.dictValue === "corn" && AddFarmingScreenStyles.cropTextActive,
-                ]}>
-                玉米
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                AddFarmingScreenStyles.cropItem,
-                selectedCrop?.dictValue === "soybean" && AddFarmingScreenStyles.cropItemActive,
-              ]}
-              onPress={() => handleCropSelect({dictValue: "soybean", dictLabel: "大豆"})}>
-              <Image
-                source={require("@/assets/images/farming/icon-soybean.png")}
-                style={AddFarmingScreenStyles.cropIcon}
-                resizeMode="contain"
-              />
-              <Text
-                style={[
-                  AddFarmingScreenStyles.cropText,
-                  selectedCrop?.dictValue === "soybean" && AddFarmingScreenStyles.cropTextActive,
-                ]}>
-                大豆
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                AddFarmingScreenStyles.cropItem,
-                selectedCrop?.dictValue === "rice" && AddFarmingScreenStyles.cropItemActive,
-              ]}
-              onPress={() => handleCropSelect({dictValue: "rice", dictLabel: "水稻"})}>
-              <Image
-                source={require("@/assets/images/farming/icon-rice.png")}
-                style={AddFarmingScreenStyles.cropIcon}
-                resizeMode="contain"
-              />
-              <Text
-                style={[
-                  AddFarmingScreenStyles.cropText,
-                  selectedCrop?.dictValue === "rice" && AddFarmingScreenStyles.cropTextActive,
-                ]}>
-                水稻
-              </Text>
-            </Pressable>
+            ))}
           </View>
           {/* 选择农事区域 */}
           {showFarmingTypeList && (
@@ -296,7 +288,9 @@ const AddFarmingScreen = ({route}: {route: {params: {id?: string}}}) => {
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={AddFarmingScreenStyles.landSelectBtn} onPress={handleLandSelect}>
-              <Text style={AddFarmingScreenStyles.landSelectText}>{selectedLand || "点击选择"}</Text>
+              <Text style={AddFarmingScreenStyles.landSelectText}>
+                {selectedLand.length > 0 ? `${selectedLand.length}个地块已选择` : "点击选择"}
+              </Text>
               <Image source={require("@/assets/images/common/icon-right-gray.png")} style={AddFarmingScreenStyles.editIconImg} />
             </TouchableOpacity>
           )}

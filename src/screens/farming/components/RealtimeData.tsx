@@ -1,5 +1,5 @@
 import {Global} from "@/styles/global";
-import {View, Text, StyleSheet} from "react-native";
+import {View, Text, Image, StyleSheet} from "react-native";
 
 // 生成实时数据组件
 const RealtimeData = () => {
@@ -24,11 +24,16 @@ const RealtimeData = () => {
   };
   return (
     <View style={styles.contentContainer}>
-      <View style={styles.dataGrid}>
-        {realTimeData.map((item, index) => (
-          <DataCard key={index} value={item.value} label={item.label} />
-        ))}
-      </View>
+      {realTimeData.length > 0 ? (
+        <View style={styles.dataGrid}>
+          {realTimeData && realTimeData?.map((item, index) => <DataCard key={index} value={item.value} label={item.label} />)}
+        </View>
+      ) : (
+        <View style={styles.noDataContainer}>
+          <Image source={require("@/assets/images/common/contract-empty.png")} style={styles.noDataIcon} resizeMode="contain" />
+          <Text style={styles.noDataText}>暂无数据</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -64,6 +69,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: " rgba(102,102,102,0.65)",
     fontWeight: "500",
+  },
+  noDataContainer: {
+    flex: 1,
+    marginVertical: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noDataIcon: {
+    width: 86,
+    height: 84,
+  },
+  noDataText: {
+    marginTop: 12,
+    fontSize: 18,
+    color: "#000000",
   },
 });
 

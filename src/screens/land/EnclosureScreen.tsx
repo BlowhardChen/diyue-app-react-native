@@ -73,16 +73,12 @@ const EnclosureScreen = observer(() => {
     initLocationPermission();
   }, []);
 
-  // 获取已圈地地块数据
-  useEffect(() => {
-    getEnclosureLandData();
-    updateStore.setIsUpdateLand(false);
-  }, []);
-
   // 当WebView准备好时
   useEffect(() => {
     if (isWebViewReady) {
       applySavedMapType();
+      updateStore.setIsUpdateLand(false);
+      getEnclosureLandData();
       // WebView准备好后，根据当前设备状态初始化定位
       initLocationByDeviceStatus();
     }
@@ -99,7 +95,6 @@ const EnclosureScreen = observer(() => {
 
       // 页面失焦时：关闭WebSocket + 停止GPS
       return () => {
-        console.log("页面失焦，关闭所有定位相关");
         if (webSocketRef.current) {
           webSocketRef.current.close();
           webSocketRef.current = null;
@@ -165,12 +160,9 @@ const EnclosureScreen = observer(() => {
 
     // 如果有绑定设备但设备离线：使用 GPS（仍需手机定位权限）
     if (deviceStore.deviceImei && deviceStore.status === "2") {
-      console.log("设备离线，切换到GPS定位");
       setUseLocationFromSocket(false);
       if (hasLocationPermission) {
         startPositionWatch();
-      } else {
-        console.log("设备离线但无定位权限，暂不启动GPS定位");
       }
       return;
     }
@@ -446,7 +438,6 @@ const EnclosureScreen = observer(() => {
 
   // GPS打点
   const onGpsDot = async () => {
-    console.log("onGpsDot");
     await Geolocation.getCurrentPosition(
       position => {
         const {latitude, longitude} = position.coords;
@@ -499,6 +490,8 @@ const EnclosureScreen = observer(() => {
       setIsSaving(false);
       setShowSaveSuccessPopup(true);
       updateStore.setIsUpdateLand(true);
+      // 保存成功后重新获取地块数据，确保新地块被绘制
+      getEnclosureLandData();
     } catch (error) {
       setIsSaving(false);
     }
@@ -530,7 +523,6 @@ const EnclosureScreen = observer(() => {
   // 获取已圈地地块数据
   const getEnclosureLandData = async () => {
     const {data} = await getLandListData({quitStatus: "0"});
-    console.log("获取已圈地地块数据", data);
     setEnclosureLandData(data);
     webViewRef.current?.postMessage(
       JSON.stringify({
@@ -542,7 +534,6 @@ const EnclosureScreen = observer(() => {
 
   // 初始化WebSocket（无论设备状态，都建立连接）
   const initWebSocket = async () => {
-    console.log("初始化WebSocket（无论设备状态）");
     if (!deviceStore.deviceImei) {
       return;
     }
@@ -575,7 +566,6 @@ const EnclosureScreen = observer(() => {
         if (socketData.taskType === "1" && socketData.lng && socketData.lat && socketData.lng !== 0 && socketData.lat !== 0) {
           const newLocation = {lon: socketData.lng, lat: socketData.lat};
           setRtkLocation(newLocation); // 更新状态
-          console.log("WebSocket 接收定位数据:", newLocation);
 
           // 关键修改：首次定位用 SET_ICON_LOCATION（带居中），后续用 UPDATE_ICON_LOCATION（不带居中）
           const messageType = isFirstSocketLocationRef.current ? "SET_ICON_LOCATION" : "UPDATE_ICON_LOCATION";
@@ -615,7 +605,6 @@ const EnclosureScreen = observer(() => {
 
   // 接收WebView消息
   const receiveWebviewMessage = (event: any) => {
-    console.log("📬 接收WebView消息:", event.nativeEvent.data);
     let data = event.nativeEvent?.data;
     if (!data) return;
     try {

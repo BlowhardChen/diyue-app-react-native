@@ -24,7 +24,9 @@ export const TransferFarmingScreenStyles = StyleSheet.create({
   },
   sectionHeader: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
+    justifyContent: "flex-start",
     marginBottom: 16,
   },
   sectionTitle: {
@@ -98,7 +100,27 @@ export const TransferFarmingScreenStyles = StyleSheet.create({
   },
   operatorText: {
     fontSize: 16,
-    color: "#333333",
+    fontWeight: "500",
+    color: "#000",
+  },
+  operatorTextActive: {
+    fontWeight: "500",
+    color: "#08AE3C",
+  },
+  noDataContainer: {
+    flex: 1,
+    marginBottom: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noDataIcon: {
+    width: 66,
+    height: 64,
+  },
+  noDataText: {
+    marginTop: 12,
+    fontSize: 18,
+    color: "#000000",
   },
   selectLandButton: {
     height: 52,
@@ -120,7 +142,8 @@ export const TransferFarmingScreenStyles = StyleSheet.create({
     backgroundColor: "#F5F6F8",
     borderRadius: 8,
     fontSize: 16,
-    color: "#333333",
+    fontWeight: "500",
+    color: "#000",
   },
   btnSave: {
     position: "absolute",

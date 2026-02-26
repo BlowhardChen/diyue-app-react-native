@@ -39,9 +39,9 @@ export type AccountStackParamList = {
 
 // 设备
 export type DeviceStackParamList = {
-  AddDevice: undefined;
-  CurrentConnect: {imei: string};
-  ManualInput: undefined;
+  AddDevice: {farmingJoinTypeId?: string; taskType?: string} | undefined;
+  CurrentConnect: {imei: string; farmingJoinTypeId?: string; taskType?: string};
+  ManualInput: {farmingJoinTypeId?: string; taskType?: string} | undefined;
   BluetoothConnect: undefined;
   DifferentialConfig: {deviceInfo: any};
   DataUpload: {deviceInfo: any};
@@ -54,24 +54,33 @@ export type LandMapStackParamList = {
   OcrCardScanner: {type: string};
   LandDetail: {landId: string};
   QuitLand: undefined;
-  SelectLand: {type: string; onSelectLandResult: (result: LandListData[]) => void};
+  SelectLand: {
+    type: string;
+    farmingTypeId?: string;
+    lands?: LandListData[] | [];
+    landRequest?: () => Promise<LandListData[]>;
+    onSelectLandResult: (result: LandListData[]) => void;
+  };
   MergeLand: {landId: string};
   FindLandDetail: {landId: string};
   FindPoint: {point: {lat: number; lon: number}};
+  CustomLayer: undefined;
+  ScanAddCustomLayer: undefined;
 };
 
 // 农事管理相关
 export type FarmStackParamList = {
-  AddFarming: {id?: string};
+  AddFarming: {id?: string; farmingId?: string};
   FarmingMap: undefined;
   MechanicalTask: undefined;
   PatrolFieldManage: undefined;
-  FarmingDetail: {id: string; navTitle: string};
-  AllocateFarming: {farmingId: string};
-  TransferFarming: {farmingId: string};
-  FarmingWorkData: {farmingId: string};
-  HistoryWorkDetail: {farmingId: string};
-  LandMark: {farmingId: string};
+  FarmingDetail: {farmingId: string; farmingJoinTypeId: string; workStatus: string; navTitle: string};
+  AllocateFarming: {farmingJoinTypeId: string};
+  TransferFarming: {farmingJoinTypeId: string};
+  FarmingWorkData: {farmingJoinTypeId: string; workUsers: {userName: string; userId: string}[]};
+  HistoryWorkDetail: {farmingJoinTypeId: string};
+  LandMark: {farmingJoinTypeId: string};
+  MechanicalTaskDetail: {farmingId?: string; farmingJoinTypeId: string; navTitle: string};
 };
 
 // 合同管理相关

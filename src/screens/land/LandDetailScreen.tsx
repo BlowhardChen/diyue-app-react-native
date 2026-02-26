@@ -23,7 +23,6 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import EditLandNamePopup from "@/components/land/EditLandNamePopup";
 import {updateStore} from "@/stores/updateStore";
 import {deviceStore} from "@/stores/deviceStore";
-import {saveTargetRoute} from "@/utils/navigationUtils";
 import React from "react";
 import WebSocketClass from "@/utils/webSocketClass";
 import {getToken} from "@/utils/tokenUtils";
@@ -507,12 +506,6 @@ const LandDetailScreen = observer(({route}: {route: {params: {landId: string}}})
     );
   };
 
-  // 连接设备
-  const handleConnectDevice = () => {
-    saveTargetRoute(router.name);
-    navigation.navigate("AddDevice" as never);
-  };
-
   // 获取合同详细信息
   const getContractDetail = async (id: string) => {
     const {data} = await getContractInfoDetail({landId: id});
@@ -654,17 +647,7 @@ const LandDetailScreen = observer(({route}: {route: {params: {landId: string}}})
           </TouchableOpacity>
 
           <Text style={styles.title}>地块详情</Text>
-
-          <TouchableOpacity style={styles.iconWrapper} onPress={handleConnectDevice}>
-            <Image
-              source={
-                deviceStore.status === "1"
-                  ? require("@/assets/images/common/icon-device-connect.png")
-                  : require("@/assets/images/common/icon-device-disconnect.png")
-              }
-              style={styles.iconImage}
-            />
-          </TouchableOpacity>
+          <View style={styles.iconWrapper}></View>
         </View>
       </LinearGradient>
       {/* 地图 */}

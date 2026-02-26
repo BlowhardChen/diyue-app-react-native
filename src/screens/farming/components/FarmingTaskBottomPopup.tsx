@@ -1,33 +1,23 @@
 import ExpandButton from "@/screens/land/components/ExpandButton";
+import {FarmingMapDetailInfoData} from "@/types/farming";
 import React, {useState} from "react";
-import {View, Text, StyleSheet, TouchableOpacity, GestureResponderEvent} from "react-native";
+import {View, Text, StyleSheet, TouchableOpacity} from "react-native";
+import {text} from "react-native-communications";
 
 type FarmingTaskBottomPopupProps = {
-  taskInfo: {
-    taskType: string;
-    taskStatus: string;
-    area: string;
-    operator: string;
-    completedArea: string;
-    completedBlocks: number;
-    totalBlocks: number;
-  };
+  farmingDetailInfo: FarmingMapDetailInfoData;
   onManagePress: () => void;
   onViewWorkPress: () => void;
   onMarkPress: () => void;
 };
 
-const FarmingTaskBottomPopup = ({taskInfo, onManagePress, onViewWorkPress, onMarkPress}: FarmingTaskBottomPopupProps) => {
-  // 解构对象参数，设置默认值
-  const {
-    taskType = "犁地",
-    taskStatus = "作业中",
-    area = "20.2",
-    operator = "张三",
-    completedArea = "12.5",
-    completedBlocks = 2,
-    totalBlocks = 8,
-  } = taskInfo || {};
+const FarmingTaskBottomPopup = ({
+  farmingDetailInfo,
+  onManagePress,
+  onViewWorkPress,
+  onMarkPress,
+}: FarmingTaskBottomPopupProps) => {
+  const {farmingTypeName, totalLandCount, workLandCount, status, userVos, totalArea, workArea} = farmingDetailInfo || {};
 
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -38,28 +28,37 @@ const FarmingTaskBottomPopup = ({taskInfo, onManagePress, onViewWorkPress, onMar
         <View style={styles.container}>
           {/* 标题行 */}
           <View style={styles.headerRow}>
-            <View style={styles.taskInfoWrapper}>
-              <Text style={styles.taskTypeText}>{taskType}</Text>
-              <Text style={styles.taskStatusText}>{taskStatus}</Text>
+            <View style={styles.farmingDetailInfoWrapper}>
+              <Text style={styles.farmingTypeNameText}>{farmingTypeName}</Text>
+              <Text style={[styles.workStatusText, {backgroundColor: status === "0" ? "#F58700" : "#08AE3C"}]}>
+                {status === "0" ? "作业中" : "已完成"}
+              </Text>
             </View>
-            <Text style={styles.areaText}>
-              {area}
-              <Text style={styles.unitText}>亩</Text>
+            <Text style={[styles.areaText, {color: status === "0" ? "#F58700" : "#08AE3C"}]}>
+              {totalArea ? totalArea.toFixed(2) : "0"}
+              <Text style={[styles.unitText, {color: status === "0" ? "#F58700" : "#08AE3C"}]}>亩</Text>
             </Text>
           </View>
 
           {/* 作业人 */}
           <View style={styles.operatorWrapper}>
-            <Text style={styles.operatorText}>作业人：{operator}</Text>
+            <Text style={styles.operatorText}>
+              作业人：
+              {userVos?.length > 0 ? userVos.map(item => (item.userName ? item.userName : item.mobile)).join("、") : "暂无作业人"}
+            </Text>
           </View>
 
           {/* 进度区域 */}
           <View style={styles.progressRow}>
-            <View style={styles.progressWrapper}>
+            <View style={[styles.progressWrapper, {backgroundColor: status === "0" ? "#FFF2E2" : "#EBFBF0"}]}>
               <Text style={styles.progressText}>
-                已作业<Text style={{fontSize: 18, fontWeight: "500", color: "#F58700"}}>{completedArea}</Text>亩，完成地块
-                <Text style={{fontSize: 18, fontWeight: "500", color: "#F58700"}}>
-                  {completedBlocks}/{totalBlocks}
+                已作业
+                <Text style={{fontSize: 18, fontWeight: "500", color: status === "0" ? "#F58700" : "#08AE3C"}}>
+                  {workArea ?? "0"}
+                </Text>
+                亩，完成地块
+                <Text style={{fontSize: 18, fontWeight: "500", color: status === "0" ? "#F58700" : "#08AE3C"}}>
+                  {workLandCount ?? "0"}/{totalLandCount}
                 </Text>
                 个
               </Text>
@@ -68,15 +67,21 @@ const FarmingTaskBottomPopup = ({taskInfo, onManagePress, onViewWorkPress, onMar
 
           {/* 按钮栏 */}
           <View style={styles.buttonRow}>
-            <TouchableOpacity style={[styles.buttonItem, styles.firstButton]} onPress={onManagePress}>
-              <Text style={styles.buttonText}>农事管理</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.buttonItem, styles.middleButton]} onPress={onViewWorkPress}>
+            {status === "0" && (
+              <TouchableOpacity style={[styles.buttonItem, styles.firstButton]} onPress={onManagePress}>
+                <Text style={styles.buttonText}>农事管理</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.buttonItem, styles.middleButton, {backgroundColor: status === "0" ? "#F58700" : "#08AE3C"}]}
+              onPress={onViewWorkPress}>
               <Text style={styles.buttonText}>作业数据</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.buttonItem, styles.lastButton]} onPress={onMarkPress}>
-              <Text style={styles.buttonText}>标注地块</Text>
-            </TouchableOpacity>
+            {status === "0" && (
+              <TouchableOpacity style={[styles.buttonItem, styles.lastButton]} onPress={onMarkPress}>
+                <Text style={styles.buttonText}>标注地块</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       )}
@@ -105,33 +110,33 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingHorizontal: 16,
   },
-  taskInfoWrapper: {
+  farmingDetailInfoWrapper: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  taskTypeText: {
+  farmingTypeNameText: {
+    maxWidth: 150,
     fontSize: 20,
     fontWeight: "500",
     color: "#000",
   },
-  taskStatusText: {
+  workStatusText: {
     fontSize: 14,
     color: "#fff",
-    backgroundColor: "#F58700",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 2,
   },
   areaText: {
+    maxWidth: 120,
     fontSize: 20,
     fontWeight: "500",
-    color: "#F58700",
+    textAlign: "right",
   },
   unitText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#F58700",
   },
   operatorWrapper: {
     paddingHorizontal: 16,
@@ -176,13 +181,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   firstButton: {
-    backgroundColor: "#007AFF", // 农事管理
+    backgroundColor: "#007AFF",
   },
   middleButton: {
-    backgroundColor: "#FF9500", // 作业数据
+    backgroundColor: "#FF9500",
   },
   lastButton: {
-    backgroundColor: "#08AE3C", // 标注地块
+    backgroundColor: "#08AE3C",
   },
   buttonText: {
     fontSize: 20,

@@ -4,6 +4,8 @@ import {NavigationProp, useNavigation} from "@react-navigation/native";
 import Popup from "@/components/common/Popup";
 import {updateStore} from "@/stores/updateStore";
 import {RootStackParamList} from "@/types/navigation";
+import {completeFarmingLink} from "@/services/farming";
+import {showCustomToast} from "@/components/common/CustomToast";
 
 const {width: screenWidth} = Dimensions.get("window");
 
@@ -14,7 +16,7 @@ interface ManageListType {
 }
 
 interface LandManageProps {
-  farmingInfo?: any;
+  farmingInfo: any;
   onClosePopup: (action?: string) => void;
 }
 
@@ -55,18 +57,27 @@ const FarmingManagePopup: React.FC<LandManageProps> = ({farmingInfo, onClosePopu
   const handleManage = (item: ManageListType) => {
     switch (item.type) {
       case "editFarming":
-        navigation.navigate("AddFarming", {id: ""});
+        navigation.navigate("AddFarming", {id: farmingInfo.farmingJoinTypeId, farmingId: farmingInfo.farmingId});
         break;
       case "allocateFarming":
-        navigation.navigate("AllocateFarming", {farmingId: ""});
+        navigation.navigate("AllocateFarming", {farmingJoinTypeId: farmingInfo.farmingJoinTypeId});
         break;
       case "transferFarming":
-        navigation.navigate("TransferFarming", {farmingId: ""});
+        if (!farmingInfo.userVos?.length) {
+          showCustomToast("error", "请先分配农事作业人");
+          return;
+        }
+        navigation.navigate("TransferFarming", {farmingJoinTypeId: farmingInfo.farmingJoinTypeId});
         break;
       case "completeFarming":
         setIsShowPopup(true);
-        setMsgText("确认完成农事吗？");
         setRightBtnText("完成");
+        if (!farmingInfo.userVos?.length) {
+          setMsgText("当前农事未分配作业人确定完成农事吗？");
+          return;
+        } else {
+          setMsgText("确认完成农事吗？");
+        }
         break;
       default:
         break;
@@ -86,10 +97,15 @@ const FarmingManagePopup: React.FC<LandManageProps> = ({farmingInfo, onClosePopu
   // 确认操作
   const popupConfirm = async () => {
     try {
-      //   await completeFarming(farmingInfo.id);
+      await completeFarmingLink({id: farmingInfo.farmingJoinTypeId});
       setIsShowPopup(false);
+      updateStore.setIsUpdateFarming(true);
       onClosePopup("completeFarming");
-    } catch (error) {}
+    } catch (error: any) {
+      showCustomToast("error", error.data.message ?? "操作失败，请重试");
+    } finally {
+      setIsShowPopup(false);
+    }
   };
 
   return (

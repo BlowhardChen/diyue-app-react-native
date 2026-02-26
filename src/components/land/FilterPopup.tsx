@@ -26,13 +26,14 @@ type StackParamList = {
 interface Props {
   height?: number;
   marginTop?: number;
+  superRouteName?: string;
   onClose: () => void;
   onQuery: (data: SearchFormInfo) => void;
 }
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
-const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT - 111, marginTop = 0}) => {
+const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT - 111, marginTop = 0, superRouteName = ""}) => {
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const [showProvincePopup, setShowProvincePopup] = useState(false);
@@ -96,7 +97,7 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
 
   // 打开卡片扫描器
   const openCardScan = (type: string) => {
-    saveTargetRoute(route.name);
+    saveTargetRoute(route.name, ["Main", superRouteName], {...route.params});
     navigation.navigate("OcrCardScanner", {
       type,
       onOcrResult: async result => {
@@ -107,9 +108,8 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
 
   // 处理OCR识别结果
   const handleOcrResult = (result: {type: string; data: any}, scanType: string) => {
-    console.log("处理OCR识别结果", result);
     if (!result.data) return;
-    const data = JSON.parse(result.data);
+    const data = JSON.parse(result.data.data);
     if (scanType === "身份证") {
       setSearchFormInfo(prev => ({
         ...prev,

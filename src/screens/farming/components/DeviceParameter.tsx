@@ -35,64 +35,73 @@ const DeviceParameterScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* 设备标签切换栏 */}
-      <ScrollView style={styles.deviceTabBarContainer}>
-        <View style={styles.deviceTabBar}>
-          {["设备1", "设备2"].map(device => (
-            <TouchableOpacity
-              key={device}
-              style={[styles.deviceTab, activeDevice === device && styles.activeDeviceTab]}
-              onPress={() => setActiveDevice(device)}>
-              <Text style={[styles.deviceTabText, activeDevice === device && styles.activeDeviceTabText]}>{device}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-
-      {/* 设备信息栏 */}
-      <View style={styles.deviceInfoContainer}>
-        {/* 设备图标 */}
-        <Image source={require("@/assets/images/farming/icon-rtk.png")} style={styles.deviceIcon} resizeMode="contain" />
-        {/* 设备IMEI和状态 */}
-        <View style={styles.deviceInfoText}>
-          <Text style={styles.imeiText}>设备IMEI: {currentDevice.imei}</Text>
-          <View style={styles.statusRow}>
-            <Text style={styles.imeiTypeText}>设备状态:</Text>
-            <Image
-              source={
-                currentDevice.status === "已连接"
-                  ? require("@/assets/images/device/success.png")
-                  : require("@/assets/images/device/error.png")
-              }
-              style={styles.statusDot}
-              resizeMode="contain"
-            />
-            <Text style={[styles.statusText, {color: currentDevice.status === "已连接" ? Global.colors.primary : "#666"}]}>
-              {currentDevice.status}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* 参数卡片网格 */}
-      <View style={styles.paramsGrid}>
-        {currentDevice.params.map((param: any, index: React.Key | null | undefined) => (
-          <View key={index} style={styles.paramCard}>
-            <View style={styles.paramTitleContainer}>
-              <Text style={styles.paramTitle}>{param.title}</Text>
-              <Image
-                source={require("@/assets/images/common/icon-right-gray.png")}
-                style={styles.arrowIcon}
-                resizeMode="contain"
-              />
+      {deviceData ? (
+        <>
+          {/* 设备标签切换栏 */}
+          <ScrollView style={styles.deviceTabBarContainer}>
+            <View style={styles.deviceTabBar}>
+              {["设备1", "设备2"].map(device => (
+                <TouchableOpacity
+                  key={device}
+                  style={[styles.deviceTab, activeDevice === device && styles.activeDeviceTab]}
+                  onPress={() => setActiveDevice(device)}>
+                  <Text style={[styles.deviceTabText, activeDevice === device && styles.activeDeviceTabText]}>{device}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
-            <View style={styles.paramValueContainer}>
-              <Text style={styles.paramValue}>{param.value}</Text>
-              <Text style={styles.paramUnit}>{param.unit}</Text>
+          </ScrollView>
+
+          {/* 设备信息栏 */}
+          <View style={styles.deviceInfoContainer}>
+            {/* 设备图标 */}
+            <Image source={require("@/assets/images/farming/icon-rtk.png")} style={styles.deviceIcon} resizeMode="contain" />
+            {/* 设备IMEI和状态 */}
+            <View style={styles.deviceInfoText}>
+              <Text style={styles.imeiText}>设备IMEI: {currentDevice.imei}</Text>
+              <View style={styles.statusRow}>
+                <Text style={styles.imeiTypeText}>设备状态:</Text>
+                <Image
+                  source={
+                    currentDevice.status === "已连接"
+                      ? require("@/assets/images/device/success.png")
+                      : require("@/assets/images/device/error.png")
+                  }
+                  style={styles.statusDot}
+                  resizeMode="contain"
+                />
+                <Text style={[styles.statusText, {color: currentDevice.status === "已连接" ? Global.colors.primary : "#666"}]}>
+                  {currentDevice.status}
+                </Text>
+              </View>
             </View>
           </View>
-        ))}
-      </View>
+
+          {/* 参数卡片网格 */}
+          <View style={styles.paramsGrid}>
+            {currentDevice.params.map((param: any, index: React.Key | null | undefined) => (
+              <View key={index} style={styles.paramCard}>
+                <View style={styles.paramTitleContainer}>
+                  <Text style={styles.paramTitle}>{param.title}</Text>
+                  <Image
+                    source={require("@/assets/images/common/icon-right-gray.png")}
+                    style={styles.arrowIcon}
+                    resizeMode="contain"
+                  />
+                </View>
+                <View style={styles.paramValueContainer}>
+                  <Text style={styles.paramValue}>{param.value}</Text>
+                  <Text style={styles.paramUnit}>{param.unit}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : (
+        <View style={styles.noDataContainer}>
+          <Image source={require("@/assets/images/common/contract-empty.png")} style={styles.noDataIcon} resizeMode="contain" />
+          <Text style={styles.noDataText}>暂无数据</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -220,6 +229,21 @@ const styles = StyleSheet.create({
   arrowIcon: {
     width: 16,
     height: 16,
+  },
+  noDataContainer: {
+    flex: 1,
+    marginVertical: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noDataIcon: {
+    width: 86,
+    height: 84,
+  },
+  noDataText: {
+    marginTop: 12,
+    fontSize: 18,
+    color: "#000000",
   },
 });
 

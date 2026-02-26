@@ -15,7 +15,6 @@ import {checkLocationPermission, requestLocationPermission} from "@/utils/checkP
 import {showCustomToast} from "@/components/common/CustomToast";
 import {MapWebviewMessage} from "@/types/land";
 import {getToken} from "@/utils/tokenUtils";
-import {getLandListData} from "@/services/land";
 import WebSocketClass from "@/utils/webSocketClass";
 import {deviceStore} from "@/stores/deviceStore";
 import React from "react";
@@ -28,9 +27,13 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import LandMarkScreenPopup from "./components/LandMarkScreenPopup";
 import Popup from "@/components/common/Popup";
 import {Global} from "@/styles/global";
+import {farmingScienceLandList, markFarmingLand} from "@/services/farming";
+import {FarmingLandListItem} from "@/types/farming";
+import {update} from "lodash";
+import {updateStore} from "@/stores/updateStore";
 
 type LandMarkScreenParams = {
-  farmingId: string;
+  farmingJoinTypeId: string;
 };
 
 type LandMarkScreenRouteProp = RouteProp<Record<string, LandMarkScreenParams>, string>;
@@ -39,7 +42,7 @@ const LandMarkScreen = observer(() => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<LandMarkScreenRouteProp>();
-  const {farmingId} = route.params;
+  const {farmingJoinTypeId} = route.params;
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const webViewRef = useRef<WebView>(null);
@@ -53,8 +56,14 @@ const LandMarkScreen = observer(() => {
   const isFirstSocketLocationRef = useRef(true);
   const locationLngLatRef = useRef<{longitude: number; latitude: number} | null>(null);
   const [isShowPopup, setIsShowPopup] = useState(false);
+  const [farmingData, setFarmingData] = useState<FarmingLandListItem[]>([]);
+  const [selectedLandId, setSelectedLandId] = useState<string>("");
+  const [selectedLandIds, setSelectedLandIds] = useState<string[]>([]);
+  const [msgText, setMsgText] = useState<string>("请确认是否将地块标注成已作业？");
+  const [confirmButtonText, setConfirmButtonText] = useState<string>("标记已作业");
+  const [rightBtnStyle, setRightBtnStyle] = useState({color: Global.colors.primary});
 
-  console.log("HistoryWorkDetailScreen", farmingId);
+  console.log("HistoryWorkDetailScreen", farmingJoinTypeId);
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -74,10 +83,11 @@ const LandMarkScreen = observer(() => {
     initLocationPermission();
   }, []);
 
-  // 获取已圈地地块数据
+  // 获取地块数据
   useEffect(() => {
-    getEnclosureLandData();
-  }, []);
+    getFarmingLandData();
+    updateStore.setIsUpdateFarming(false);
+  }, [updateStore.isUpdateFarming]);
 
   // 当WebView准备好时
   useEffect(() => {
@@ -373,9 +383,8 @@ const LandMarkScreen = observer(() => {
     }
   };
 
-  const onChoiceLand = () => {
-    setIsShowPopup(true);
-  };
+  // 多选
+  const onChoiceLand = () => {};
 
   // 取消操作
   const popupCancel = () => {
@@ -385,17 +394,43 @@ const LandMarkScreen = observer(() => {
   // 确认操作
   const popupConfirm = async () => {
     try {
-      //   await completeFarming(farmingInfo.id);
       setIsShowPopup(false);
+      // 切换地块状态
+      setFarmingData(prevData => {
+        console.log("切换地块状态", prevData);
+        const updatedData = prevData.map(item => {
+          if (item.id === selectedLandId) {
+            const newStatus = item.landStatus === "1" ? "0" : "1";
+            setMsgText(`请确认是否将地块标注成${item.landStatus === "1" ? "已" : "未"}作业？`);
+            setConfirmButtonText(item.landStatus === "1" ? "标记已作业" : "标记未作业");
+            setRightBtnStyle({color: item.landStatus === "1" ? Global.colors.primary : "#FF3D3B"});
+            updateStore.setIsUpdateFarming(true);
+            // 发送消息到WebView更新样式
+            webViewRef.current?.postMessage(
+              JSON.stringify({
+                type: "UPDATE_FARMING_LAND_STATUS",
+                id: selectedLandId,
+                landStatus: newStatus,
+              }),
+            );
+            return {...item, landStatus: newStatus};
+          }
+          return item;
+        });
+        return updatedData;
+      });
+      await markFarmingLand({farmingJoinTypeId: farmingJoinTypeId, lands: [{landId: selectedLandId}], status: "1"});
     } catch (error) {}
   };
 
-  // 获取已圈地地块数据
-  const getEnclosureLandData = async () => {
-    const {data} = await getLandListData({quitStatus: "0"});
+  // 获取农事地块数据
+  const getFarmingLandData = async () => {
+    const {data} = await farmingScienceLandList({id: farmingJoinTypeId});
+    console.log("获取农事地块数据", data);
+    setFarmingData(data);
     webViewRef.current?.postMessage(
       JSON.stringify({
-        type: "DRAW_MARK_ENCLOSURE_LAND",
+        type: "DRAW_FARMING_MARK_LAND",
         data,
       }),
     );
@@ -403,7 +438,6 @@ const LandMarkScreen = observer(() => {
 
   // 初始化WebSocket
   const initWebSocket = async () => {
-    console.log("初始化WebSocket（无论设备状态）");
     if (!deviceStore.deviceImei) {
       return;
     }
@@ -483,6 +517,12 @@ const LandMarkScreen = observer(() => {
           locateDevicePosition(true);
         }
         break;
+      // 点击地块
+      case "POLYGON_CLICK":
+        console.log("点击地块:", data.id);
+        setIsShowPopup(true);
+        setSelectedLandId(data.id as string);
+        break;
       case "WEBVIEW_ERROR":
         showCustomToast("error", data.message ?? "操作失败");
         break;
@@ -540,9 +580,9 @@ const LandMarkScreen = observer(() => {
         <View style={LandMarkScreenStyles.rightControl}>
           <MapControlButton iconUrl={require("@/assets/images/home/icon-layer.png")} iconName="图层" onPress={onToggleMapLayer} />
         </View>
-        <View style={LandMarkScreenStyles.choiceControl}>
+        {/* <View style={LandMarkScreenStyles.choiceControl}>
           <MapControlButton iconUrl={require("@/assets/images/home/icon-layer.png")} iconName="多选" onPress={onChoiceLand} />
-        </View>
+        </View> */}
         <View style={LandMarkScreenStyles.locationControl}>
           <MapControlButton
             iconUrl={require("@/assets/images/home/icon-location.png")}
@@ -566,16 +606,16 @@ const LandMarkScreen = observer(() => {
       </View>
 
       {/* 操作状态卡片 */}
-      <LandMarkScreenPopup />
+      {farmingData.length > 0 && <LandMarkScreenPopup farmingData={farmingData} />}
 
       {/* 确认弹窗 */}
       <Popup
         visible={isShowPopup}
         title="提示"
-        msgText={"请确认是否将地块标注成已作业？"}
+        msgText={msgText}
         leftBtnText="取消"
-        rightBtnStyle={{color: Global.colors.primary}}
-        rightBtnText={"标记已作业"}
+        rightBtnStyle={rightBtnStyle}
+        rightBtnText={confirmButtonText}
         onLeftBtn={popupCancel}
         onRightBtn={popupConfirm}
       />

@@ -72,7 +72,6 @@ export const FarmingMapScreenStyles = StyleSheet.create({
     width: 14,
     height: 14,
   },
-  // 加载中
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -84,10 +83,9 @@ export const FarmingMapScreenStyles = StyleSheet.create({
     fontSize: 14,
     color: "#666666",
   },
-
-  // 无数据
   noDataContainer: {
     flex: 1,
+    marginBottom: 80,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -100,24 +98,24 @@ export const FarmingMapScreenStyles = StyleSheet.create({
     fontSize: 18,
     color: "#000000",
   },
-
-  // 列表容器
   listContainer: {
+    width: "100%",
     flex: 1,
     marginTop: 8,
+    marginBottom: 20,
     backgroundColor: "#F5F6F8",
   },
   listContent: {
+    width: "100%",
     paddingHorizontal: 16,
-    gap: 12, // 卡片之间的间距
+    gap: 12,
   },
-
-  // 农事卡片
   farmingCard: {
     marginTop: 16,
   },
-  // 作物标题栏
   cropHeader: {
+    flex: 1,
+    width: "100%",
     paddingHorizontal: 8,
     flexDirection: "row",
     alignItems: "center",
@@ -129,13 +127,13 @@ export const FarmingMapScreenStyles = StyleSheet.create({
     marginRight: 8,
   },
   cropNameText: {
+    flex: 1,
     fontSize: 20,
     color: "#000000",
     fontWeight: "500",
   },
-
-  // 农事类型项
   farmingTypesContainer: {
+    width: "100%",
     paddingHorizontal: 16,
     gap: 0,
     backgroundColor: "#FFFFFF",
@@ -143,12 +141,14 @@ export const FarmingMapScreenStyles = StyleSheet.create({
     elevation: 1,
   },
   farmingTypeItem: {
+    width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     height: 60,
   },
   farmingTypeName: {
+    maxWidth: "60%",
     fontSize: 18,
     color: "#000000",
     fontWeight: "500",

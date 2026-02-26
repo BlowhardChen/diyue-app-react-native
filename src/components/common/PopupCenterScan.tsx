@@ -1,10 +1,6 @@
 // 中心弹窗组件（扫描银行卡/身份证）
 import React from "react";
-import {View, Text, TouchableOpacity, StyleSheet, Dimensions} from "react-native";
-
-// 适配 750 设计稿的 rpx 转换
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const rpx = SCREEN_WIDTH / 750;
+import {View, Text, TouchableOpacity, StyleSheet} from "react-native";
 
 // 定义 OCR 信息类型
 interface OcrInfoType {
@@ -93,31 +89,25 @@ const PopupBox: React.FC<PopupBoxProps> = ({msgText, ocrInfo, onLeftBtn, onRight
   );
 };
 
-// 样式定义
 const styles = StyleSheet.create({
-  // 遮罩层
   popupBox: {
     position: "absolute",
     top: 0,
     left: 0,
-    width: SCREEN_WIDTH,
-    height: Dimensions.get("window").height,
+    width: "100%",
+    height: "100%",
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    zIndex: 3999,
+    zIndex: 1999,
     justifyContent: "center",
     alignItems: "center",
   },
-  // 弹窗内容容器
+
   popupContent: {
     backgroundColor: "#fff",
-    borderRadius: 16 * rpx,
-    shadowColor: "#000",
-    shadowOffset: {width: 0, height: -4 * rpx},
-    shadowOpacity: 0.1,
-    shadowRadius: 12 * rpx,
-    elevation: 5, // Android 阴影
+    borderRadius: 8,
+    elevation: 5,
     alignItems: "center",
-    minWidth: 560 * rpx,
+    maxWidth: 330,
   },
   // 弹窗标题区域
   popupContentTop: {
@@ -125,44 +115,44 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   msg: {
-    marginTop: 32 * rpx,
+    marginTop: 16,
     textAlign: "center",
   },
   msgText: {
-    fontSize: 40 * rpx,
+    fontSize: 20,
     fontWeight: "500",
     color: "#000",
     textAlign: "center",
   },
   // 信息内容区域
   popupContentMain: {
-    minWidth: 560 * rpx,
-    paddingHorizontal: 46 * rpx,
-    paddingBottom: 48 * rpx,
+    minWidth: 280,
+    paddingHorizontal: 23,
+    paddingBottom: 24,
     width: "100%",
   },
   msgItem: {
     flexDirection: "row",
     alignItems: "center",
     width: "100%",
-    marginTop: 16 * rpx,
+    marginTop: 8,
   },
   label: {
-    width: 185 * rpx,
-    fontSize: 36 * rpx,
+    width: 92,
+    fontSize: 18,
     fontWeight: "400",
     color: "#666",
   },
   text: {
     flex: 1,
-    fontSize: 36 * rpx,
+    fontSize: 18,
     fontWeight: "400",
     color: "#000",
   },
   // 分隔线
   divider: {
     width: "100%",
-    height: 2 * rpx,
+    height: 1,
     backgroundColor: "#ededed",
   },
   // 底部按钮区域
@@ -170,7 +160,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    height: 102 * rpx,
+    height: 51,
     width: "100%",
   },
   btnLeft: {
@@ -180,7 +170,7 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   btnLeftText: {
-    fontSize: 36 * rpx,
+    fontSize: 18,
     fontWeight: "500",
     color: "#000",
   },
@@ -191,14 +181,14 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   btnRightText: {
-    fontSize: 36 * rpx,
+    fontSize: 18,
     fontWeight: "500",
     color: "#08ae3c",
   },
   // 按钮分隔线
   cross: {
-    width: 2 * rpx,
-    height: 32 * rpx,
+    width: 1,
+    height: 16,
     backgroundColor: "#ededed",
   },
 });

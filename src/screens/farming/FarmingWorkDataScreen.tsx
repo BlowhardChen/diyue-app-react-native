@@ -26,18 +26,18 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import LinearGradient from "react-native-linear-gradient";
 import SelectWorkerPopup from "./components/SelectWorkerPopup";
 import WorkDataManagePopup from "./components/WorkDataManagePopup";
+import {farmingScienceLandList} from "@/services/farming";
 
-type FarmingWorkDataParams = {
-  id: string;
-};
-
-type FarmingWorkDataRouteProp = RouteProp<Record<string, FarmingWorkDataParams>, string>;
+type FarmingWorkDataRouteProp = RouteProp<
+  Record<string, {farmingJoinTypeId: string; workUsers: {userName: string; mobile: string}[]}>,
+  string
+>;
 
 const FarmingWorkDataScreen = observer(() => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<StackNavigationProp<FarmStackParamList>>();
   const route = useRoute<FarmingWorkDataRouteProp>();
-  const {id} = route.params;
+  const {farmingJoinTypeId, workUsers} = route.params;
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const webViewRef = useRef<WebView>(null);
@@ -51,8 +51,7 @@ const FarmingWorkDataScreen = observer(() => {
   const isFirstSocketLocationRef = useRef(true);
   const locationLngLatRef = useRef<{longitude: number; latitude: number} | null>(null);
   const [showSelectWorkerPopup, setSelectWorkerPopup] = useState(false);
-
-  console.log("FarmingWorkDataScreen", id);
+  const [selectedWorker, setSelectedWorker] = useState<{userName: string; mobile: string}>(workUsers[0]);
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -72,9 +71,8 @@ const FarmingWorkDataScreen = observer(() => {
     initLocationPermission();
   }, []);
 
-  // 获取已圈地地块数据
   useEffect(() => {
-    getEnclosureLandData();
+    getFarmingLandData();
   }, []);
 
   // 当WebView准备好时
@@ -371,22 +369,29 @@ const FarmingWorkDataScreen = observer(() => {
     }
   };
 
+  // 打开作业人弹窗
   const openSelectWorkerPopup = () => {
     setSelectWorkerPopup(true);
   };
 
-  // 关闭农事管理弹窗
-  const onCloseManagePopup = (action?: string) => {
+  // 选择作业人
+  const handleSelectWorker = (item: {userName: string; mobile: string}) => {
+    setSelectedWorker(item);
     setSelectWorkerPopup(false);
-    if (action === "completeFarming" && id) {
+  };
+
+  // 关闭作业人弹窗
+  const onCloseSelectWorkerPopup = (action?: string) => {
+    setSelectWorkerPopup(false);
+    if (action === "completeFarming" && farmingJoinTypeId) {
       setSelectWorkerPopup(false);
       showCustomToast("success", "农事完成成功");
     }
   };
 
-  // 获取已圈地地块数据
-  const getEnclosureLandData = async () => {
-    const {data} = await getLandListData({quitStatus: "0"});
+  // 获取农事地块数据
+  const getFarmingLandData = async () => {
+    const {data} = await farmingScienceLandList({id: farmingJoinTypeId});
     webViewRef.current?.postMessage(
       JSON.stringify({
         type: "DRAW_MARK_ENCLOSURE_LAND",
@@ -504,7 +509,9 @@ const FarmingWorkDataScreen = observer(() => {
           </TouchableOpacity>
 
           <TouchableOpacity style={FarmingWorkDataScreenStyles.titleContainer} onPress={openSelectWorkerPopup}>
-            <Text style={FarmingWorkDataScreenStyles.title}>{"张三"}</Text>
+            <Text style={FarmingWorkDataScreenStyles.title}>
+              {selectedWorker.userName ? selectedWorker.userName : "无作业人"}
+            </Text>
             <Image
               source={require("@/assets/images/farming/icon-down-white.png")}
               style={FarmingWorkDataScreenStyles.iconImage}
@@ -562,10 +569,17 @@ const FarmingWorkDataScreen = observer(() => {
         />
 
         {/* 作业状态弹窗 */}
-        <WorkDataManagePopup />
+        <WorkDataManagePopup farmingId={farmingJoinTypeId} />
 
-        {/* 农事管理弹窗 */}
-        {showSelectWorkerPopup && <SelectWorkerPopup onClosePopup={onCloseManagePopup} />}
+        {/* 作业人弹窗 */}
+        {showSelectWorkerPopup && workUsers?.length > 0 && (
+          <SelectWorkerPopup
+            farmingInfo={{farmingJoinTypeId, workUsers}}
+            currentWorker={selectedWorker}
+            onSelectWorker={handleSelectWorker}
+            onClosePopup={onCloseSelectWorkerPopup}
+          />
+        )}
       </View>
     </View>
   );
