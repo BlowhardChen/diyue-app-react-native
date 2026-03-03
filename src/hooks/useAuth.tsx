@@ -2,7 +2,7 @@ import {createContext, useContext, useEffect, useState} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {getUserInfoFromStorage} from "@/utils/auth";
 import {UserInfo} from "@/types/user";
-import {getToken, removeToken, setToken} from "@/utils/tokenUtils";
+import {getToken, removeToken, setToken, setUserInfo} from "@/utils/tokenUtils";
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -28,8 +28,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
   }, []);
 
   // 登录
-  const login = async (token: string) => {
+  const login = async (token: string, userInfo: UserInfo) => {
     await setToken(token);
+    await setUserInfo(userInfo);
     setIsLoggedIn(true);
   };
 

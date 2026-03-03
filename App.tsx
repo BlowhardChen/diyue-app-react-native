@@ -10,6 +10,7 @@ import {ActivityIndicator, View} from "react-native";
 import {RootStackParamList} from "@/types/navigation";
 import {RootSiblingParent} from "react-native-root-siblings";
 import {TabBarProvider} from "@/navigation/TabBarContext";
+import {Provider as PaperProvider} from "react-native-paper";
 
 export default function App() {
   const routeNameRef = useRef<string>("");
@@ -39,26 +40,28 @@ export default function App() {
   }
 
   return (
-    <RootSiblingParent>
-      <AuthProvider>
-        <NavigationContainer
-          ref={navigationRef}
-          onReady={() => {
-            routeNameRef.current = initialRoute;
-          }}
-          onStateChange={state => {
-            const previousRouteName = routeNameRef.current;
-            const currentRouteName = getActiveRouteName(state!);
-            if (previousRouteName !== currentRouteName) {
-              saveLastRoute(currentRouteName);
-            }
-            routeNameRef.current = currentRouteName;
-          }}>
-          <TabBarProvider>
-            <AppNavigator initialRouteName={initialRoute} />
-          </TabBarProvider>
-        </NavigationContainer>
-      </AuthProvider>
-    </RootSiblingParent>
+    <PaperProvider>
+      <RootSiblingParent>
+        <AuthProvider>
+          <NavigationContainer
+            ref={navigationRef}
+            onReady={() => {
+              routeNameRef.current = initialRoute;
+            }}
+            onStateChange={state => {
+              const previousRouteName = routeNameRef.current;
+              const currentRouteName = getActiveRouteName(state!);
+              if (previousRouteName !== currentRouteName) {
+                saveLastRoute(currentRouteName);
+              }
+              routeNameRef.current = currentRouteName;
+            }}>
+            <TabBarProvider>
+              <AppNavigator initialRouteName={initialRoute} />
+            </TabBarProvider>
+          </NavigationContainer>
+        </AuthProvider>
+      </RootSiblingParent>
+    </PaperProvider>
   );
 }

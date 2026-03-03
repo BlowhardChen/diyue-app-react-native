@@ -464,7 +464,9 @@ const FindPointScreen = observer(({route}: {route: {params: {point: {lat: number
       // 地图准备完成
       case "WEBVIEW_READY":
         setIsWebViewReady(true);
-        initLocationByDeviceStatus();
+        if (hasLocationPermission && !(deviceStore.deviceImei && deviceStore.status === "1")) {
+          startPositionWatch();
+        }
         break;
       case "WEBVIEW_LOCATE_SELF":
         const isValidLocation = currentLocation.lon !== 0 && currentLocation.lat !== 0;

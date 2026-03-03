@@ -292,11 +292,9 @@ window.MarkerModule = (function () {
                         lat: parseFloat(point.lat.toFixed(8))
                     })),
                     area: parseFloat(area.toFixed(2)),
-                    // imageUrl 
+                    // landUrl:imageUrl 
                 }
             });
-
-            // PolygonModule.initPolygonCommonPointClickEvent()
 
         } catch (error) {
             WebBridge.postMessage({

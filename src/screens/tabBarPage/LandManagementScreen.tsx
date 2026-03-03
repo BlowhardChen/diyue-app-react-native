@@ -96,10 +96,10 @@ const LandManagementScreen = observer(() => {
 
   // 当页面聚焦且弹窗显示时，重新请求接口
   useEffect(() => {
-    if (isFocused && showLandDetailsPopup) {
+    if (isFocused && showLandDetailsPopup && landId) {
       getLandDetailInfoData(landId);
     }
-  }, [isFocused, updateStore.isUpdateLand, updateStore.isUpdateLandDetail]);
+  }, [isFocused, updateStore.isUpdateLand, showLandDetailsPopup, landId, updateStore.isUpdateLandDetail]);
 
   // 当WebView准备好时
   useEffect(() => {
@@ -181,7 +181,7 @@ const LandManagementScreen = observer(() => {
       return;
     }
 
-    // 走手机GPS逻辑（需要定位权限）
+    // 未绑定设备,走手机GPS逻辑（需要定位权限）
     setUseLocationFromSocket(false);
     if (hasLocationPermission) {
       startPositionWatch();

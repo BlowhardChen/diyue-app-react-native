@@ -4,6 +4,16 @@ import {StyleSheet, Dimensions} from "react-native";
 const {width} = Dimensions.get("window");
 
 export const MapSwitcherstyles = StyleSheet.create({
+  wrapper: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: "100%",
+    height: "100%",
+    zIndex: 1999,
+  },
   overlay: {
     position: "absolute",
     top: 0,

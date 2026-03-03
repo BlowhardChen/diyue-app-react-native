@@ -36,7 +36,7 @@ const LandDetailsPopup: React.FC<Props> = ({landInfo, contractDetail, landOrderL
   // 当地块信息变化时重置状态
   useEffect(() => {
     setActiveTab("基础信息");
-    setIsExpanded(true);
+    // 移除setIsExpanded(true)，避免landInfo变化时自动展开弹窗
   }, [landInfo]);
 
   // 切换Tab

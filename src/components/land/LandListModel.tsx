@@ -67,8 +67,8 @@ const LandListModel = observer(() => {
             placeholder="姓名/手机号/身份证号等"
             value={searchWord}
             onChangeText={setSearchWord}
-            onSubmitEditing={() => queryLand({keyword: searchWord})}
-            onBlur={() => queryLand({keyword: searchWord})}
+            onSubmitEditing={() => queryLand({searchValue: searchWord})}
+            onBlur={() => queryLand({searchValue: searchWord})}
             style={LandListModelStyles.searchInput}
             placeholderTextColor="#999"
           />

@@ -27,6 +27,7 @@ import {updateStore} from "@/stores/updateStore";
 import WebSocketClass from "@/utils/webSocketClass";
 import {deviceStore} from "@/stores/deviceStore";
 import React from "react";
+import RNFetchBlob from "rn-fetch-blob";
 
 type EnclosureStackParamList = {
   LandInfoEdit: {navigation: string; queryInfo: SaveLandResponse};
@@ -459,6 +460,9 @@ const EnclosureScreen = observer(() => {
 
   // 保存
   const onSave = async () => {
+    if (isSaving) {
+      return;
+    }
     if (dotTotal < 3) {
       return;
     }
@@ -466,7 +470,9 @@ const EnclosureScreen = observer(() => {
     if (isPolygonIntersect) {
       return;
     }
+
     const token = await getToken();
+
     // 向WebView发送保存请求
     webViewRef.current?.postMessage(
       JSON.stringify({
@@ -479,23 +485,69 @@ const EnclosureScreen = observer(() => {
   // 保存地块
   const saveLandFunc = async (landParams: SaveLandParams) => {
     try {
+      console.log("开始保存地块:", landParams);
       setIsSaving(true);
-      const {data} = await addLand({
+      const result = await addLand({
         landName: getNowDate(),
         list: landParams.polygonPath,
         acreageNum: landParams.area,
         actualAcreNum: landParams.area,
         url: landParams.landUrl ?? "",
       });
-      setLandInfo(data);
+      console.log("保存地块成功:", result);
+      setLandInfo(result.data);
       setIsSaving(false);
       setShowSaveSuccessPopup(true);
       updateStore.setIsUpdateLand(true);
       // 保存成功后重新获取地块数据，确保新地块被绘制
       getEnclosureLandData();
     } catch (error) {
+      console.error("保存地块失败:", error);
+      showCustomToast("error", "保存地块失败，请稍后重试");
       setIsSaving(false);
     }
+  };
+
+  // 上传图片到OSS
+  const uploadImageToOSS = async (fileUri: string) => {
+    const token = await getToken();
+    return new Promise((resolve, reject) => {
+      try {
+        // 获取文件名（可选，根据实际需求调整）
+        const fileName = fileUri.split("/").pop() || "other";
+
+        // RNFB 的文件上传配置
+        RNFetchBlob.fetch(
+          "POST",
+          "http://xtnf.com/app/aliyun/oss/uploadToAliOss",
+          {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data", // 必须指定表单类型
+          },
+          [
+            {name: "multipartFile", filename: fileName, data: RNFetchBlob.wrap(fileUri)},
+            {name: "type", data: "0"},
+            {name: "fileName", data: "other"},
+          ],
+        )
+          .then(response => {
+            // 检查响应状态
+            if (response.respInfo.status !== 200) {
+              reject(new Error(`请求失败，状态码：${response.respInfo.status}`));
+              return;
+            }
+
+            // 解析响应数据（RNFB 返回的是字符串，需手动转 JSON）
+            const data = JSON.parse(response.data);
+            resolve(data.data);
+          })
+          .catch(error => {
+            reject(error);
+          });
+      } catch (error) {
+        reject(error);
+      }
+    });
   };
 
   // 编辑地块信息

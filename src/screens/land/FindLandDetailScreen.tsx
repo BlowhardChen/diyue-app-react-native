@@ -135,17 +135,14 @@ const FindLandDetailScreen = observer(({route}: {route: {params: {landId: string
 
     // 如果有绑定设备但设备离线：使用 GPS（仍需手机定位权限）
     if (deviceStore.deviceImei && deviceStore.status === "2") {
-      console.log("设备离线，切换到GPS定位");
       setUseLocationFromSocket(false);
       if (hasLocationPermission) {
         startPositionWatch();
-      } else {
-        console.log("设备离线但无定位权限，暂不启动GPS定位");
       }
       return;
     }
 
-    // 未绑定设备：走手机GPS逻辑（需要定位权限）
+    // 未绑定设备,走手机GPS逻辑（需要定位权限）
     setUseLocationFromSocket(false);
     if (hasLocationPermission) {
       startPositionWatch();
@@ -422,7 +419,6 @@ const FindLandDetailScreen = observer(({route}: {route: {params: {landId: string
 
   // 初始化WebSocket（无论设备状态，都建立连接）
   const initWebSocket = async () => {
-    console.log("初始化WebSocket（无论设备状态）");
     if (!deviceStore.deviceImei) {
       return;
     }
