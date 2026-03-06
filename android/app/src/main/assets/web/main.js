@@ -169,9 +169,9 @@
               case "UPDATE_FARMING_LAND_STATUS":
                   PolygonModule?.updateFarmingLandStatus(map, data.id, data.landStatus);
                 break;
-              // 绘制农事作业轨迹列表
-              case "DRAW_FARMING_LOCUS_List":
-                  PolylineModule?.drawFarmingMapTaskLocusPolylineList(map, data.data);
+              // 绘制农事作业轨迹
+              case "DRAW_FARMING_LOCUS_LIST":
+                  PolylineModule?.drawFarmingTaskLocusPolyline(map, data.data[0]);
                 break;
               // 更新农事作业轨迹
               case "UPDATE_FARMING_LOCUS":
@@ -179,8 +179,14 @@
                 break;
                // 保存当前轨迹数据，确保设备切换时不丢失
               case "SAVE_FARMING_LOCUS_HISTORY":
-                const historyData = PolylineModule?.getFarmingLocusCoordinates();
-                PolylineModule?.setFarmingLocusCoordinates(historyData);
+                  const historyData = PolylineModule?.getFarmingLocusCoordinates();
+                  if (historyData && historyData.length > 0) {
+                      PolylineModule?.setFarmingLocusCoordinates(historyData);
+                  }
+                break;
+              // 绘制上级农事作业轨迹
+              case "DRAW_PARENT_FARMING_LOCUS_LIST":
+                  PolylineModule?.drawParentFarmingLocusPolyline(map, data.data);
                 break;
               default:
                   WebBridge.postMessage("未处理的消息类型:" + data.type);

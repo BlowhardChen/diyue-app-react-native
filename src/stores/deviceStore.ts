@@ -5,12 +5,14 @@ export type DeviceState = {
   status: string; // 1 在线，2 离线
   deviceImei: string;
   farmingDeviceImei: string;
+  farmingDevicePopupStatus: string; // 0 关闭，1 打开
 };
 
 class DeviceStore {
   status: string = "2"; // 初始为离线
   deviceImei: string = "";
   farmingDeviceImei: string = "";
+  farmingDevicePopupStatus: string = "1"; // 初始为打开
 
   constructor() {
     makeAutoObservable(this);
@@ -32,6 +34,12 @@ class DeviceStore {
   // 设置农事设备 IMEI
   setFarmingDeviceImei(imei: string) {
     this.farmingDeviceImei = imei;
+    this.persist();
+  }
+
+  // 设置农事设备弹窗状态
+  setFarmingDevicePopupStatus(status: string) {
+    this.farmingDevicePopupStatus = status;
     this.persist();
   }
 

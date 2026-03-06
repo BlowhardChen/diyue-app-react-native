@@ -468,6 +468,7 @@ const EnclosureScreen = observer(() => {
     }
 
     if (isPolygonIntersect) {
+      showCustomToast("error", "生成的地块区域自相交，请检查点位顺序");
       return;
     }
 
@@ -691,6 +692,7 @@ const EnclosureScreen = observer(() => {
         setIsPolygonIntersect(data.isPolygonIntersect as boolean);
         if (data.isPolygonIntersect && data.message) {
           setPopupTips(data.message);
+          showCustomToast("error", data.message);
         }
         break;
       // 保存地块
@@ -772,18 +774,24 @@ const EnclosureScreen = observer(() => {
 
   useFocusEffect(() => {
     beforeRemoveRef.current = navigation.addListener("beforeRemove", e => {
-      e.preventDefault();
-      if (!showBackPopup) {
-        setShowBackPopup(true);
+      if (dotTotal > 0) {
+        e.preventDefault();
+        if (!showBackPopup) {
+          setShowBackPopup(true);
+        }
       }
     });
 
     // Android 实体返回键监听
     const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (!showBackPopup) {
-        setShowBackPopup(true);
+      if (dotTotal > 0) {
+        if (!showBackPopup) {
+          setShowBackPopup(true);
+        }
+        return true;
+      } else {
+        return false; // 允许默认行为（退出页面）
       }
-      return true;
     });
 
     return () => {
@@ -808,7 +816,7 @@ const EnclosureScreen = observer(() => {
         navTitle="圈地"
         showRightIcon={true}
         onBackView={() => {
-          setShowBackPopup(true);
+          dotTotal > 0 ? setShowBackPopup(true) : navigation.goBack();
         }}
       />
       {/* 地图 */}

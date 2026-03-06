@@ -20,28 +20,29 @@ interface Props {
 
 const MapSwitcher: React.FC<Props> = observer(({onClose, onSelectMap}) => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const [mapCustomLayer, setMapCustomLayer] = useState("");
-  const [customMapLayerList, setCustomMapLayerList] = useState<{name: string; url: string}[]>([]);
+  const [mapCustomLayerId, setMapCustomLayerId] = useState(undefined as number | undefined);
+  const [customMapLayerList, setCustomMapLayerList] = useState<{id: number; name: string; url: string}[]>([]);
   const [showCustomLayerPopup, setShowCustomLayerPopup] = useState(false);
 
   useEffect(() => {
-    setMapCustomLayer(mapStore.customMapLayer);
-  }, [mapStore.mapType, mapStore.customMapLayer]);
+    setMapCustomLayerId(mapStore.customMapLayerId);
+  }, [mapStore.mapType, mapStore.customMapLayerId]);
 
   useEffect(() => {
     getCustomLayersListData();
   }, []);
 
   // 选择地图
-  const handleSelectMap = (type: string, url: string) => {
+  const handleSelectMap = (type: string, layerUrl: string, id?: number) => {
     if (type === "自定义") {
       mapStore.setMapType("自定义");
-      mapStore.setCustomMapType(url);
-      setMapCustomLayer(url);
+      mapStore.setCustomMapType(layerUrl);
+      setMapCustomLayerId(id as number);
+      mapStore.setCustomMapLayerId(id as number);
       onClose();
     } else {
       mapStore.setMapType(type);
-      setMapCustomLayer(""); // 重置自定义图层高亮
+      setMapCustomLayerId(undefined); // 重置自定义图层高亮
       onSelectMap({type, layerUrl: ""});
     }
   };
@@ -61,8 +62,9 @@ const MapSwitcher: React.FC<Props> = observer(({onClose, onSelectMap}) => {
   const addCustomLayerFun = debounce(async (name: string, url: string) => {
     try {
       await addCustomLayer({name: name, url: url});
-      setCustomMapLayerList(prev => [...prev, {name, url}]);
       setShowCustomLayerPopup(false);
+      await getCustomLayersListData();
+      onClose();
     } catch (error: any) {
       showCustomToast("error", error?.data?.message || "添加自定义图层失败");
     } finally {
@@ -85,9 +87,8 @@ const MapSwitcher: React.FC<Props> = observer(({onClose, onSelectMap}) => {
   const getCustomLayersListData = async () => {
     try {
       const {data} = await getCustomLayersList({});
-      console.log("自定义图层列表", data);
       if (data?.length) {
-        setCustomMapLayerList([...customMapLayerList, ...data]);
+        setCustomMapLayerList(data);
       }
     } catch (error: any) {
       showCustomToast("error", error?.data?.message || "获取自定义图层列表失败");
@@ -136,15 +137,17 @@ const MapSwitcher: React.FC<Props> = observer(({onClose, onSelectMap}) => {
               <View>
                 {customMapLayerList?.map((item, index) => (
                   <View style={MapSwitcherstyles.mapItemContainer} key={`customLayer_${index}`}>
-                    <TouchableOpacity style={MapSwitcherstyles.mapItem} onPress={() => handleSelectMap("自定义", item.url)}>
+                    <TouchableOpacity
+                      style={MapSwitcherstyles.mapItem}
+                      onPress={() => handleSelectMap("自定义", item.url, item.id)}>
                       <Text
                         style={[
                           MapSwitcherstyles.mapItemText,
-                          mapStore.mapType === "自定义" && mapCustomLayer === item.url && MapSwitcherstyles.active,
+                          mapStore.mapType === "自定义" && mapCustomLayerId === item.id && MapSwitcherstyles.active,
                         ]}>
                         {item.name}
                       </Text>
-                      {mapStore.mapType === "自定义" && mapCustomLayer === item.url && (
+                      {mapStore.mapType === "自定义" && mapCustomLayerId === item.id && (
                         <Image
                           source={require("@/assets/images/common/icon-city-checked.png")}
                           style={MapSwitcherstyles.mapItemIcon}

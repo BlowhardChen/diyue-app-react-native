@@ -6,6 +6,7 @@ export type UpdateState = {
   isUpdateLandDetail: boolean;
   isUpdateContract: boolean;
   isUpdateFarming: boolean;
+  isUpdatePatrol: boolean;
 };
 
 class UpdateStore {
@@ -13,6 +14,7 @@ class UpdateStore {
   isUpdateLandDetail: boolean = false; // 是否需要更新地块详情
   isUpdateContract: boolean = false; // 是否需要更新合同列表
   isUpdateFarming: boolean = false; // 是否需要更新农事
+  isUpdatePatrol: boolean = false; // 是否需要更新巡田任务
 
   constructor() {
     makeAutoObservable(this);
@@ -40,6 +42,12 @@ class UpdateStore {
   // 更新农事
   setIsUpdateFarming(isUpdateFarming: boolean) {
     this.isUpdateFarming = isUpdateFarming;
+    this.persist();
+  }
+
+  // 更新巡田任务
+  setIsUpdatePatrol(isUpdatePatrol: boolean) {
+    this.isUpdatePatrol = isUpdatePatrol;
     this.persist();
   }
 

@@ -1,3 +1,4 @@
+// 地块信息
 import React, {useState, useEffect, useRef, use} from "react";
 import {View, Text, TextInput, Image, ScrollView, TouchableOpacity, Alert} from "react-native";
 import {useNavigation} from "@react-navigation/native";
@@ -140,7 +141,16 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
   const handleOcrResult = (result: {type: string; data: any}, scanType: string) => {
     if (!result.data) return;
     const data = JSON.parse(result.data.data);
+    console.log("OCR识别结果", data);
     if (scanType === "身份证") {
+      setLandFormInfo(prev => ({
+        ...prev,
+        landName: data.name || prev.landName,
+        cardid: data.idNumber || prev.cardid,
+        bankAccount: data.bankAccount || prev.bankAccount,
+      }));
+      return;
+    } else if (scanType === "银行卡") {
       setLandFormInfo(prev => ({
         ...prev,
         landName: data.name || prev.landName,
@@ -148,15 +158,13 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
         bankAccount: data.cardNumber || prev.bankAccount,
       }));
       return;
-    }
-    if (scanType === "银行卡") {
+    } else {
       setLandFormInfo(prev => ({
         ...prev,
         landName: data.name || prev.landName,
-        cardid: data.cardNumber || prev.cardid,
-        bankAccount: data.cardNumber || prev.bankAccount,
+        cardid: data.idNumber || prev.cardid,
+        bankAccount: data.bankAccount || prev.bankAccount,
       }));
-      return;
     }
   };
 
@@ -215,7 +223,7 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
     await editLandInfo(landFormInfo);
     setIsShowSavePopup(false);
     updateStore.setIsUpdateLand(true);
-    if (params.navigation === "Enclosure") {
+    if (params.navigation === "Enclosure" && isCheckedType === 1) {
       setIsShowSaveSuccessPopup(true);
     } else {
       navigation.goBack();

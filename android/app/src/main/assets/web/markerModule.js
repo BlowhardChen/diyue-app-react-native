@@ -27,7 +27,7 @@ window.MarkerModule = (function () {
 
         const layer = new ol.layer.Vector({
             source: new ol.source.Vector({ features: [feature] }),
-            zIndex: 110
+            zIndex: 111
         });
 
         dotMarkers.push(layer);
@@ -208,7 +208,7 @@ window.MarkerModule = (function () {
 
         selfMarkerLayer = new ol.layer.Vector({
             source: new ol.source.Vector({ features: [feature] }),
-            zIndex: 101
+            zIndex: 110
         });
 
         map.addLayer(selfMarkerLayer);

@@ -22,22 +22,19 @@ import React from "react";
 import {EnclosureScreenStyles} from "../land/styles/EnclosureScreen";
 import {patrolTaskEnd, patrolTaskStart} from "@/services/farming";
 import {PatrolManageScreenStyles} from "./styles/PatrolManageScreen";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {PatrolParamList} from "@/types/navigation";
 import Popup from "@/components/common/Popup";
 import {BackHandler} from "react-native";
 import {saveTargetRoute} from "@/utils/navigationUtils";
 import CustomFarmingHeader from "@/components/common/CustomFarmingHeader";
+import {updateStore} from "@/stores/updateStore";
 
 type PatrolManageParams = {
   id: string;
 };
 
 type PatrolManageRouteProp = RouteProp<Record<string, PatrolManageParams>, string>;
-
-const deviceConnected = require("@/assets/images/common/icon-device-connect.png");
-const deviceDisconnected = require("@/assets/images/common/icon-device-disconnect.png");
 
 const PatrolManageScreen = observer(() => {
   const navigation = useNavigation<StackNavigationProp<PatrolParamList>>();
@@ -60,6 +57,7 @@ const PatrolManageScreen = observer(() => {
   const [showEndPatrolPopup, setShowEndPatrolPopup] = useState(false);
   const [showBackPopup, setShowBackPopup] = useState(false);
   const locationLngLatRef = useRef<{longitude: number; latitude: number} | null>(null);
+  const [deviceStatus, setDeviceStatus] = useState<string>("0");
 
   console.log("PatrolManageScreen", id);
 
@@ -83,6 +81,7 @@ const PatrolManageScreen = observer(() => {
 
   // 获取已圈地地块数据
   useEffect(() => {
+    updateStore.setIsUpdatePatrol(false);
     getEnclosureLandData();
   }, []);
 
@@ -440,6 +439,7 @@ const PatrolManageScreen = observer(() => {
     setShowEndPatrolPopup(false);
     setIsPatrol(false);
     isPatrolRef.current = false;
+    updateStore.setIsUpdatePatrol(true);
     showCustomToast("success", "已为你保存巡田记录");
     setTimeout(() => {
       navigation.goBack();
@@ -536,11 +536,13 @@ const PatrolManageScreen = observer(() => {
           }
         }
         if (socketData.deviceStatus === "2") {
+          setDeviceStatus("2");
           deviceStore.listenDeviceStatus("2");
           setUseLocationFromSocket(false);
           startPositionWatch();
           return;
         } else if (socketData.deviceStatus === "1") {
+          setDeviceStatus("1");
           deviceStore.listenDeviceStatus("1");
           setUseLocationFromSocket(true);
           stopPositionWatch();
@@ -610,13 +612,20 @@ const PatrolManageScreen = observer(() => {
     return () => {
       beforeRemoveRef.current();
       backHandler.remove();
+      stopPositionWatch();
     };
   });
 
   return (
     <View style={EnclosureScreenStyles.container}>
       {/* 顶部导航 */}
-      <CustomFarmingHeader navTitle={"巡田管理"} showRightIcon={true} onBackView={onBackView} />
+      <CustomFarmingHeader
+        navTitle={"巡田管理"}
+        showRightIcon={true}
+        deviceStatus={deviceStatus ? deviceStatus : "0"}
+        onBackView={onBackView}
+        handleConnectDeviceFun={connectDevice}
+      />
       {/* 地图 */}
       <View style={EnclosureScreenStyles.mapBox}>
         <View style={EnclosureScreenStyles.map} collapsable={false}>

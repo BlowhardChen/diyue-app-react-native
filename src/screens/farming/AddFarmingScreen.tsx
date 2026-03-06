@@ -60,7 +60,7 @@ const AddFarmingScreen = ({route}: {route: {params: {farmingId?: string}}}) => {
 
   // 监听表单完整性，更新保存按钮状态
   useEffect(() => {
-    const isComplete = !!selectedCrop && selectedFarmingTypes.length > 0 && !!selectedLand && !!farmingName;
+    const isComplete = !!selectedCrop && selectedFarmingTypes.length > 0 && selectedLand.length > 0 && !!farmingName;
     setIsFarmParComplete(isComplete);
   }, [selectedCrop, selectedFarmingTypes, selectedLand, farmingName]);
 
@@ -133,11 +133,28 @@ const AddFarmingScreen = ({route}: {route: {params: {farmingId?: string}}}) => {
 
   // 保存农事
   const saveAddFarm = debounce(async () => {
-    console.log("保存农事", selectedFarmingTypes);
+    // 验证所有必填字段
+    if (!selectedCrop) {
+      showCustomToast("error", "请选择作物");
+      return;
+    }
+    if (selectedFarmingTypes.length === 0) {
+      showCustomToast("error", "请选择农事");
+      return;
+    }
+    if (selectedLand.length === 0) {
+      showCustomToast("error", "请选择地块");
+      return;
+    }
+    if (!farmingName) {
+      showCustomToast("error", "请输入农事名称");
+      return;
+    }
+
     const params: AddFarmingParams = {
       farmingName,
-      dictLabel: selectedCrop?.dictLabel || "",
-      dictValue: selectedCrop?.dictValue || "",
+      dictLabel: selectedCrop.dictLabel,
+      dictValue: selectedCrop.dictValue,
       totalArea: calculateTotalArea(selectedLand),
       farmingLands: selectedLand.map(item => ({landType: item.landType, landId: item.id})),
       farmingJoinTypes: selectedFarmingTypes.map(item => ({
@@ -150,14 +167,16 @@ const AddFarmingScreen = ({route}: {route: {params: {farmingId?: string}}}) => {
       if (!route.params?.farmingId) {
         await addFarming(params);
         showCustomToast("success", "新建农事成功");
+        setTimeout(() => {
+          navigation.replace("FarmingMap");
+        }, 1500);
       } else {
         await editFarming({farmingId: route.params?.farmingId || "", ...params});
         updateStore.setIsUpdateFarming(true);
         showCustomToast("success", "编辑农事成功");
-        navigation.reset({
-          index: 0,
-          routes: [{name: "FarmingMap"}],
-        });
+        setTimeout(() => {
+          navigation.goBack();
+        }, 1500);
       }
     } catch (error) {
       showCustomToast("error", "保存农事失败");

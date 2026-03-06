@@ -9,6 +9,7 @@ import {PatrolFieldManageScreenStyles} from "./styles/PatrolFieldManageScreen";
 import {patrolTaskList} from "@/services/farming";
 import {showCustomToast} from "@/components/common/CustomToast";
 import {Global} from "@/styles/global";
+import {updateStore} from "@/stores/updateStore";
 
 // 巡田任务列表项类型
 interface PatrolListItemType {
@@ -95,7 +96,7 @@ const PatrolFieldManageScreen: React.FC = ({}) => {
 
   useEffect(() => {
     getPatrolRecordList();
-  }, [activeTab]);
+  }, [activeTab, updateStore.isUpdatePatrol]);
 
   // 渲染列表项
   const renderListItem = (item: PatrolListItemType) => {

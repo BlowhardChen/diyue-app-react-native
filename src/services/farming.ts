@@ -191,7 +191,7 @@ export const mechanicalParentFarmingLocusList = (data: {farmingJoinTypeId: strin
  * 机耕队任务-查询机耕队农事轨迹列表
  */
 
-export const mechanicalTaskDetailLocusList = (data: {imei: string; status: string; farmingJoinTypeId: string}) => {
+export const mechanicalTaskDetailLocusList = (data: {farmingJoinTypeId: string}) => {
   return http<any>({
     method: "POST",
     url: "/app/farming/locus/teamFarmingLocusList",

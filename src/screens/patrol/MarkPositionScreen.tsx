@@ -23,8 +23,9 @@ import WebSocketClass from "@/utils/webSocketClass";
 import {deviceStore} from "@/stores/deviceStore";
 import React from "react";
 import {EnclosureScreenStyles} from "../land/styles/EnclosureScreen";
-import {AbnormalDetailInfoData, PatrolParamList} from "@/types/navigation";
+import {PatrolParamList} from "@/types/navigation";
 import {patrolTaskLocusList} from "@/services/farming";
+import {AbnormalDetailInfoData} from "@/types/farming";
 
 type MarkPositionParams = {
   type: "Mark" | "Detail";
@@ -39,6 +40,7 @@ const MarkPositionScreen = observer(() => {
   const navigation = useNavigation<StackNavigationProp<PatrolParamList>>();
   const route = useRoute<MarkPositionRouteProp>();
   const {type, taskLogId, onMarkPointResult, abnormalDetailInfoData} = route.params;
+  console.log("MarkPositionScreen 参数:", abnormalDetailInfoData);
   const [dotTotal, setDotTotal] = useState(0);
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);

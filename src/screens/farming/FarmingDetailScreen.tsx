@@ -15,7 +15,6 @@ import {checkLocationPermission, requestLocationPermission} from "@/utils/checkP
 import {showCustomToast} from "@/components/common/CustomToast";
 import {MapWebviewMessage} from "@/types/land";
 import {getToken} from "@/utils/tokenUtils";
-import {getLandListData} from "@/services/land";
 import WebSocketClass from "@/utils/webSocketClass";
 import {deviceStore} from "@/stores/deviceStore";
 import React from "react";
@@ -30,7 +29,7 @@ import {updateStore} from "@/stores/updateStore";
 
 type FarmingDetailParams = {
   farmingJoinTypeId: string;
-  farmingId?: string;
+  farmingId: string;
   workStatus: string;
   navTitle: string;
 };
@@ -86,6 +85,7 @@ const FarmingDetailScreen = observer(() => {
   useEffect(() => {
     if (isWebViewReady) {
       applySavedMapType();
+      getFarmingLandData();
       initLocationByDeviceStatus();
     }
   }, [isWebViewReady, mapStore.mapType, deviceStore.status]);
@@ -437,7 +437,7 @@ const FarmingDetailScreen = observer(() => {
       if (!data?.length) return;
       webViewRef.current?.postMessage(
         JSON.stringify({
-          type: "DRAW_FARMING_LOCUS_List",
+          type: "DRAW_FARMING_LOCUS_LIST",
           data,
         }),
       );
@@ -616,7 +616,10 @@ const FarmingDetailScreen = observer(() => {
 
         {/* 农事管理弹窗 */}
         {showManagePopup && (
-          <FarmingManagePopup farmingInfo={{...farmingDetailData, farmingJoinTypeId}} onClosePopup={onCloseManagePopup} />
+          <FarmingManagePopup
+            farmingInfo={{...farmingDetailData, farmingId, farmingJoinTypeId}}
+            onClosePopup={onCloseManagePopup}
+          />
         )}
       </View>
     </View>

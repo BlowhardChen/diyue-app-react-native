@@ -57,7 +57,8 @@ const FarmingManagePopup: React.FC<LandManageProps> = ({farmingInfo, onClosePopu
   const handleManage = (item: ManageListType) => {
     switch (item.type) {
       case "editFarming":
-        navigation.navigate("AddFarming", {id: farmingInfo.farmingJoinTypeId, farmingId: farmingInfo.farmingId});
+        console.log("编辑农事：", farmingInfo);
+        navigation.navigate("AddFarming", {farmingId: farmingInfo.farmingId});
         break;
       case "allocateFarming":
         navigation.navigate("AllocateFarming", {farmingJoinTypeId: farmingInfo.farmingJoinTypeId});

@@ -5,6 +5,7 @@ window.PolylineModule = (function () {
     let farmingLocusCoordinates = []; // 统一维护所有农事轨迹（RTK+GPS）
     let farmingLocusLineLayers = []; // 改为数组，存储多条轨迹线图层（关键修改）
     let farmingCurrentMarkerLayer = null;
+    let currentWorkerName = '作业人'; // 保存当前作业人名称
 
     //  定义5种轨迹线颜色数组
     const TRACK_COLORS = [
@@ -15,7 +16,7 @@ window.PolylineModule = (function () {
         '#9370DB'  // 紫色
     ];
 
-    // 新增：合并轨迹数据（解决设备切换时轨迹断裂）
+    // 合并轨迹数据（解决设备切换时轨迹断裂）
     function mergeFarmingLocusData(newData) {
         if (Array.isArray(newData) && newData.length > 0) {
             newData.forEach(item => {
@@ -39,12 +40,22 @@ window.PolylineModule = (function () {
         }
     }
 
-    // 优化：增量更新轨迹线（避免整体重建）
+   /**  
+    *  增量更新轨迹线（优化性能，避免整体重建）
+    * @param {*} map 地图对象
+    * @param {*} newPoint 新点坐标 { lng: 经度, lat: 纬度 }
+    * @param {*} userName 用户名
+    * @param {*} locusColor 轨迹线颜色（默认：绿色）
+    * @returns 
+    */
     function updateFarmingLocusLineIncrementally(map, newPoint, userName, locusColor = '#08D55C') {
         if (!newPoint || !newPoint.lng || !newPoint.lat) return;
         
         // 转换新坐标
         const newCoord = ol.proj.fromLonLat([newPoint.lng, newPoint.lat]);
+        
+        // 保存作业人名称
+        currentWorkerName = userName;
         
         // 如果轨迹线不存在，创建新的
         if (!farmingLocusLineLayers.length) {
@@ -64,22 +75,20 @@ window.PolylineModule = (function () {
             });
             farmingLocusLineLayers.push(newLayer);
             map.addLayer(newLayer);
-            return;
-        }
-
-        // 增量更新现有轨迹线（注：多轨迹时需区分图层，此处保留原逻辑，如需精准更新需扩展）
-        const source = farmingLocusLineLayers[0].getSource();
-        const features = source.getFeatures();
-        if (features.length > 0) {
-            const feature = features[0];
-            const lineString = feature.getGeometry();
-            const coordinates = lineString.getCoordinates();
-            // 只添加新的坐标点（避免重复）
-            const lastCoord = coordinates[coordinates.length - 1];
-            if (lastCoord[0] !== newCoord[0] || lastCoord[1] !== newCoord[1]) {
-                coordinates.push(newCoord);
-                lineString.setCoordinates(coordinates);
-                feature.setGeometry(lineString);
+        } else {
+            // 更新现有轨迹线
+            const source = farmingLocusLineLayers[0].getSource();
+            const features = source.getFeatures();
+            if (features.length > 0) {
+                const feature = features[0];
+                const lineString = feature.getGeometry();
+                const coordinates = lineString.getCoordinates();
+                // 只添加新的坐标点（避免重复）
+                const lastCoord = coordinates[coordinates.length - 1];
+                if (lastCoord[0] !== newCoord[0] || lastCoord[1] !== newCoord[1]) {
+                    lineString.appendCoordinate(newCoord);
+                    feature.setGeometry(lineString);
+                }
             }
         }
         
@@ -87,6 +96,12 @@ window.PolylineModule = (function () {
         drawFarmingCurrentMarker(map, newPoint, userName, locusColor);
     }
 
+    /**
+     * 绘制轨迹线
+     * @param {*} map 地图对象
+     * @param {*} startLonLat 起始点坐标 { lng: 经度, lat: 纬度 }
+     * @param {*} endLonLat 目标点坐标 { lng: 经度, lat: 纬度 }
+     */
     function drawPolyline(map, startLonLat, endLonLat) {
         const start3857 = ol.proj.fromLonLat(startLonLat);
         const end3857   = ol.proj.fromLonLat(endLonLat);
@@ -124,12 +139,22 @@ window.PolylineModule = (function () {
         map.addLayer(layer);
     }
 
+    /**
+     * 计算两点之间的距离（单位：米）
+     * @param {*} start3857 起始点坐标（EPSG:3857）
+     * @param {*} end3857 目标点坐标（EPSG:3857）
+     * @returns 距离（单位：米）
+     */
     function calculateDistance(start3857, end3857) {
         const startLonLat = ol.proj.toLonLat(start3857);
         const endLonLat   = ol.proj.toLonLat(end3857);
         return ol.sphere.getDistance(startLonLat, endLonLat);
     }
 
+    /**
+     * 移除最后一条轨迹线
+     * @param {*} map 
+     */
     function removePolyline(map) {
         if (polylines.length > 0) {
             const last = polylines.pop();
@@ -137,11 +162,21 @@ window.PolylineModule = (function () {
         }
     }
 
+    /**
+     * 移除所有轨迹线
+     * @param {*} map 
+     */
     function removeAllPolylines(map) {
         polylines.forEach(layer => map.removeLayer(layer));
         polylines = [];
     }
 
+    /**
+     * 绘制查找导航线
+     * @param {*} map 地图对象
+     * @param {*} startLonLat 起始点坐标 { lng: 经度, lat: 纬度 }
+     * @param {*} endLonLat 目标点坐标 { lng: 经度, lat: 纬度 }
+     */
     function drawFindNavigationPolyline(map, startLonLat, endLonLat) {
         if(polylines.length > 0) {
             removePolyline(map)
@@ -154,15 +189,31 @@ window.PolylineModule = (function () {
         );
     }
 
+    /**
+     * 更新查找导航线
+     * @param {*} map 地图对象
+     * @param {*} startLonLat 起始点坐标 { lng: 经度, lat: 纬度 }
+     * @param {*} endLonLat 目标点坐标 { lng: 经度, lat: 纬度 }
+     */
     function updateFindNavigationPolyline(map, startLonLat, endLonLat) {
         removePolyline(map)
         drawFindNavigationPolyline(map, startLonLat, endLonLat)
     }
 
+    /**
+     * 移除查找导航线
+     * @param {*} map 
+     */
     function removeFindNavigationPolyline(map) {
         removePolyline(map)
     }
 
+    /**
+     * 绘制巡田轨迹线
+     * @param {*} map 地图对象
+     * @param {*} data 巡田轨迹数据数组，每个元素为 { lng: 经度, lat: 纬度 }
+     * @returns 
+     */
     function drawPatrolLocusPolyline(map, data) {
         if (!data || data.length === 0) {
             WebBridge.postError('无效的巡田轨迹数据')
@@ -198,6 +249,12 @@ window.PolylineModule = (function () {
         map.addLayer(layer);
     }
 
+    /**
+     * 更新巡田轨迹线
+     * @param {*} map 地图对象
+     * @param {*} location 当前定位点坐标 { lng: 经度, lat: 纬度 }
+     * @returns 
+     */
     function updatePatrolLocusPolyline(map, location) {
         if (!location || !location.lng || !location.lat) {
             WebBridge.postError('无效的巡田轨迹更新数据')
@@ -214,6 +271,10 @@ window.PolylineModule = (function () {
         drawPatrolLocusPolyline(map, locusCoordinates)
     }
 
+    /**
+     * 移除巡田轨迹线
+     * @param {*} map 
+     */
     function removePatrolLocusPolyline(map) {
         if(locusLineLayer) {
             map.removeLayer(locusLineLayer)
@@ -221,7 +282,14 @@ window.PolylineModule = (function () {
         }
     }
 
-    // 核心修改：让Marker样式和轨迹线完全一致
+    /**
+     * 绘制农事当前定位Marker
+     * @param {*} map 地图对象
+     * @param {*} currentPoint 当前定位点坐标 { lng: 经度, lat: 纬度 }
+     * @param {*} userName 作业人名称，默认 '作业人'
+     * @param {*} locusColor 轨迹线颜色，默认 '#08D55C'
+     * @returns 
+     */
     function drawFarmingCurrentMarker(map, currentPoint, userName = '作业人', locusColor = '#08D55C') {
         if (farmingCurrentMarkerLayer) {
             map.removeLayer(farmingCurrentMarkerLayer);
@@ -243,7 +311,7 @@ window.PolylineModule = (function () {
                         color: locusColor // 填充色和轨迹线一致
                     }),
                     stroke: new ol.style.Stroke({
-                        color: '#ffffff', // 白色描边增加辨识度
+                        color: locusColor, // 白色描边增加辨识度
                         width: 2, // 描边宽度
                         lineCap: 'round',
                         lineJoin: 'round'
@@ -272,44 +340,53 @@ window.PolylineModule = (function () {
     }
 
     /**
-     * 绘制农事地图轨迹线列表
+     * 绘制农事轨迹线列表
      * @param {Array{farmingLocusId, locusType, userName, mobile, userId, locusGpsList}} data 农事轨迹数据
      * @returns 
      */
-    function drawFarmingMapTaskLocusPolylineList(map, data) {
+    function drawFarmingTaskLocusPolylineList(map, data) {
         if (!data || data.length === 0) {
             WebBridge.postError('无效的农事轨迹数据');
             return;
         }
         
-        // 2. 先清空旧的多轨迹图层（关键修改）
         if (farmingLocusLineLayers.length > 0) {
             farmingLocusLineLayers.forEach(layer => map.removeLayer(layer));
             farmingLocusLineLayers = [];
         }
         
-        // 3. 遍历数据，按索引循环取颜色（index % 5）
+        let latestLocation = null;
+        let latestUserName = '作业人';
+        let latestColor = TRACK_COLORS[0];
+        
         data.forEach((item, index) => {
             // 取模运算实现颜色循环
             const trackColor = TRACK_COLORS[index % TRACK_COLORS.length];
-            drawFarmingMapTaskLocusPolyline(map, item, trackColor); // 传递颜色参数
+            drawFarmingTaskLocusPolyline(map, item, trackColor); // 传递颜色参数
+            
+            // 记录最新的位置信息
+            if (item.locusGpsList && item.locusGpsList.length > 0) {
+                const lastPoint = item.locusGpsList[item.locusGpsList.length - 1];
+                latestLocation = { lon: lastPoint.lng, lat: lastPoint.lat };
+                latestUserName = item.userName? item.userName:item.mobile? item.mobile: '作业人';
+                latestColor = trackColor;
+            }
         })
     }
 
     /**
-     * 绘制农事地图轨迹线
+     * 绘制农事作业轨迹线
      * @param {ol.Map} map 
      * @param {data:{farmingLocusId, locusType, userName, mobile, userId, locusGpsList}} data 农事轨迹数据
-     * @param {string} trackColor 轨迹线颜色（新增参数）
+     * @param {string} trackColor 轨迹线颜色
      * @returns 
      */
-    function drawFarmingMapTaskLocusPolyline(map, data, trackColor = '#08D55C') { // 新增颜色参数
+    function drawFarmingTaskLocusPolyline(map, data, trackColor = '#08D55C') { // 新增颜色参数
         if (!data || !data.locusGpsList || data.locusGpsList.length === 0) {
             WebBridge.postError('无效的农事轨迹数据');
             return;
         }
         
-        // 4. 构建当前轨迹的坐标数组
         let locusPath = [];
         data.locusGpsList.forEach(item => {
             locusPath.push(ol.proj.fromLonLat([item.lng, item.lat]));
@@ -323,7 +400,6 @@ window.PolylineModule = (function () {
                 farmingLocusId: data.farmingLocusId // 绑定轨迹ID，方便后续管理
             });
             
-            // 5. 应用指定的颜色到轨迹线样式
             feature.setStyle(new ol.style.Style({
                 stroke: new ol.style.Stroke({
                     color: trackColor, // 使用传递的颜色
@@ -333,7 +409,6 @@ window.PolylineModule = (function () {
                 }),
             }));
             
-            // 6. 创建独立图层并加入数组管理
             const newLayer = new ol.layer.Vector({
                 source: new ol.source.Vector({ features: [feature] }),
                 zIndex: 101 + farmingLocusLineLayers.length, // 分层显示，避免遮挡
@@ -341,30 +416,56 @@ window.PolylineModule = (function () {
             farmingLocusLineLayers.push(newLayer);
             map.addLayer(newLayer);
 
-            // 7. 绘制轨迹最后一个点的Marker，同步颜色（可选）
             const lastPoint = data.locusGpsList[data.locusGpsList.length - 1];
             drawFarmingCurrentMarker(map, lastPoint, data.userName || '作业人', trackColor);
         }
     }
 
-    // 重构：增量更新轨迹（核心修复）
+    /**
+     * 绘制上级农事作业轨迹线
+     * @param {*} map 
+     * @param {*} location 
+     * @param {*} workerName 
+     * @param {*} trackColor 
+     * @returns 
+     */
+    function drawParentFarmingLocusPolyline(map, location, workerName, trackColor) {
+        if (!location || !location.lng || !location.lat) {
+            WebBridge.postError('无效的农事轨迹更新数据');
+            return;
+        }
+    }
+
+    /**
+     * 更新农事地图轨迹线
+     * @param {ol.Map} map 
+     * @param {*} location 
+     * @param {*} userName 
+     * @returns 
+     */
     function updateFarmingTaskLocusPolyline(map, location, userName = '作业人') {
         if (!location || !location.lng || !location.lat) {
             WebBridge.postError('无效的农事轨迹更新数据');
             return;
         }
 
-        let workerName = userName
+        let workerName = userName;
+        // 保存作业人名称
+        currentWorkerName = workerName;
         
         // 合并新坐标到总轨迹
         mergeFarmingLocusData(location);
         
-        // 使用增量更新，避免整体重建（默认用第一个颜色，如需指定可扩展参数）
+        // 使用增量更新，避免整体重建
         updateFarmingLocusLineIncrementally(map, location, workerName, TRACK_COLORS[0]);
+        
     }
 
+    /**
+     * 删除农事地图轨迹线
+     * @param {*} map 
+     */
     function removeFarmingTaskLocusPolyline(map) {
-        // 8. 清空所有农事轨迹图层（关键修改）
         if (farmingLocusLineLayers.length > 0) {
             farmingLocusLineLayers.forEach(layer => map.removeLayer(layer));
             farmingLocusLineLayers = [];
@@ -384,7 +485,67 @@ window.PolylineModule = (function () {
     // 设置农事轨迹数据（供设备切换时初始化）
     function setFarmingLocusCoordinates(data) {
         if (Array.isArray(data) && data.length > 0) {
-            farmingLocusCoordinates = [...data];
+            // 合并轨迹数据，避免覆盖
+            data.forEach(item => {
+                if (item && item.lng && item.lat) {
+                    const lng = parseFloat(item.lng.toFixed(6));
+                    const lat = parseFloat(item.lat.toFixed(6));
+                    const key = `${lng},${lat}`;
+                    const existingKeys = farmingLocusCoordinates.map(i => `${parseFloat(i.lng.toFixed(6))},${parseFloat(i.lat.toFixed(6))}`);
+                    if (!existingKeys.includes(key)) {
+                        farmingLocusCoordinates.push({lng, lat});
+                    }
+                }
+            });
+            // 重新绘制轨迹线，确保设备切换时轨迹不丢失
+            redrawFarmingLocusLine();
+        }
+    }
+    
+    // 重新绘制农事轨迹线
+    function redrawFarmingLocusLine() {
+        if (farmingLocusCoordinates.length < 2) return;
+        
+        // 清除现有的轨迹线
+        if (farmingLocusLineLayers.length > 0) {
+            farmingLocusLineLayers.forEach(layer => {
+                const map = MapCore.getMap();
+                if (map) map.removeLayer(layer);
+            });
+            farmingLocusLineLayers = [];
+        }
+        
+        // 重新创建轨迹线
+        const map = MapCore.getMap();
+        if (!map) return;
+        
+        let locusPath = [];
+        farmingLocusCoordinates.forEach(item => {
+            locusPath.push(ol.proj.fromLonLat([item.lng, item.lat]));
+        });
+        
+        const lineString = new ol.geom.LineString(locusPath);
+        const feature = new ol.Feature({ geometry: lineString });
+        feature.setStyle(new ol.style.Style({
+            stroke: new ol.style.Stroke({
+                color: TRACK_COLORS[0],
+                width: 2,
+                lineCap: 'round',
+                lineJoin: 'round',
+            }),
+        }));
+        
+        const newLayer = new ol.layer.Vector({
+            source: new ol.source.Vector({ features: [feature] }),
+            zIndex: 101,
+        });
+        farmingLocusLineLayers.push(newLayer);
+        map.addLayer(newLayer);
+        
+        // 更新当前点Marker
+        if (farmingLocusCoordinates.length > 0) {
+            const lastPoint = farmingLocusCoordinates[farmingLocusCoordinates.length - 1];
+            drawFarmingCurrentMarker(map, lastPoint, currentWorkerName, TRACK_COLORS[0]);
         }
     }
     
@@ -398,11 +559,12 @@ window.PolylineModule = (function () {
         drawPatrolLocusPolyline,
         updatePatrolLocusPolyline,
         removePatrolLocusPolyline,
-        drawFarmingMapTaskLocusPolylineList,
-        drawFarmingMapTaskLocusPolyline,
+        drawFarmingTaskLocusPolylineList,
+        drawFarmingTaskLocusPolyline,
         removeFarmingTaskLocusPolyline,
         updateFarmingTaskLocusPolyline,
         getFarmingLocusCoordinates, 
-        setFarmingLocusCoordinates  
+        setFarmingLocusCoordinates,
+        drawParentFarmingLocusPolyline
     };
 })();

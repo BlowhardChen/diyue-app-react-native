@@ -70,7 +70,7 @@ export type LandMapStackParamList = {
 
 // 农事管理相关
 export type FarmStackParamList = {
-  AddFarming: {id?: string; farmingId?: string};
+  AddFarming: {farmingId?: string};
   FarmingMap: undefined;
   MechanicalTask: undefined;
   PatrolFieldManage: undefined;

@@ -117,10 +117,6 @@ const LandManagementScreen = observer(() => {
     React.useCallback(() => {
       // 初始化WebSocket（不管设备是否在线）
       initWebSocket();
-
-      // 根据当前设备状态初始化定位源
-      initLocationByDeviceStatus();
-
       // 页面失焦时：关闭WebSocket + 停止GPS
       return () => {
         if (webSocketRef.current) {
@@ -460,6 +456,7 @@ const LandManagementScreen = observer(() => {
     const watchId = Geolocation.watchPosition(
       pos => {
         const {latitude, longitude} = pos.coords;
+        console.log("watchPosition 获取位置:", {longitude, latitude});
         // 关键：仅当定位源为GPS（useLocationFromSocket=false）时，才更新定位图标
         if (!useLocationFromSocket) {
           webViewRef.current?.postMessage(

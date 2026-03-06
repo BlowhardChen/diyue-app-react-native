@@ -35,7 +35,9 @@ export const PatrolDetailScreenStyles = StyleSheet.create({
     width: 26,
     height: 26,
   },
-  map: {flex: 1},
+  map: {
+    flex: 1,
+  },
   rightControl: {
     position: "absolute",
     top: 200,

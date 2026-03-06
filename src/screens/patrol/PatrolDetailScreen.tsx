@@ -1,3 +1,4 @@
+// 巡田详情
 import {useEffect, useRef, useState} from "react";
 import {View, Text, Image, TouchableOpacity, ScrollView} from "react-native";
 import {useFocusEffect, useNavigation, useRoute} from "@react-navigation/native";
@@ -90,7 +91,7 @@ const PatrolDetailScreen = () => {
       // 根据当前设备状态初始化定位源
       initLocationByDeviceStatus();
 
-      // 页面失焦时：关闭WebSocket + 停止GPS
+      // 关闭WebSocket + 停止GPS
       return () => {
         if (webSocketRef.current) {
           webSocketRef.current.close();
@@ -167,7 +168,7 @@ const PatrolDetailScreen = () => {
       return;
     }
 
-    // 未绑定设备：走手机GPS逻辑（需要定位权限）
+    // 走手机GPS逻辑（需要定位权限）
     setUseLocationFromSocket(false);
     if (hasLocationPermission) {
       startPositionWatch();
@@ -284,7 +285,6 @@ const PatrolDetailScreen = () => {
       return;
     }
 
-    // 如果是WebSocket定位模式，提示“当前使用设备定位，无需手动刷新”
     if (useLocationFromSocket) {
       webViewRef.current?.postMessage(
         JSON.stringify({
@@ -583,94 +583,57 @@ const PatrolDetailScreen = () => {
     <View style={PatrolDetailScreenStyles.container}>
       <CustomStatusBar navTitle="巡田详情" onBack={() => navigation.goBack()} />
 
-      {isShowMagnifyMap ? (
-        <>
-          <View style={PatrolDetailScreenStyles.map} collapsable={false}>
-            <WebView
-              ref={webViewRef}
-              source={{uri: "file:///android_asset/web/map.html"}}
-              originWhitelist={["*"]}
-              mixedContentMode="always"
-              javaScriptEnabled
-              domStorageEnabled
-              allowFileAccess
-              allowsInlineMediaPlayback
-              onMessage={receiveWebviewMessage}
-              style={{flex: 1}}
-            />
-            <View style={PatrolDetailScreenStyles.mapCopyright}>
-              <Image source={require("@/assets/images/home/icon-td.png")} style={PatrolDetailScreenStyles.iconImg} />
-              <Text style={PatrolDetailScreenStyles.copyrightText}>
-                ©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471
-              </Text>
-            </View>
-          </View>
-
-          {/* 右侧控制按钮 */}
-          <TouchableOpacity
-            style={[PatrolDetailScreenStyles.expandIcon, {top: 110, right: 16}]}
-            onPress={() => setIsShowMagnifyMap(!isShowMagnifyMap)}>
-            <Image source={require("@/assets/images/my/icon-close-popup.png")} style={PatrolDetailScreenStyles.icon} />
-          </TouchableOpacity>
-          <View style={PatrolDetailScreenStyles.rightControl}>
-            <MapControlButton
-              iconUrl={require("@/assets/images/home/icon-layer.png")}
-              iconName="图层"
-              onPress={onToggleMapLayer}
-            />
-          </View>
-          <View style={PatrolDetailScreenStyles.locationControl}>
-            <MapControlButton
-              iconUrl={require("@/assets/images/home/icon-location.png")}
-              iconName="定位"
-              onPress={onLocatePosition}
-              style={{marginTop: 16}}
-            />
-          </View>
-        </>
-      ) : (
-        <ScrollView style={{flex: 1}}>
-          {/* 基础信息 */}
-          <View style={PatrolDetailScreenStyles.card}>
-            <Title title="基础信息" />
-            <InfoItem label="巡田日期" value={patrolDetailInfo?.createTime} />
-            <InfoItem label="巡田时长" value={patrolDetailInfo?.duration} />
-            <InfoItem label="时间段" value={`${patrolDetailInfo?.beginTime} ~ ${patrolDetailInfo?.endsTime}`} />
-            <InfoItem label="具体位置" value={patrolDetailInfo?.location} />
-          </View>
-          {/* 轨迹详情 */}
-          <View style={PatrolDetailScreenStyles.card}>
-            <Title title="轨迹详情" />
-            <View style={[PatrolDetailScreenStyles.mapWrapper, isShowMagnifyMap && PatrolDetailScreenStyles.mapFull]}>
-              <TouchableOpacity
-                style={PatrolDetailScreenStyles.expandIcon}
-                onPress={() => setIsShowMagnifyMap(!isShowMagnifyMap)}>
-                <Image source={require("@/assets/images/common/icon-amplify.png")} style={PatrolDetailScreenStyles.icon} />
-              </TouchableOpacity>
-              <View style={PatrolDetailScreenStyles.map} collapsable={false}>
-                <WebView
-                  ref={webViewRef}
-                  source={{uri: "file:///android_asset/web/map.html"}}
-                  originWhitelist={["*"]}
-                  mixedContentMode="always"
-                  javaScriptEnabled
-                  domStorageEnabled
-                  allowFileAccess
-                  allowsInlineMediaPlayback
-                  onMessage={receiveWebviewMessage}
-                  style={{flex: 1}}
-                />
-                <View style={PatrolDetailScreenStyles.mapCopyright}>
-                  <Image source={require("@/assets/images/home/icon-td.png")} style={PatrolDetailScreenStyles.iconImg} />
-                  <Text style={PatrolDetailScreenStyles.copyrightText}>
-                    ©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471
-                  </Text>
-                </View>
+      <ScrollView style={{flex: 1}}>
+        {/* 基础信息 */}
+        <View style={PatrolDetailScreenStyles.card}>
+          <Title title="基础信息" />
+          <InfoItem label="巡田日期" value={patrolDetailInfo?.createTime} />
+          <InfoItem label="巡田时长" value={patrolDetailInfo?.duration} />
+          <InfoItem label="时间段" value={`${patrolDetailInfo?.beginTime} ~ ${patrolDetailInfo?.endsTime}`} />
+          <InfoItem label="具体位置" value={patrolDetailInfo?.location} />
+        </View>
+        {/* 轨迹详情 */}
+        <View style={[PatrolDetailScreenStyles.card, isShowMagnifyMap && PatrolDetailScreenStyles.mapFull]}>
+          <Title title="轨迹详情" />
+          <View
+            style={[
+              PatrolDetailScreenStyles.mapWrapper,
+              {marginTop: isShowMagnifyMap ? 0 : 16},
+              isShowMagnifyMap && PatrolDetailScreenStyles.mapFull,
+            ]}>
+            <TouchableOpacity style={PatrolDetailScreenStyles.expandIcon} onPress={() => setIsShowMagnifyMap(!isShowMagnifyMap)}>
+              <Image
+                source={
+                  isShowMagnifyMap
+                    ? require("@/assets/images/my/icon-close-popup.png")
+                    : require("@/assets/images/common/icon-amplify.png")
+                }
+                style={PatrolDetailScreenStyles.icon}
+              />
+            </TouchableOpacity>
+            <View style={PatrolDetailScreenStyles.map} collapsable={false}>
+              <WebView
+                ref={webViewRef}
+                source={{uri: "file:///android_asset/web/map.html"}}
+                originWhitelist={["*"]}
+                mixedContentMode="always"
+                javaScriptEnabled
+                domStorageEnabled
+                allowFileAccess
+                allowsInlineMediaPlayback
+                onMessage={receiveWebviewMessage}
+                style={{flex: 1}}
+              />
+              <View style={PatrolDetailScreenStyles.mapCopyright}>
+                <Image source={require("@/assets/images/home/icon-td.png")} style={PatrolDetailScreenStyles.iconImg} />
+                <Text style={PatrolDetailScreenStyles.copyrightText}>
+                  ©地理信息公共服务平台（天地图）GS（2024）0568号-甲测资字1100471
+                </Text>
               </View>
             </View>
           </View>
-        </ScrollView>
-      )}
+        </View>
+      </ScrollView>
 
       {/* 图层切换弹窗 */}
       {showMapSwitcher && <MapSwitcher onClose={() => setShowMapSwitcher(false)} onSelectMap={handleSelectMap} />}

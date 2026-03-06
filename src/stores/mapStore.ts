@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 type MapState = {
   mapType: string;
   customMapLayer: string;
+  customMapLayerId: number;
 };
 
 const MAP_STORE_KEY = "map-store";
@@ -11,6 +12,7 @@ const MAP_STORE_KEY = "map-store";
 class MapStore {
   mapType: string = "卫星地图";
   customMapLayer: string = "";
+  customMapLayerId: number = 0;
 
   constructor() {
     makeAutoObservable(this);
@@ -30,6 +32,15 @@ class MapStore {
    */
   setCustomMapType(layer: string) {
     this.customMapLayer = layer;
+    this.persist();
+  }
+
+  /**
+   * 设置自定义地图图层ID并将当前状态持久化存储。
+   * @param id - 要设置的自定义地图图层ID，数字类型。
+   */
+  setCustomMapLayerId(id: number) {
+    this.customMapLayerId = id;
     this.persist();
   }
 

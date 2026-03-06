@@ -1,7 +1,7 @@
 // 农事任务详情
 import React from "react";
-import {View, Text, TouchableOpacity, Image, StatusBar, BackHandler} from "react-native";
-import {useEffect, useRef, useState, useCallback} from "react";
+import {View, Text, TouchableOpacity, Image, BackHandler} from "react-native";
+import {useEffect, useRef, useState} from "react";
 import {observer} from "mobx-react-lite";
 import {mapStore} from "@/stores/mapStore";
 import MapControlButton from "@/components/land/MapControlButton";
@@ -14,7 +14,7 @@ import {showCustomToast} from "@/components/common/CustomToast";
 import {getToken} from "@/utils/tokenUtils";
 import WebSocketClass from "@/utils/webSocketClass";
 import {deviceStore} from "@/stores/deviceStore";
-import Geolocation from "@react-native-community/geolocation";
+import Geolocation from "react-native-geolocation-service";
 import {MechanicalTaskDetailScreenStyles} from "./styles/MechanicalTaskDetailScreen";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {RootStackParamList} from "@/types/navigation";
@@ -50,7 +50,6 @@ const MechanicalTaskDetailScreen = observer(() => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const route = useRoute<FarmingDetailRouteProp>();
   const webViewRef = useRef<WebView>(null);
-  // WebSocket相关Ref
   const webSocketRef = useRef<WebSocketClass | null>(null);
   const isFirstSocketLocationRef = useRef(true);
   const [showMapSwitcher, setShowMapSwitcher] = useState(false);
@@ -61,8 +60,6 @@ const MechanicalTaskDetailScreen = observer(() => {
   const isFirstLocationRef = useRef(true);
   const [useLocationFromSocket, setUseLocationFromSocket] = useState(false);
   const [rtkLocation, setRtkLocation] = useState<{lat: number; lon: number}>({lat: 0, lon: 0});
-  const locationLngLatRef = useRef<{longitude: number; latitude: number} | null>(null);
-  // 业务相关状态
   const [showPopupTips, setShowPopupTips] = useState(true);
   const beforeRemoveRef = useRef<any>(null);
   const [showBackPopup, setShowBackPopup] = useState(false);
@@ -76,7 +73,7 @@ const MechanicalTaskDetailScreen = observer(() => {
   );
   const [devicePopupAcceptButtonText, setDevicePopupAcceptButtonText] = useState("有设备，绑定设备");
   const [devicePopupRejectButtonText, setDevicePopupRejectButtonText] = useState("无设备，GPS记录");
-  const [deviceStatus, setDeviceStatus] = useState<string>("");
+  const [deviceStatus, setDeviceStatus] = useState<string>("0");
   const [farmingLocusStatus, setFarmingLocusStatus] = useState<{locusLogType: string; manageLocusLogType: string}>();
 
   // 屏幕常亮
@@ -105,11 +102,34 @@ const MechanicalTaskDetailScreen = observer(() => {
 
   // 当WebView准备好时
   useEffect(() => {
-    if (isWebViewReady && hasLocationPermission) {
+    if (isWebViewReady) {
       applySavedMapType();
+      getFarmingLandData();
       initLocationByDeviceStatus();
     }
-  }, [isWebViewReady, mapStore.mapType, deviceStatus, hasLocationPermission]);
+  }, [isWebViewReady, mapStore.mapType, deviceStatus]);
+
+  // 页面聚焦时：启动WebSocket连接（无论设备状态）
+  useFocusEffect(
+    React.useCallback(() => {
+      initWebSocket();
+      // 页面失焦时：关闭WebSocket + 停止GPS
+      return () => {
+        if (webSocketRef.current) {
+          webSocketRef.current.close();
+          webSocketRef.current = null;
+        }
+        deviceStore.listenDeviceStatus("2");
+        stopPositionWatch();
+      };
+    }, [hasLocationPermission, isWebViewReady]),
+  );
+
+  // 监听设备状态变化，切换定位源
+  useEffect(() => {
+    if (!hasLocationPermission) return;
+    initLocationByDeviceStatus();
+  }, [hasLocationPermission]);
 
   useEffect(() => {
     if (!!deviceStatus) return;
@@ -132,39 +152,6 @@ const MechanicalTaskDetailScreen = observer(() => {
     }
   }, [deviceStatus]);
 
-  // 页面聚焦时：启动WebSocket连接（无论设备状态）
-  useFocusEffect(
-    React.useCallback(() => {
-      initWebSocket();
-      initLocationByDeviceStatus();
-      return () => {
-        if (webSocketRef.current) {
-          webSocketRef.current.close();
-          webSocketRef.current = null;
-        }
-        stopPositionWatch();
-      };
-    }, [hasLocationPermission, isWebViewReady]),
-  );
-
-  // 监听设备状态变化，切换定位源
-  useEffect(() => {
-    initLocationByDeviceStatus();
-  }, [deviceStatus, hasLocationPermission, isWebViewReady]);
-
-  // 初始化定位权限和地图图层
-  const initLocationPermission = async () => {
-    const granted = await checkLocationPermission();
-    if (granted) {
-      setHasLocationPermission(true);
-      if (!(deviceStore.farmingDeviceImei && deviceStatus === "1")) {
-        initLocationByDeviceStatus();
-      }
-    } else {
-      setShowPermissionPopup(true);
-    }
-  };
-
   // 监听朝向变化，发送给WebView
   useOptimizedHeading(heading => {
     webViewRef.current?.postMessage(
@@ -175,16 +162,41 @@ const MechanicalTaskDetailScreen = observer(() => {
     );
   });
 
+  // 初始化定位权限和地图图层
+  const initLocationPermission = async () => {
+    const granted = await checkLocationPermission();
+    if (granted) {
+      setHasLocationPermission(true);
+      // 设备在线时，无需初始化GPS（WebSocket会处理）
+      if (!(deviceStore.deviceImei && deviceStore.status === "1")) {
+        initLocationByDeviceStatus();
+      }
+    } else {
+      setShowPermissionPopup(true);
+    }
+  };
+
   // 根据设备状态初始化定位源
   const initLocationByDeviceStatus = () => {
+    // 如果WebView没准备好，先等WebView准备
     if (!isWebViewReady) {
       return;
     }
 
+    // 通知WebView保存当前轨迹数据（无论设备状态如何）
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "SAVE_FARMING_LOCUS_HISTORY",
+      }),
+    );
+
+    // 若有绑定设备且设备在线：优先使用 WebSocket 定位（忽略手机定位权限）
     if (deviceStore.farmingDeviceImei && deviceStatus === "1") {
       setUseLocationFromSocket(true);
-      stopPositionWatch();
-      isFirstLocationRef.current = true;
+      stopPositionWatch(); // 停止GPS定位
+      isFirstLocationRef.current = true; // 重置GPS首次定位标记，避免残留
+
+      // 优先使用已有RTK坐标绘制
       if (rtkLocation.lat !== 0 && rtkLocation.lon !== 0) {
         webViewRef.current?.postMessage(
           JSON.stringify({
@@ -196,36 +208,16 @@ const MechanicalTaskDetailScreen = observer(() => {
       return;
     }
 
-    // 设备离线时：获取历史轨迹并传递给GPS定位
+    // 如果有绑定设备但设备离线：使用 GPS（仍需手机定位权限）
     if (deviceStore.farmingDeviceImei && deviceStatus === "2") {
-      console.log("设备离线，切换到GPS定位，保留历史轨迹");
       setUseLocationFromSocket(false);
-
-      // 通知WebView保留历史轨迹数据
-      webViewRef.current?.postMessage(
-        JSON.stringify({
-          type: "SAVE_FARMING_LOCUS_HISTORY",
-        }),
-      );
-
-      if (hasLocationPermission && locationLngLatRef.current) {
-        webViewRef.current?.postMessage(
-          JSON.stringify({
-            type: "UPDATE_FARMING_LOCUS",
-            location: {lng: locationLngLatRef.current.longitude, lat: locationLngLatRef.current.latitude},
-            userName: userStore.userInfo?.nickName || "未知用户",
-          }),
-        );
-      }
-
       if (hasLocationPermission) {
         startPositionWatch();
-      } else {
-        console.log("设备离线但无定位权限，暂不启动GPS定位");
       }
       return;
     }
 
+    // 未绑定设备,走手机GPS逻辑（需要定位权限）
     setUseLocationFromSocket(false);
     if (hasLocationPermission) {
       startPositionWatch();
@@ -288,10 +280,12 @@ const MechanicalTaskDetailScreen = observer(() => {
   // 切换地图图层
   const switchMapLayer = (layerType: string, layerUrl?: string) => {
     if (!isWebViewReady) return;
+
     const message = {
       type: "SWITCH_LAYER",
       layerType,
     };
+
     if (layerType === "CUSTOM" && layerUrl) {
       (message as any).customUrl = layerUrl;
     }
@@ -300,6 +294,7 @@ const MechanicalTaskDetailScreen = observer(() => {
 
   // 获取定位服务
   const getLocationService = async () => {
+    // 设备在线时，直接返回，不执行任何GPS/IP定位初始化
     if (deviceStore.farmingDeviceImei && deviceStatus === "1") {
       return;
     }
@@ -332,6 +327,7 @@ const MechanicalTaskDetailScreen = observer(() => {
       setShowPermissionPopup(true);
       return;
     }
+    // 设备在线时，强制使用WebSocket定位，禁止GPS
     if (useLocationFromSocket) {
       webViewRef.current?.postMessage(
         JSON.stringify({
@@ -380,12 +376,34 @@ const MechanicalTaskDetailScreen = observer(() => {
     }
   };
 
+  // 更新位置（供WebSocket和GPS定位共用，确保位置和轨迹同步更新）
+  const updateLocation = (lng: number, lat: number) => {
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "UPDATE_ICON_LOCATION",
+        location: {lon: lng, lat: lat},
+      }),
+    );
+    console.log("更新位置:", {lng, lat});
+
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: "UPDATE_FARMING_LOCUS",
+        location: {lng, lat},
+        userName: userStore.userInfo?.nickName,
+      }),
+    );
+  };
+
   // 开启定位
   const startPositionWatch = async () => {
     if (deviceStore.farmingDeviceImei && deviceStatus === "1") {
       return;
     }
+
     stopPositionWatch();
+
+    // 初始定位（无论定位源，先获取一次位置）
     Geolocation.getCurrentPosition(
       pos => {
         const {latitude, longitude} = pos.coords;
@@ -396,7 +414,6 @@ const MechanicalTaskDetailScreen = observer(() => {
               location: {lon: longitude, lat: latitude},
             }),
           );
-          locationLngLatRef.current = {longitude, latitude};
         }
         isFirstLocationRef.current = false;
       },
@@ -407,29 +424,21 @@ const MechanicalTaskDetailScreen = observer(() => {
     const watchId = Geolocation.watchPosition(
       pos => {
         const {latitude, longitude} = pos.coords;
-        locationLngLatRef.current = {longitude, latitude};
-
-        webViewRef.current?.postMessage(
-          JSON.stringify({
-            type: "UPDATE_ICON_LOCATION",
-            location: {lng: longitude, lat: latitude},
-          }),
-        );
+        console.log("watchPosition 获取位置:", {longitude, latitude});
 
         const isTaskNotFinished = farmingDetailData?.status !== "1";
-        if (isTaskNotFinished || farmingDetailData === null) {
-          // GPS轨迹更新（无设备/设备离线必执行）
+        if (!useLocationFromSocket && isTaskNotFinished) {
+          // updateLocation(longitude, latitude);
           webViewRef.current?.postMessage(
             JSON.stringify({
-              type: "UPDATE_FARMING_LOCUS",
-              location: {lng: longitude, lat: latitude},
-              userName: userStore.userInfo?.nickName || "未知用户",
+              type: "UPDATE_ICON_LOCATION",
+              location: {lon: longitude, lat: latitude},
             }),
           );
         }
 
-        // WebSocket上报逻辑单独处理（仅设备在线时执行）
-        if (isTaskNotFinished && webSocketRef.current && locationLngLatRef.current) {
+        // WebSocket上报逻辑
+        if (isTaskNotFinished && webSocketRef.current) {
           webSocketRef.current.socketTask?.send({
             data: JSON.stringify([
               {
@@ -476,11 +485,13 @@ const MechanicalTaskDetailScreen = observer(() => {
     saveTargetRoute(route.name, ["Main", "MechanicalTask"], {...route.params});
     navigation.navigate("AddDevice", {farmingJoinTypeId: route.params?.farmingJoinTypeId, taskType: "2"});
     setShowMechanicalDeviceStatusPopup(false);
+    deviceStore.setFarmingDevicePopupStatus("0"); // 关闭弹窗
   };
 
   // 农事设备弹窗-拒绝
   const handleRejectMechanicalDeviceStatus = () => {
     setShowMechanicalDeviceStatusPopup(false);
+    deviceStore.setFarmingDevicePopupStatus("0"); // 关闭弹窗
   };
 
   // 关闭提示框
@@ -518,12 +529,12 @@ const MechanicalTaskDetailScreen = observer(() => {
   const getFarmingDetailData = async () => {
     try {
       const {data} = await farmingDetailInfo({farmingJoinTypeId: route.params?.farmingJoinTypeId, type: "2"});
-      console.log("农事详情数据：", data);
       if (!data) return;
+      // console.log("农事详情数据:", data);
       setLoading(false);
       setFarmingDetailData(data);
       await getFarmingLocusStatus();
-      await getFarmingLocusData(data.status);
+      await getFarmingLocusData();
       await getParentFarmingLocusList();
       if (data.status === "1") return;
       setDeviceStatus(data.deviceStatus);
@@ -550,7 +561,7 @@ const MechanicalTaskDetailScreen = observer(() => {
   const getFarmingLocusStatus = async () => {
     try {
       const {data} = await farmingTaskLocusStatus({farmingJoinTypeId: route.params?.farmingJoinTypeId});
-      console.log("农事轨迹状态：", data);
+      // console.log("农事轨迹状态:", data);
       setFarmingLocusStatus(data);
       if (!data) return;
     } catch (error) {
@@ -559,18 +570,16 @@ const MechanicalTaskDetailScreen = observer(() => {
   };
 
   // 获取农事轨迹数据
-  const getFarmingLocusData = async (status: string) => {
+  const getFarmingLocusData = async () => {
     try {
       const {data} = await mechanicalTaskDetailLocusList({
-        imei: deviceStore.farmingDeviceImei,
-        status,
         farmingJoinTypeId: route.params?.farmingJoinTypeId,
       });
-      console.log("农事轨迹数据：", data);
+      // console.log("农事轨迹数据:", data);
       if (!data?.length) return;
       webViewRef.current?.postMessage(
         JSON.stringify({
-          type: "DRAW_FARMING_LOCUS_List",
+          type: "DRAW_FARMING_LOCUS_LIST",
           data,
         }),
       );
@@ -586,11 +595,11 @@ const MechanicalTaskDetailScreen = observer(() => {
       const {data} = await mechanicalParentFarmingLocusList({
         farmingJoinTypeId: route.params?.farmingJoinTypeId,
       });
-      console.log("上级农事轨迹列表：", data);
+      // console.log("上级农事轨迹数据:", data);
       if (!data?.length) return;
       webViewRef.current?.postMessage(
         JSON.stringify({
-          type: "DRAW_FARMING_LOCUS_List",
+          type: "DRAW_PARENT_FARMING_LOCUS_LIST",
           data,
         }),
       );
@@ -613,7 +622,6 @@ const MechanicalTaskDetailScreen = observer(() => {
 
   // 初始化WebSocket
   const initWebSocket = async () => {
-    console.log("deviceStore.farmingDeviceImei:", deviceStore.farmingDeviceImei);
     if (!deviceStore.farmingDeviceImei) {
       return;
     }
@@ -633,12 +641,12 @@ const MechanicalTaskDetailScreen = observer(() => {
             }),
           );
         }
-        initLocationByDeviceStatus();
       },
       onMessage: (data: any) => {
         const socketData = JSON.parse(JSON.stringify(data));
-        console.log("WebSocket 接收定位数据:", socketData);
+        // console.log("WebSocket 接收定位数据:", socketData);
         if (socketData.taskType === "2" && socketData.lng && socketData.lat && socketData.lng !== 0 && socketData.lat !== 0) {
+          if (!farmingDetailData?.dyDevice?.imei) return;
           const newLocation = {lon: socketData.lng, lat: socketData.lat};
           setRtkLocation(newLocation);
           const messageType = isFirstSocketLocationRef.current ? "SET_ICON_LOCATION" : "UPDATE_ICON_LOCATION";
@@ -687,13 +695,20 @@ const MechanicalTaskDetailScreen = observer(() => {
               type: "SAVE_FARMING_LOCUS_HISTORY",
             }),
           );
-
-          startPositionWatch();
+          if (!watchIdRef.current) {
+            startPositionWatch();
+          }
           return;
-        } else if (socketData.deviceStatus === "1") {
+        } else if (socketData.deviceStatus === "1" && farmingDetailData?.dyDevice?.imei) {
           setDeviceStatus("1");
           deviceStore.listenDeviceStatus("1");
           setUseLocationFromSocket(true);
+
+          webViewRef.current?.postMessage(
+            JSON.stringify({
+              type: "SAVE_FARMING_LOCUS_HISTORY",
+            }),
+          );
           stopPositionWatch();
         }
       },
@@ -715,7 +730,7 @@ const MechanicalTaskDetailScreen = observer(() => {
 
   // 接收WebView消息
   const receiveWebviewMessage = (event: any) => {
-    console.log("📬 接收WebView消息:", event.nativeEvent.data);
+    // console.log("📬 接收WebView消息:", event.nativeEvent.data);
     let data = event.nativeEvent?.data;
     if (!data) return;
     try {
@@ -739,7 +754,7 @@ const MechanicalTaskDetailScreen = observer(() => {
         showCustomToast("error", data.message ?? "操作失败");
         break;
       case "WEBVIEW_CONSOLE_LOG":
-        console.log("WEBVIEW_CONSOLE_LOG", data);
+        // console.log("WEBVIEW_CONSOLE_LOG", data);
         break;
       default:
         break;
@@ -885,7 +900,7 @@ const MechanicalTaskDetailScreen = observer(() => {
 
         {/* 设备状态弹窗 */}
         <MechanicalDeviceStatusPopup
-          visible={showMechanicalDeviceStatusPopup}
+          visible={deviceStore.farmingDevicePopupStatus === "1"}
           title={"提示"}
           message={devicePopupMessage}
           acceptButtonText={devicePopupAcceptButtonText}
