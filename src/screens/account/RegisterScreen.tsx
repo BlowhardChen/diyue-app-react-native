@@ -150,6 +150,7 @@ const RegisterScreen = () => {
             onChangeText={handlePhoneChange}
             placeholder="请输入账号"
             placeholderTextColor="#999"
+            cursorColor="rgba(8, 174, 60, 0.5)"
             keyboardType="phone-pad"
             maxLength={13}
           />

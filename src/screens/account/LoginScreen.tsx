@@ -184,6 +184,7 @@ const LoginScreen = () => {
                     maxLength={13}
                     placeholder="请输入手机号"
                     placeholderTextColor="#999"
+                    cursorColor="rgba(8, 174, 60, 0.5)"
                   />
                   {phone ? (
                     <TouchableOpacity onPress={clearPhone} style={styles.clearIconContainer}>
@@ -209,6 +210,7 @@ const LoginScreen = () => {
                     maxLength={20}
                     placeholder="请输入密码"
                     placeholderTextColor="#999"
+                    cursorColor="rgba(8, 174, 60, 0.5)"
                   />
                   <View style={styles.rightIcons}>
                     {password ? (
@@ -270,6 +272,7 @@ const LoginScreen = () => {
                     maxLength={13}
                     placeholder="请输入手机号"
                     placeholderTextColor="#999"
+                    cursorColor="rgba(8, 174, 60, 0.5)"
                   />
                   {phone ? (
                     <TouchableOpacity onPress={clearPhone} style={styles.clearIconContainer}>

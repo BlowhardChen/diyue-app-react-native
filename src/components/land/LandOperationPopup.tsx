@@ -133,6 +133,7 @@ const LandOperationPopup: React.FC<MergeLandPopupProps> = ({
                   keyboardType="default"
                   placeholder="请输入合并后的地块名称"
                   placeholderTextColor="#999"
+                  cursorColor="rgba(8, 174, 60, 0.5)"
                 />
               </View>
             )}
@@ -147,6 +148,7 @@ const LandOperationPopup: React.FC<MergeLandPopupProps> = ({
                   keyboardType="default"
                   placeholder="请输入转移的手机号"
                   placeholderTextColor="#999"
+                  cursorColor="rgba(8, 174, 60, 0.5)"
                 />
               </View>
             )}

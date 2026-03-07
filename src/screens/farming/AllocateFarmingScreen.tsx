@@ -204,6 +204,7 @@ const AllocateFarmingScreen = ({route}: {route: {params: {farmingJoinTypeId: str
                 onChangeText={val => updateOperatorAccount(operator.id, val)}
                 placeholder="请输入机手账号"
                 placeholderTextColor="#999"
+                cursorColor="rgba(8, 174, 60, 0.5)"
                 keyboardType="numeric"
               />
             </View>

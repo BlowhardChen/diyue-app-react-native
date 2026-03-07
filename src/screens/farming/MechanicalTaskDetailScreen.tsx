@@ -14,7 +14,7 @@ import {showCustomToast} from "@/components/common/CustomToast";
 import {getToken} from "@/utils/tokenUtils";
 import WebSocketClass from "@/utils/webSocketClass";
 import {deviceStore} from "@/stores/deviceStore";
-import Geolocation from "react-native-geolocation-service";
+import Geolocation from "@react-native-community/geolocation";
 import {MechanicalTaskDetailScreenStyles} from "./styles/MechanicalTaskDetailScreen";
 import {StackNavigationProp} from "@react-navigation/stack";
 import {RootStackParamList} from "@/types/navigation";
@@ -22,7 +22,6 @@ import CustomFarmingHeader from "@/components/common/CustomFarmingHeader";
 import MechanicalTaskBottomPopup from "./components/MechanicalTaskBottomPopup";
 import {
   farmingDetailInfo,
-  farmingScienceLandList,
   farmingTaskLocusStatus,
   mechanicalParentFarmingLocusList,
   mechanicalTaskDetailLocusList,
@@ -67,7 +66,7 @@ const MechanicalTaskDetailScreen = observer(() => {
   const [popupTipsStyle, setPopupTipsStyle] = useState({backgroundColor: "#FFECE9", color: "#FF563A"});
   const [loading, setLoading] = useState<boolean>(false);
   const [farmingDetailData, setFarmingDetailData] = useState<any>(null);
-  const [showMechanicalDeviceStatusPopup, setShowMechanicalDeviceStatusPopup] = useState(false);
+  const [showMechanicalDeviceStatusPopup, setShowMechanicalDeviceStatusPopup] = useState(true);
   const [devicePopupMessage, setDevicePopupMessage] = useState(
     "检测到未绑定设备，为您推荐GPS记录轨迹方式；如需提高轨迹精度，请绑定设备",
   );
@@ -75,6 +74,7 @@ const MechanicalTaskDetailScreen = observer(() => {
   const [devicePopupRejectButtonText, setDevicePopupRejectButtonText] = useState("无设备，GPS记录");
   const [deviceStatus, setDeviceStatus] = useState<string>("0");
   const [farmingLocusStatus, setFarmingLocusStatus] = useState<{locusLogType: string; manageLocusLogType: string}>();
+  const [isStartWarchPositionRef, setIsStartWarchPositionRef] = useState(false);
 
   // 屏幕常亮
   useEffect(() => {
@@ -97,14 +97,16 @@ const MechanicalTaskDetailScreen = observer(() => {
   // 获取农事数据
   useEffect(() => {
     getFarmingDetailData();
-    getFarmingLandData();
+    if (deviceStore.farmingDevicePopupStatus === "1") {
+      setShowMechanicalDeviceStatusPopup(false);
+    }
   }, []);
 
   // 当WebView准备好时
   useEffect(() => {
     if (isWebViewReady) {
       applySavedMapType();
-      getFarmingLandData();
+      getFarmingDetailData();
       initLocationByDeviceStatus();
     }
   }, [isWebViewReady, mapStore.mapType, deviceStatus]);
@@ -132,11 +134,11 @@ const MechanicalTaskDetailScreen = observer(() => {
   }, [hasLocationPermission]);
 
   useEffect(() => {
-    if (!!deviceStatus) return;
+    if (deviceStatus === undefined) return;
     switch (deviceStatus) {
       case "0":
         setPopupTips("暂无设备，已启用GPS记录轨迹");
-        setPopupTipsStyle({backgroundColor: "#EBFFE4", color: "#08AE3C"});
+        setPopupTipsStyle({backgroundColor: "#FFECE9", color: "#FF563A"});
         break;
       case "1":
         setPopupTips("设备已连接，请正常作业");
@@ -329,13 +331,15 @@ const MechanicalTaskDetailScreen = observer(() => {
     }
     // 设备在线时，强制使用WebSocket定位，禁止GPS
     if (useLocationFromSocket) {
-      webViewRef.current?.postMessage(
-        JSON.stringify({
-          type: "SET_ICON_LOCATION",
-          location: rtkLocation,
-        }),
-      );
-      return;
+      if (rtkLocation.lat !== 0 && rtkLocation.lon !== 0) {
+        webViewRef.current?.postMessage(
+          JSON.stringify({
+            type: "SET_ICON_LOCATION",
+            location: rtkLocation,
+          }),
+        );
+        return;
+      }
     }
     locateDevicePosition(true);
   };
@@ -376,30 +380,13 @@ const MechanicalTaskDetailScreen = observer(() => {
     }
   };
 
-  // 更新位置（供WebSocket和GPS定位共用，确保位置和轨迹同步更新）
-  const updateLocation = (lng: number, lat: number) => {
-    webViewRef.current?.postMessage(
-      JSON.stringify({
-        type: "UPDATE_ICON_LOCATION",
-        location: {lon: lng, lat: lat},
-      }),
-    );
-    console.log("更新位置:", {lng, lat});
-
-    webViewRef.current?.postMessage(
-      JSON.stringify({
-        type: "UPDATE_FARMING_LOCUS",
-        location: {lng, lat},
-        userName: userStore.userInfo?.nickName,
-      }),
-    );
-  };
-
   // 开启定位
   const startPositionWatch = async () => {
     if (deviceStore.farmingDeviceImei && deviceStatus === "1") {
       return;
     }
+
+    if (isStartWarchPositionRef) return;
 
     stopPositionWatch();
 
@@ -427,14 +414,24 @@ const MechanicalTaskDetailScreen = observer(() => {
         console.log("watchPosition 获取位置:", {longitude, latitude});
 
         const isTaskNotFinished = farmingDetailData?.status !== "1";
-        if (!useLocationFromSocket && isTaskNotFinished) {
-          // updateLocation(longitude, latitude);
+
+        if (!useLocationFromSocket) {
           webViewRef.current?.postMessage(
             JSON.stringify({
               type: "UPDATE_ICON_LOCATION",
               location: {lon: longitude, lat: latitude},
             }),
           );
+
+          if (isTaskNotFinished) {
+            webViewRef.current?.postMessage(
+              JSON.stringify({
+                type: "UPDATE_FARMING_LOCUS",
+                location: {lng: longitude, lat: latitude},
+                userName: userStore.userInfo?.nickName,
+              }),
+            );
+          }
         }
 
         // WebSocket上报逻辑
@@ -450,6 +447,7 @@ const MechanicalTaskDetailScreen = observer(() => {
             ]),
           });
         }
+        setIsStartWarchPositionRef(true);
       },
       err => {
         console.error("watchPosition 错误:", err);
@@ -471,6 +469,7 @@ const MechanicalTaskDetailScreen = observer(() => {
     if (watchIdRef.current != null) {
       Geolocation.clearWatch(watchIdRef.current as any);
       watchIdRef.current = null;
+      setIsStartWarchPositionRef(false);
     }
   };
 
@@ -530,14 +529,25 @@ const MechanicalTaskDetailScreen = observer(() => {
     try {
       const {data} = await farmingDetailInfo({farmingJoinTypeId: route.params?.farmingJoinTypeId, type: "2"});
       if (!data) return;
-      // console.log("农事详情数据:", data);
+      console.log("农事详情数据:", data);
       setLoading(false);
       setFarmingDetailData(data);
       await getFarmingLocusStatus();
       await getFarmingLocusData();
       await getParentFarmingLocusList();
+
+      if (data.lands?.length) {
+        webViewRef.current?.postMessage(
+          JSON.stringify({
+            type: "DRAW_MARK_ENCLOSURE_LAND",
+            data: data.lands,
+          }),
+        );
+      }
+
       if (data.status === "1") return;
       setDeviceStatus(data.deviceStatus);
+
       if (data.deviceStatus === "0") {
         setPopupTips("暂无设备，已启用GPS记录轨迹");
         setPopupTipsStyle({color: "#FF563A", backgroundColor: "#FFECE9"});
@@ -556,6 +566,7 @@ const MechanicalTaskDetailScreen = observer(() => {
       setLoading(false);
     }
   };
+  12;
 
   // 获取农事轨迹状态
   const getFarmingLocusStatus = async () => {
@@ -609,17 +620,6 @@ const MechanicalTaskDetailScreen = observer(() => {
     }
   };
 
-  // 获取农事地块数据
-  const getFarmingLandData = async () => {
-    const {data} = await farmingScienceLandList({id: route.params?.farmingJoinTypeId});
-    webViewRef.current?.postMessage(
-      JSON.stringify({
-        type: "DRAW_MARK_ENCLOSURE_LAND",
-        data,
-      }),
-    );
-  };
-
   // 初始化WebSocket
   const initWebSocket = async () => {
     if (!deviceStore.farmingDeviceImei) {
@@ -633,18 +633,17 @@ const MechanicalTaskDetailScreen = observer(() => {
     webSocketRef.current = new WebSocketClass({
       data: {token, imei: deviceStore.farmingDeviceImei},
       onConnected: () => {
-        if (rtkLocation.lat !== 0 && rtkLocation.lon !== 0) {
-          webViewRef.current?.postMessage(
-            JSON.stringify({
-              type: "SET_ICON_LOCATION",
-              location: {lon: rtkLocation.lon, lat: rtkLocation.lat},
-            }),
-          );
-        }
+        console.log("WebSocket连接成功");
+        stopPositionWatch();
+        webViewRef.current?.postMessage(
+          JSON.stringify({
+            type: "SAVE_FARMING_LOCUS_HISTORY",
+          }),
+        );
       },
       onMessage: (data: any) => {
         const socketData = JSON.parse(JSON.stringify(data));
-        // console.log("WebSocket 接收定位数据:", socketData);
+        console.log("WebSocket 接收定位数据:", socketData);
         if (socketData.taskType === "2" && socketData.lng && socketData.lat && socketData.lng !== 0 && socketData.lat !== 0) {
           if (!farmingDetailData?.dyDevice?.imei) return;
           const newLocation = {lon: socketData.lng, lat: socketData.lat};
@@ -684,7 +683,13 @@ const MechanicalTaskDetailScreen = observer(() => {
             isFirstSocketLocationRef.current = false;
           }
         }
+
+        if (!socketData.deviceStatus) {
+          setDeviceStatus("2");
+        }
+
         if (socketData.deviceStatus === "2" && farmingDetailData?.dyDevice?.imei) {
+          console.log("设备离线，切换到GPS定位", farmingDetailData?.dyDevice?.imei);
           setDeviceStatus("2");
           deviceStore.listenDeviceStatus("2");
           setUseLocationFromSocket(false);
@@ -900,7 +905,7 @@ const MechanicalTaskDetailScreen = observer(() => {
 
         {/* 设备状态弹窗 */}
         <MechanicalDeviceStatusPopup
-          visible={deviceStore.farmingDevicePopupStatus === "1"}
+          visible={showMechanicalDeviceStatusPopup && deviceStore.farmingDevicePopupStatus === "1"}
           title={"提示"}
           message={devicePopupMessage}
           acceptButtonText={devicePopupAcceptButtonText}

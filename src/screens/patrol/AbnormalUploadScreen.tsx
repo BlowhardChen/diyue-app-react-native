@@ -328,6 +328,7 @@ const AbnormalUploadScreen: React.FC = () => {
                   value={otherInfo}
                   onChangeText={setOtherInfo}
                   placeholderTextColor="#999"
+                  cursorColor="rgba(8, 174, 60, 0.5)"
                 />
               </View>
             </View>
@@ -388,6 +389,7 @@ const AbnormalUploadScreen: React.FC = () => {
                 multiline={true}
                 numberOfLines={4}
                 placeholderTextColor="#999"
+                cursorColor="rgba(8, 174, 60, 0.5)"
               />
             </View>
           </View>

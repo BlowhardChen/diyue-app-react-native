@@ -77,6 +77,7 @@ const ShoppingCar: React.FC<ShoppingCarProps> = ({farmDataList = [], onClose}) =
                           onChangeText={v => handleNumChange(v, item)}
                           keyboardType="numeric"
                           textAlign="center"
+                          cursorColor="rgba(8, 174, 60, 0.5)"
                         />
                       </View>
 

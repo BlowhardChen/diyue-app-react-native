@@ -56,7 +56,6 @@ const PatrolManageScreen = observer(() => {
   const isPatrolRef = useRef(false);
   const [showEndPatrolPopup, setShowEndPatrolPopup] = useState(false);
   const [showBackPopup, setShowBackPopup] = useState(false);
-  const locationLngLatRef = useRef<{longitude: number; latitude: number} | null>(null);
   const [deviceStatus, setDeviceStatus] = useState<string>("0");
 
   console.log("PatrolManageScreen", id);
@@ -335,7 +334,6 @@ const PatrolManageScreen = observer(() => {
               location: {lon: longitude, lat: latitude},
             }),
           );
-          locationLngLatRef.current = {longitude, latitude};
         }
         isFirstLocationRef.current = false;
       },
@@ -346,7 +344,6 @@ const PatrolManageScreen = observer(() => {
     const watchId = Geolocation.watchPosition(
       pos => {
         const {latitude, longitude} = pos.coords;
-        locationLngLatRef.current = {longitude, latitude};
         if (!useLocationFromSocket) {
           webViewRef.current?.postMessage(
             JSON.stringify({
@@ -365,7 +362,7 @@ const PatrolManageScreen = observer(() => {
           }
         }
         // 巡田状态+有WS+GPS坐标，向服务端上报GPS坐标
-        if (isPatrolRef.current && webSocketRef.current && locationLngLatRef.current) {
+        if (isPatrolRef.current && webSocketRef.current && longitude && latitude) {
           webSocketRef.current.socketTask?.send({
             data: JSON.stringify([
               {

@@ -171,6 +171,7 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
                   editable={false}
                   value={searchFormInfo.formattedAddress}
                   placeholder="请选择"
+                  cursorColor="rgba(8, 174, 60, 0.5)"
                 />
                 <Image
                   source={require("@/assets/images/common/icon-right.png")}
@@ -188,6 +189,7 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
                   placeholder="请输入"
                   value={searchFormInfo.detailaddress}
                   onChangeText={val => setSearchFormInfo(prev => ({...prev, detailaddress: val}))}
+                  cursorColor="rgba(8, 174, 60, 0.5)"
                 />
               </View>
             </View>
@@ -200,6 +202,7 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
                   placeholder="请输入"
                   value={searchFormInfo.relename}
                   onChangeText={val => setSearchFormInfo(prev => ({...prev, relename: val}))}
+                  cursorColor="rgba(8, 174, 60, 0.5)"
                 />
               </View>
             </View>
@@ -212,6 +215,7 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
                   placeholder="请输入"
                   value={searchFormInfo.cardid}
                   onChangeText={val => setSearchFormInfo(prev => ({...prev, cardid: val}))}
+                  cursorColor="rgba(8, 174, 60, 0.5)"
                 />
                 <TouchableOpacity onPress={() => openCardScan("身份证")}>
                   <Image
@@ -232,6 +236,7 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
                   placeholder="请输入"
                   value={searchFormInfo.bankAccount}
                   onChangeText={val => setSearchFormInfo(prev => ({...prev, bankAccount: val}))}
+                  cursorColor="rgba(8, 174, 60, 0.5)"
                 />
                 <TouchableOpacity onPress={() => openCardScan("银行卡")}>
                   <Image
@@ -272,6 +277,7 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
                   onChangeText={val => setSearchFormInfo(prev => ({...prev, beginActualNum: val}))}
                   keyboardType="numeric"
                   placeholder="最小"
+                  cursorColor="rgba(8, 174, 60, 0.5)"
                 />
                 <Text style={FilterPopupStyles.rangeDivider}>~</Text>
                 <TextInput
@@ -280,6 +286,7 @@ const FilterPopup: React.FC<Props> = ({onClose, onQuery, height = SCREEN_HEIGHT 
                   onChangeText={val => setSearchFormInfo(prev => ({...prev, endActualNum: val}))}
                   keyboardType="numeric"
                   placeholder="最大"
+                  cursorColor="rgba(8, 174, 60, 0.5)"
                 />
               </View>
             </View>

@@ -51,6 +51,7 @@ const DeviceMqttConfig: React.FC<Props> = ({visible, deviceConfig, onClosePopup,
             style={styles.input}
             value={mqttConfig.ip}
             onChangeText={text => setMqttConfig(prev => ({...prev, ip: text}))}
+            cursorColor="rgba(8, 174, 60, 0.5)"
           />
         </View>
 
@@ -60,6 +61,7 @@ const DeviceMqttConfig: React.FC<Props> = ({visible, deviceConfig, onClosePopup,
             style={styles.input}
             value={mqttConfig.port}
             onChangeText={text => setMqttConfig(prev => ({...prev, port: text}))}
+            cursorColor="rgba(8, 174, 60, 0.5)"
           />
         </View>
 
@@ -69,6 +71,7 @@ const DeviceMqttConfig: React.FC<Props> = ({visible, deviceConfig, onClosePopup,
             style={styles.input}
             value={mqttConfig.userName}
             onChangeText={text => setMqttConfig(prev => ({...prev, userName: text}))}
+            cursorColor="rgba(8, 174, 60, 0.5)"
           />
         </View>
 
@@ -79,6 +82,7 @@ const DeviceMqttConfig: React.FC<Props> = ({visible, deviceConfig, onClosePopup,
             secureTextEntry
             value={mqttConfig.pwd}
             onChangeText={text => setMqttConfig(prev => ({...prev, pwd: text}))}
+            cursorColor="rgba(8, 174, 60, 0.5)"
           />
         </View>
 
@@ -88,6 +92,7 @@ const DeviceMqttConfig: React.FC<Props> = ({visible, deviceConfig, onClosePopup,
             style={styles.input}
             value={mqttConfig.topic}
             onChangeText={text => setMqttConfig(prev => ({...prev, topic: text}))}
+            cursorColor="rgba(8, 174, 60, 0.5)"
           />
         </View>
       </View>

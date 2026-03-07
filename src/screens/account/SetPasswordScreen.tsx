@@ -164,6 +164,7 @@ const SetPasswordScreen = () => {
               maxLength={20}
               placeholder="请输入新密码"
               placeholderTextColor="#999"
+              cursorColor="rgba(8, 174, 60, 0.5)"
               onFocus={() => setIsNewFocused(true)}
               onBlur={() => setIsNewFocused(false)}
             />
@@ -198,6 +199,7 @@ const SetPasswordScreen = () => {
               maxLength={20}
               placeholder="确认新密码"
               placeholderTextColor="#999"
+              cursorColor="rgba(8, 174, 60, 0.5)"
               onFocus={() => setIsConfirmFocused(true)}
               onBlur={() => setIsConfirmFocused(false)}
             />

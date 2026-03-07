@@ -46,7 +46,13 @@ const EditUserNameScreen = () => {
         onRightPress={handleSave}
       />
       <View style={styles.inputWrapper}>
-        <TextInput style={styles.input} value={userName} onChangeText={setUserName} placeholder="请输入" />
+        <TextInput
+          style={styles.input}
+          value={userName}
+          onChangeText={setUserName}
+          placeholder="请输入"
+          cursorColor="rgba(8, 174, 60, 0.5)"
+        />
         {userName.length > 0 && (
           <TouchableOpacity onPress={() => setUserName("")}>
             <Image source={require("@/assets/images/my/icon-close.png")} style={styles.clearIcon} />

@@ -50,6 +50,7 @@ const ManualInputScreen: React.FC = () => {
                 onChangeText={setDeviceImei}
                 placeholder="请输入"
                 placeholderTextColor="#999"
+                cursorColor="rgba(8, 174, 60, 0.5)"
               />
             </View>
           </View>

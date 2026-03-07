@@ -71,6 +71,7 @@ const LandListModel = observer(() => {
             onBlur={() => queryLand({searchValue: searchWord})}
             style={LandListModelStyles.searchInput}
             placeholderTextColor="#999"
+            cursorColor="rgba(8, 174, 60, 0.5)"
           />
         </View>
 

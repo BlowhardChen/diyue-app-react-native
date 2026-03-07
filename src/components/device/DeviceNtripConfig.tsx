@@ -60,6 +60,7 @@ const DeviceNtripConfig: React.FC<Props> = ({visible, deviceConfig, onClosePopup
             value={ntripConfig.ip}
             onChangeText={text => updateField("ip", text)}
             placeholder="请输入服务器IP"
+            cursorColor="rgba(8, 174, 60, 0.5)"
           />
         </View>
 
@@ -71,6 +72,7 @@ const DeviceNtripConfig: React.FC<Props> = ({visible, deviceConfig, onClosePopup
             onChangeText={text => updateField("port", text)}
             placeholder="请输入端口"
             keyboardType="numeric"
+            cursorColor="rgba(8, 174, 60, 0.5)"
           />
         </View>
 
@@ -81,6 +83,7 @@ const DeviceNtripConfig: React.FC<Props> = ({visible, deviceConfig, onClosePopup
             value={ntripConfig.userName}
             onChangeText={text => updateField("userName", text)}
             placeholder="请输入用户名"
+            cursorColor="rgba(8, 174, 60, 0.5)"
           />
         </View>
 
@@ -92,6 +95,7 @@ const DeviceNtripConfig: React.FC<Props> = ({visible, deviceConfig, onClosePopup
             onChangeText={text => updateField("pwd", text)}
             placeholder="请输入密码"
             secureTextEntry
+            cursorColor="rgba(8, 174, 60, 0.5)"
           />
         </View>
 
@@ -102,6 +106,7 @@ const DeviceNtripConfig: React.FC<Props> = ({visible, deviceConfig, onClosePopup
             value={ntripConfig.topic}
             onChangeText={text => updateField("topic", text)}
             placeholder="请输入挂载点"
+            cursorColor="rgba(8, 174, 60, 0.5)"
           />
         </View>
       </View>

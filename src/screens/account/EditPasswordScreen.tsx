@@ -78,6 +78,7 @@ const EditPasswordScreen = () => {
             secureTextEntry={!isNewPasswordShow}
             maxLength={20}
             onChangeText={setNewPassword}
+            cursorColor="rgba(8, 174, 60, 0.5)"
           />
           <TouchableOpacity onPress={() => setIsNewPasswordShow(prev => !prev)}>
             <Image
@@ -101,6 +102,7 @@ const EditPasswordScreen = () => {
             secureTextEntry={!isConfirmPasswordShow}
             maxLength={20}
             onChangeText={setConfirmPassword}
+            cursorColor="rgba(8, 174, 60, 0.5)"
           />
           <TouchableOpacity onPress={() => setIsConfirmPasswordShow(prev => !prev)}>
             <Image

@@ -70,6 +70,7 @@ const LandManagementScreen = observer(() => {
   const [rtkLocation, setRtkLocation] = useState<{lat: number; lon: number}>({lat: 0, lon: 0});
   const isFirstSocketLocationRef = useRef(true);
   const [isShowEditLandNamePopup, setIsShowEditLandNamePopup] = useState(false);
+  const [isStartWarchPositionRef, setIsStartWarchPositionRef] = useState(false);
 
   // 启用屏幕常亮
   useEffect(() => {
@@ -432,6 +433,9 @@ const LandManagementScreen = observer(() => {
     if (deviceStore.deviceImei && deviceStore.status === "1") {
       return;
     }
+
+    if (isStartWarchPositionRef) return;
+
     stopPositionWatch();
 
     // 初始定位（无论定位源，先获取一次位置）
@@ -448,6 +452,7 @@ const LandManagementScreen = observer(() => {
           );
         }
         isFirstLocationRef.current = false;
+        setIsStartWarchPositionRef(true);
       },
       () => {},
       {enableHighAccuracy: true, timeout: 10000, maximumAge: 1000},
@@ -488,6 +493,7 @@ const LandManagementScreen = observer(() => {
     if (watchIdRef.current != null) {
       Geolocation.clearWatch(watchIdRef.current as any);
       watchIdRef.current = null;
+      setIsStartWarchPositionRef(false);
     }
   };
 

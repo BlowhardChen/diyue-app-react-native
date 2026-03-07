@@ -46,6 +46,7 @@ const CustomLayerPopup: React.FC<CustomLayerPopupProps> = ({
                   keyboardType="default"
                   placeholder="请输入图层名称"
                   placeholderTextColor="#999"
+                  cursorColor="rgba(8, 174, 60, 0.5)"
                 />
                 {layerName && (
                   <TouchableOpacity onPress={() => setLayerName("")}>
@@ -64,6 +65,7 @@ const CustomLayerPopup: React.FC<CustomLayerPopupProps> = ({
                   keyboardType="default"
                   placeholder="请输入图层连接"
                   placeholderTextColor="#999"
+                  cursorColor="rgba(8, 174, 60, 0.5)"
                   numberOfLines={6}
                   multiline
                   textAlignVertical="top"

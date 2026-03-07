@@ -350,6 +350,7 @@ const MyScreen = observer(() => {
                       value={popupForm.name}
                       onChangeText={text => handleInputChange("name", text)}
                       placeholderTextColor="#999"
+                      cursorColor="rgba(8, 174, 60, 0.5)"
                     />
                     <TouchableOpacity style={MyScreenStyles.popupImg} onPress={scanCard}>
                       <Image source={require("@/assets/images/common/icon-scan.png")} style={MyScreenStyles.scanIcon} />
@@ -366,6 +367,7 @@ const MyScreen = observer(() => {
                       value={popupForm.cardid}
                       onChangeText={text => handleInputChange("cardid", text)}
                       placeholderTextColor="#999"
+                      cursorColor="rgba(8, 174, 60, 0.5)"
                       keyboardType="numeric"
                     />
                     <TouchableOpacity style={MyScreenStyles.popupImg} onPress={scanCard}>

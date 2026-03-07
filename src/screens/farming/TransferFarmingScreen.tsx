@@ -207,6 +207,7 @@ const TransferFarmingScreen = ({route}: {route: {params: {farmingJoinTypeId: str
             onChangeText={setNewOperatorAccount}
             placeholder="点击填写"
             placeholderTextColor="#999"
+            cursorColor="rgba(8, 174, 60, 0.5)"
           />
         </View>
       </ScrollView>

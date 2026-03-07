@@ -328,6 +328,7 @@ const AddFarmingScreen = ({route}: {route: {params: {farmingId?: string}}}) => {
               onChangeText={setFarmingName}
               placeholder="请输入农事名称"
               placeholderTextColor="#999"
+              cursorColor="rgba(8, 174, 60, 0.5)"
             />
             <Image source={require("@/assets/images/common/icon-edit.png")} style={AddFarmingScreenStyles.editIconImg} />
           </View>

@@ -213,6 +213,7 @@ const CodeLoginScreen = () => {
             autoFocus={focus}
             onFocus={() => setFocus(true)}
             onBlur={() => setFocus(false)}
+            cursorColor="rgba(8, 174, 60, 0.5)"
           />
 
           {/* 展示层作为视觉反馈 */}

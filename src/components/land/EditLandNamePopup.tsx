@@ -63,6 +63,7 @@ const EditLandNamePopup: React.FC<EditLandNamePopupProps> = ({id, initialName = 
                 keyboardType="default"
                 placeholder="请输入地块名称"
                 placeholderTextColor="#999"
+                cursorColor="rgba(8, 174, 60, 0.5)"
               />
             </View>
           </View>

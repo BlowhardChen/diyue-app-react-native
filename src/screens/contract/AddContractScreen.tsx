@@ -658,6 +658,7 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
             style={AddContractScreenStyles.content}
             value={contractFormInfo.detailaddress}
             onChangeText={text => setContractFormInfo(prev => ({...prev, detailaddress: text}))}
+            cursorColor="rgba(8, 174, 60, 0.5)"
           />
         </View>
       </View>
@@ -735,6 +736,7 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
                     }))
                   }
                   keyboardType="numeric"
+                  cursorColor="rgba(8, 174, 60, 0.5)"
                 />
                 <Text style={AddContractScreenStyles.rentUnit}>元/亩</Text>
               </View>
@@ -939,6 +941,7 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
                 value={contractFormInfo.relename}
                 onChangeText={text => setContractFormInfo(prev => ({...prev, relename: text}))}
                 placeholder="请输入"
+                cursorColor="rgba(8, 174, 60, 0.5)"
               />
               <TouchableOpacity style={AddContractScreenStyles.msgImg} onPress={() => scanCard("身份证")}>
                 <Image source={require("@/assets/images/common/icon-scan.png")} style={AddContractScreenStyles.icon} />
@@ -952,6 +955,7 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
                 onChangeText={text => setContractFormInfo(prev => ({...prev, cardid: text}))}
                 placeholder="请输入"
                 keyboardType="numeric"
+                cursorColor="rgba(8, 174, 60, 0.5)"
               />
               <TouchableOpacity style={AddContractScreenStyles.msgImg} onPress={() => scanCard("身份证")}>
                 <Image source={require("@/assets/images/common/icon-scan.png")} style={AddContractScreenStyles.icon} />
@@ -965,6 +969,7 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
                 onChangeText={text => setContractFormInfo(prev => ({...prev, bankAccount: text}))}
                 placeholder="请输入"
                 keyboardType="numeric"
+                cursorColor="rgba(8, 174, 60, 0.5)"
               />
               <TouchableOpacity style={AddContractScreenStyles.msgImg} onPress={() => scanCard("银行卡")}>
                 <Image source={require("@/assets/images/common/icon-scan.png")} style={AddContractScreenStyles.icon} />
@@ -979,6 +984,7 @@ const AddContractScreen: React.FC<{route: any; navigation: any}> = ({route, navi
                 placeholder="请输入"
                 keyboardType="phone-pad"
                 maxLength={11}
+                cursorColor="rgba(8, 174, 60, 0.5)"
               />
             </View>
           </View>

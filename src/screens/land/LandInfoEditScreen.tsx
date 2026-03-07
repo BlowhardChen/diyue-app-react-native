@@ -257,7 +257,7 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
     });
     const {regeocode} = JSON.parse(res.data);
     const {formatted_address, addressComponent} = regeocode;
-
+    console.log("地块位置信息", regeocode);
     setLandFormInfo(prev => ({
       ...prev,
       country: addressComponent.country ?? "",
@@ -272,6 +272,7 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
   // 获取详情数据
   const getLandDetailInfData = async (id: string) => {
     const {data} = await getLandDetailsInfo(id);
+    console.log("地块详情数据", data);
     landCoordinates.current = data.list;
     setLandFormInfo({
       ...landFormInfo,
@@ -291,8 +292,8 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
   // 生命周期
   useEffect(() => {
     console.log("params.queryInfo", params.queryInfo);
-    if (params.queryInfo && params.queryInfo.gpsList && params.queryInfo.gpsList.length > 0) {
-      getLandLocation(params.queryInfo.gpsList[0]);
+    if (params.queryInfo && params.queryInfo.list && params.queryInfo.list.length > 0) {
+      getLandLocation(params.queryInfo.list[0]);
     }
     if (params.queryInfo && params.queryInfo.id) {
       getLandDetailInfData(params.queryInfo.id);
@@ -322,6 +323,7 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
                   handleLandNameInput(text);
                 }}
                 onBlur={blurLandName}
+                cursorColor="rgba(8, 174, 60, 0.5)"
               />
               <TouchableOpacity style={LandInfoEditScreenStyles.informationImg} onPress={() => scanCard("身份证")}>
                 <Image source={require("@/assets/images/common/icon-scan.png")} style={LandInfoEditScreenStyles.scanIcon} />
@@ -336,6 +338,7 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
                 placeholder="请输入"
                 keyboardType="numeric"
                 onChangeText={text => setLandFormInfo(prev => ({...prev, cardid: text}))}
+                cursorColor="rgba(8, 174, 60, 0.5)"
               />
               <TouchableOpacity style={LandInfoEditScreenStyles.informationImg} onPress={() => scanCard("身份证")}>
                 <Image source={require("@/assets/images/common/icon-scan.png")} style={LandInfoEditScreenStyles.scanIcon} />
@@ -350,6 +353,7 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
                 placeholder="请输入"
                 keyboardType="numeric"
                 onChangeText={text => setLandFormInfo(prev => ({...prev, bankAccount: text}))}
+                cursorColor="rgba(8, 174, 60, 0.5)"
               />
               <TouchableOpacity style={LandInfoEditScreenStyles.informationImg} onPress={() => scanCard("银行卡")}>
                 <Image source={require("@/assets/images/common/icon-scan.png")} style={LandInfoEditScreenStyles.scanIcon} />
@@ -365,6 +369,7 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
                 keyboardType="phone-pad"
                 maxLength={11}
                 onChangeText={text => setLandFormInfo(prev => ({...prev, mobile: text}))}
+                cursorColor="rgba(8, 174, 60, 0.5)"
               />
               <View style={LandInfoEditScreenStyles.informationImg} />
             </View>
@@ -409,6 +414,7 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
                     }
                     onBlur={blurAcreNum}
                     style={LandInfoEditScreenStyles.unitInput}
+                    cursorColor="rgba(8, 174, 60, 0.5)"
                   />
                   <Text style={LandInfoEditScreenStyles.unitText}>亩</Text>
                 </View>
@@ -438,6 +444,7 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
                 value={landFormInfo.district}
                 placeholder="请输入"
                 onChangeText={text => setLandFormInfo(prev => ({...prev, district: text}))}
+                cursorColor="rgba(8, 174, 60, 0.5)"
               />
               {/* <TouchableOpacity style={LandInfoEditScreenStyles.informationImg} onPress={selectCity}>
                 <Image source={require("@/assets/images/common/icon-right.png")} style={LandInfoEditScreenStyles.rightIcon} />
@@ -451,6 +458,7 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
                 value={landFormInfo.township}
                 placeholder="请输入"
                 onChangeText={text => setLandFormInfo(prev => ({...prev, township: text}))}
+                cursorColor="rgba(8, 174, 60, 0.5)"
               />
               <View style={LandInfoEditScreenStyles.informationImg} />
             </View>
@@ -467,6 +475,7 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
                     administrativeVillage: text,
                   }))
                 }
+                cursorColor="rgba(8, 174, 60, 0.5)"
               />
               <View style={LandInfoEditScreenStyles.informationImg} />
             </View>
@@ -478,6 +487,7 @@ const LandInfoEditScreen = ({route}: {route: any}) => {
                 value={landFormInfo.detailaddress}
                 placeholder="请输入"
                 onChangeText={text => setLandFormInfo(prev => ({...prev, detailaddress: text}))}
+                cursorColor="rgba(8, 174, 60, 0.5)"
               />
               <View style={LandInfoEditScreenStyles.informationImg} />
             </View>
